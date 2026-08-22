@@ -1,0 +1,4155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentFlow — แอป</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f9fafc;
+    --card:#ffffff;
+    --text:#1a2032;
+    --text-sub:#5c6478;
+    --accent:#2563eb;
+    --btn:#1a2032;
+    --success:#16a34a;
+    --warning:#d97706;
+    --danger:#dc2626;
+    --border:#eef0f4;
+    --radius:14px;
+    --shadow:0 4px 18px rgba(26,32,50,.06), 0 1px 3px rgba(26,32,50,.04);
+    --sidebar-w:230px;
+    --topbar-h:60px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Sarabun',sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4,.num,.brand,.btn{font-family:'IBM Plex Sans Thai',sans-serif;}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:'Sarabun',sans-serif;}
+
+  /* ===== Layout ===== */
+  .app-shell{display:flex; min-height:100vh;}
+
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:#fff;
+    border-right:1px solid var(--border);
+    display:flex; flex-direction:column;
+    position:fixed; top:0; left:0; bottom:0; z-index:100;
+    transition:transform .2s ease;
+  }
+  .sb-logo{
+    display:flex; align-items:center; gap:10px;
+    padding:20px 18px; font-weight:700; font-size:16px;
+    border-bottom:1px solid var(--border);
+  }
+  .sb-logo .mark{
+    width:34px; height:34px; border-radius:9px; flex-shrink:0;
+    background:linear-gradient(135deg,var(--btn),var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-size:13.5px; font-weight:700; color:#fff; letter-spacing:-.02em;
+    overflow:hidden;
+  }
+  .sb-logo .mark img, .login-logo .mark img{width:100%; height:100%; object-fit:cover; border-radius:inherit;}
+  .logo-edit-btn{
+    flex-shrink:0; background:none; border:1px solid var(--border); border-radius:7px;
+    width:26px; height:26px; font-size:11px; color:var(--text-sub); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .logo-edit-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .logo-preview{
+    width:64px; height:64px; border-radius:14px; margin:0 auto 16px;
+    background:linear-gradient(135deg,var(--btn),var(--accent));
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    font-size:22px; font-weight:700; color:#fff;
+  }
+  .logo-preview img{width:100%; height:100%; object-fit:cover;}
+  .sb-team{font-size:11.5px; color:var(--text-sub); font-weight:500; margin-top:1px;}
+  .sb-menu{display:flex; flex-direction:column; gap:3px; padding:14px 10px; overflow-y:auto; flex:1;}
+  .sb-footer{
+    padding:12px 14px; border-top:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+  }
+  .sb-user{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; min-width:0;}
+  .sb-user .avatar{margin-right:0; flex-shrink:0;}
+  .sb-user span.name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+
+  /* ===== Boot loading / error ===== */
+  .boot-overlay{
+    position:fixed; inset:0; background:var(--bg); z-index:900;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .boot-card{ text-align:center; max-width:320px; }
+
+  /* ===== Login gate ===== */
+  .login-gate{
+    position:fixed; inset:0; background:var(--bg); z-index:500;
+    display:flex; align-items:center; justify-content:center; padding:24px;
+  }
+  .login-gate.hidden{display:none;}
+  .app-shell.hidden{display:none;}
+  .login-card{
+    background:#fff; border-radius:18px; box-shadow:var(--shadow); border:1px solid var(--border);
+    padding:38px 32px; max-width:400px; width:100%; text-align:center;
+  }
+  .login-logo{display:flex; align-items:center; justify-content:center; gap:10px; font-size:20px; font-weight:700; margin-bottom:6px;}
+  .login-logo .mark{
+    width:36px; height:36px; border-radius:10px;
+    background:linear-gradient(135deg,var(--btn),var(--accent));
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:700; color:#fff; letter-spacing:-.02em;
+    overflow:hidden;
+  }
+  .login-sub{font-size:13.5px; color:var(--text-sub); margin-bottom:24px;}
+  .login-member-list{display:flex; flex-direction:column; gap:8px; text-align:left;}
+  .login-member-row{display:flex; align-items:center; gap:8px;}
+  .login-member-btn{
+    display:flex; align-items:center; justify-content:center; gap:12px; flex:1; min-width:0;
+    padding:10px 14px; border-radius:11px; border:1px solid var(--border); background:var(--bg);
+    cursor:pointer; font-size:14.5px; font-weight:600; color:var(--text);
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .login-member-btn:hover{border-color:var(--accent); background:#eaf1ff;}
+  .login-member-btn .status-note{font-size:11.5px; font-weight:500; color:var(--text-sub);}
+  .login-member-info{display:flex; flex-direction:column; align-items:center; gap:1px; min-width:0; overflow:hidden; text-align:center;}
+  .login-member-position{font-size:11.5px; font-weight:500; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .sb-item{
+    display:flex; align-items:center; gap:11px;
+    padding:11px 12px; border-radius:10px; font-size:14px; color:var(--text-sub);
+    font-weight:500; cursor:pointer; border:none; background:none; text-align:left; width:100%;
+  }
+  .sb-item:hover{background:var(--bg); color:var(--text);}
+  .sb-item.active{background:#eaf1ff; color:var(--accent); font-weight:600;}
+  .sb-item .ic{font-size:16px; width:20px; text-align:center;}
+
+  .sb-backdrop{
+    display:none; position:fixed; inset:0; background:rgba(26,32,50,.35); z-index:90;
+  }
+
+  .main{flex:1; margin-left:var(--sidebar-w); min-width:0; display:flex; flex-direction:column;}
+
+  .topbar{
+    height:var(--topbar-h); flex-shrink:0; background:rgba(249,250,252,.9); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 24px; position:sticky; top:0; z-index:50; gap:14px;
+  }
+  .topbar-left{display:flex; align-items:center; gap:14px; min-width:0;}
+  .sync-banner{
+    background:#fff7ed; border-bottom:1px solid #fed7aa; color:#9a3412;
+    font-size:13px; font-weight:600; padding:10px 24px; display:flex; align-items:center; gap:10px;
+  }
+  .sync-banner button{
+    background:none; border:1px solid #9a3412; border-radius:8px; color:#9a3412;
+    font-size:12px; font-weight:600; padding:4px 10px; cursor:pointer;
+  }
+  .hamburger{
+    display:none; background:none; border:1px solid var(--border); border-radius:9px;
+    width:38px; height:38px; font-size:18px; cursor:pointer; color:var(--text); flex-shrink:0;
+  }
+  .page-title{font-size:17px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .badge-dot{
+    display:inline-flex; align-items:center; gap:6px; font-size:12.5px; color:var(--text-sub);
+    background:#fff; padding:7px 13px; border-radius:999px; border:1px solid var(--border);
+    white-space:nowrap; flex-shrink:0;
+  }
+
+  .content{padding:26px; flex:1;}
+  .page{display:none;}
+  .page.active{display:block;}
+
+  .card{
+    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    border:1px solid var(--border); padding:20px;
+  }
+  .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:18px;}
+  .grid-2{display:grid; grid-template-columns:1.15fr .85fr; gap:16px;}
+
+  .bar-list{display:flex; flex-direction:column; gap:11px;}
+  .bar-row{display:flex; align-items:center; gap:10px; font-size:12.5px;}
+  .bar-row .name{width:60px; color:var(--text-sub); flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .bar-track{flex:1; height:8px; background:var(--bg); border-radius:6px; overflow:hidden;}
+  .bar-fill{height:100%; background:var(--accent); border-radius:6px;}
+  .bar-row .val{width:56px; text-align:right; color:var(--text-sub); flex-shrink:0;}
+  .bar-row.clickable{cursor:pointer; border-radius:8px; margin:-4px -6px; padding:4px 6px; transition:background .15s ease;}
+  .bar-row.clickable:hover{background:var(--bg);}
+  .bar-row.clickable:hover .name{color:var(--accent);}
+  .rank-badge{
+    width:20px; height:20px; border-radius:50%; background:var(--bg); border:1px solid var(--border);
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700;
+    color:var(--text-sub); flex-shrink:0;
+  }
+  .rank-badge.rank-1{background:#fff7e6; border-color:#f5a623; color:#b8790a;}
+  .trend-up{color:var(--success); font-weight:700;}
+  .trend-down{color:var(--danger); font-weight:700;}
+  .trend-flat{color:var(--text-sub);}
+
+  .brand-summary-row{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:14px 0; border-bottom:1px solid var(--border); flex-wrap:wrap;
+  }
+  .brand-summary-row:last-child{border-bottom:none;}
+  .brand-summary-stats{display:flex; gap:22px; flex-wrap:wrap;}
+  .brand-summary-stats .stat{text-align:right;}
+  .brand-summary-stats .stat-num{font-size:17px; font-weight:700; font-family:'IBM Plex Sans Thai',sans-serif;}
+  .brand-summary-stats .stat-label{font-size:11px; color:var(--text-sub);}
+
+  .csv-btn{
+    display:inline-flex; align-items:center; gap:7px;
+    background:#fff; border:1.5px solid var(--border); color:var(--text);
+    padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .csv-btn:hover{border-color:var(--accent); color:var(--accent);}
+
+  .kpi-card .label{font-size:12.5px; color:var(--text-sub); margin-bottom:8px;}
+  .kpi-card .num{font-size:30px; font-weight:700;}
+  .kpi-card .num small{font-size:14px; font-weight:500; color:var(--text-sub);}
+
+  .mini-stat-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:14px;}
+  .mini-stat{background:var(--card); border-radius:10px; box-shadow:var(--shadow); border:1px solid var(--border); padding:10px 12px;}
+  .mini-stat .label{font-size:11px; color:var(--text-sub); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .mini-stat .num{font-size:22px; font-weight:700;}
+  .mini-stat .num small{font-size:11.5px; font-weight:500; color:var(--text-sub);}
+  @media (max-width:1180px){.mini-stat-grid{grid-template-columns:repeat(3,1fr);}}
+
+  .type-chip-row{display:flex; flex-wrap:wrap; gap:8px;}
+  .type-chip{
+    display:inline-flex; align-items:baseline; gap:5px; background:var(--bg); border:1px solid var(--border);
+    border-radius:999px; padding:5px 12px; font-size:12px;
+  }
+  .type-chip .n{font-weight:700; font-size:13px; color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif;}
+  .type-chip .t{color:var(--text-sub);}
+
+  .brand-summary-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
+  .brand-summary-card{border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
+  .brand-summary-card .bs-head{display:flex; align-items:center; gap:0; margin-bottom:8px;}
+  .brand-summary-card .li-title{font-size:13px;}
+  .brand-summary-card .li-sub{font-size:11.5px;}
+  .brand-summary-card .bs-stats{display:flex; justify-content:space-between; gap:6px;}
+  .brand-summary-card .stat{text-align:center; flex:1;}
+  .brand-summary-card .stat-num{font-size:15px; font-weight:700; font-family:'IBM Plex Sans Thai',sans-serif;}
+  .brand-summary-card .stat-label{font-size:10px; color:var(--text-sub);}
+
+  .chip{
+    display:inline-flex; align-items:center; gap:5px;
+    padding:4px 11px; border-radius:999px; font-size:12px; font-weight:600;
+    white-space:nowrap;
+  }
+  .chip-done{background:#e3f6e9; color:var(--success);}
+  .chip-idea{background:#eef0f4; color:var(--text-sub);}
+  .chip-script{background:#e6edfe; color:var(--accent);}
+  .chip-shoot{background:#fef3e1; color:var(--warning);}
+  .chip-edit{background:#fde8e8; color:#b5443a;}
+  .chip-ready{background:#e6edfe; color:var(--accent);}
+  .chip-outline{background:#fff; border:1px solid var(--border); color:var(--text-sub);}
+  .chip-event{background:#f3e8ff; color:#7c3aed;}
+
+  .list-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .list-item:last-child{border-bottom:none;}
+  .li-title{font-weight:600; font-size:14px; margin-bottom:3px;}
+  .li-sub{font-size:12.5px; color:var(--text-sub);}
+
+  .status-select{width:auto; min-width:150px; padding:7px 10px; font-size:12.5px;}
+
+  textarea.form-control{resize:vertical; min-height:60px; line-height:1.5;}
+
+  .script-card{border:1px solid var(--border); border-radius:12px; padding:16px; background:#fff; transition:background .3s ease, outline .2s ease;}
+  .script-card + .script-card{margin-top:14px;}
+  .script-card-head{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+  .script-box{border:1px dashed var(--border); border-radius:11px; padding:14px; background:var(--bg);}
+  .script-box .k{font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--accent); font-weight:700; margin-bottom:5px;}
+  .script-box .v{font-size:13.5px; margin-bottom:12px; white-space:pre-wrap;}
+  .script-box .v:last-child{margin-bottom:0;}
+  .flash-highlight{outline:2px solid var(--accent); background:#eaf1ff;}
+
+  .idea-card{border-radius:12px; border:1px solid var(--border); padding:14px 16px; background:var(--bg); display:flex; flex-direction:column; gap:10px;}
+  .idea-card .idea-content{font-size:14px; font-weight:600; line-height:1.5;}
+  .idea-card .idea-meta{font-size:12px; color:var(--text-sub);}
+  .idea-card .idea-actions{display:flex; gap:6px; justify-content:flex-end;}
+
+  .member-avatar-lg{
+    width:56px; height:56px; border-radius:14px; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; color:var(--text);
+    border:1px solid var(--border); flex-shrink:0; overflow:hidden;
+  }
+  .member-avatar-lg img{width:100%; height:100%; object-fit:cover;}
+
+  .hr-info-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:16px 24px;}
+  .hr-info-grid .hr-label{font-size:11.5px; color:var(--text-sub); margin-bottom:3px;}
+  .hr-info-grid .hr-value{font-size:14px; font-weight:600;}
+  @media (max-width:860px){.hr-info-grid{grid-template-columns:1fr;}}
+
+  .calendar-weekday-row{
+    display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px;
+    font-size:12px; font-weight:600; color:var(--text-sub); text-align:center;
+    padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border);
+  }
+  .calendar-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px;}
+  .calendar-cell{
+    background:var(--bg); border:1px solid var(--border); border-radius:10px;
+    min-height:96px; padding:6px; display:flex; flex-direction:column; gap:3px; min-width:0;
+  }
+  .calendar-cell.other-month{opacity:.4;}
+  .calendar-cell.is-today{border-color:var(--accent); background:#eaf1ff;}
+  .calendar-cell:not(.other-month){cursor:pointer; transition:border-color .15s ease, background .15s ease;}
+  .calendar-cell:not(.other-month):hover{border-color:var(--accent); background:#eaf1ff;}
+  .calendar-day-num{font-size:12px; font-weight:700; color:var(--text-sub);}
+  .calendar-item{
+    font-size:10.5px; padding:2px 6px; border-radius:6px; white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; font-weight:600;
+  }
+  .calendar-more{font-size:10px; color:var(--text-sub); margin-top:1px;}
+  .calendar-holiday{
+    font-size:9.5px; font-weight:700; color:var(--danger); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis;
+  }
+  @media (max-width:860px){
+    .calendar-cell{min-height:56px; padding:4px;}
+    .calendar-item{font-size:9px; padding:1px 4px;}
+  }
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  th{
+    text-align:left; color:var(--text-sub); font-weight:600; font-size:12px;
+    text-transform:uppercase; letter-spacing:.03em; padding:0 10px 10px; border-bottom:1px solid var(--border);
+  }
+  td{padding:12px 10px; border-bottom:1px solid var(--border); vertical-align:middle;}
+  tr:last-child td{border-bottom:none;}
+  td.num-cell, th.num-cell{text-align:right;}
+  .avatar{
+    width:30px; height:30px; border-radius:50%; background:var(--bg);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:600; color:var(--text); margin-right:9px; vertical-align:middle;
+    border:1px solid var(--border); overflow:hidden; flex-shrink:0;
+  }
+  .avatar img{width:100%; height:100%; object-fit:cover;}
+
+  .avatar-upload-row{display:flex; align-items:center; gap:12px;}
+  .avatar-upload-preview{
+    width:48px; height:48px; border-radius:50%; background:var(--bg);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    font-size:17px; font-weight:600; color:var(--text); border:1px solid var(--border); flex-shrink:0;
+  }
+  .avatar-upload-preview img{width:100%; height:100%; object-fit:cover;}
+
+  .empty-state{
+    text-align:center; padding:70px 20px; color:var(--text-sub);
+  }
+  .empty-state .ic{font-size:38px; margin-bottom:14px;}
+  .empty-state h3{color:var(--text); margin:0 0 8px; font-size:18px;}
+  .empty-state p{margin:0; font-size:14px;}
+
+  .empty-mini{text-align:center; padding:30px 10px; color:var(--text-sub); font-size:13.5px;}
+
+  .tag-list{display:flex; flex-wrap:wrap; gap:6px;}
+  .tag-chip{display:inline-flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:5px 6px 5px 12px; font-size:12.5px; font-weight:600; color:var(--text);}
+  .tag-chip button{background:none; border:none; cursor:pointer; color:var(--text-sub); font-size:14px; line-height:1; padding:2px 4px; border-radius:50%;}
+  .tag-chip button:hover{background:#fde8e8; color:var(--danger);}
+
+  .aw-block{border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px; background:var(--bg);}
+  .aw-block-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .aw-block-num{font-weight:700; font-size:12.5px; color:var(--text-sub);}
+
+  .team-mcard-list{display:none;}
+  .team-mcard{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow);
+  }
+  .team-mcard-top{display:flex; align-items:center; gap:0;}
+  .team-mcard-name{flex:1; min-width:0;}
+  .team-mcard-name .nm{font-weight:700; font-size:14.5px;}
+  .team-mcard-name .sub{font-size:12px; color:var(--text-sub); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .team-mcard-top .status-select{width:auto; min-width:0; max-width:104px; font-size:11.5px; padding:5px 6px; flex-shrink:0;}
+  .team-mcard-bottom{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin-top:10px; padding-top:10px; border-top:1px solid var(--border);
+    font-size:12px; color:var(--text-sub);
+  }
+  .team-mcard-bottom .qty{font-weight:700; color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif;}
+  .team-mcard-bottom .action-btns{margin:0;}
+
+  .ss-wrap{position:relative;}
+  .ss-dropdown{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    box-shadow:var(--shadow); max-height:240px; overflow-y:auto; z-index:40;
+  }
+  .ss-dropdown.open{display:block;}
+  .ss-option{padding:9px 12px; font-size:13.5px; cursor:pointer;}
+  .ss-option:hover{background:var(--bg);}
+  .ss-option-clear{color:var(--text-sub);}
+  .ss-option-empty{padding:9px 12px; font-size:13.5px; color:var(--text-sub);}
+
+  /* ===== Page head / buttons ===== */
+  .page-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
+  .page-head h2{margin:0 0 5px; font-size:20px; font-weight:700;}
+  .page-head p{margin:0; color:var(--text-sub); font-size:13.5px; max-width:520px;}
+
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    padding:11px 18px; border-radius:10px;
+    background:var(--btn); color:#fff; font-weight:600; font-size:14px;
+    border:none; cursor:pointer; transition:background .15s ease, transform .1s ease;
+    white-space:nowrap;
+  }
+  .btn:hover{background:var(--accent);}
+  .btn:active{transform:scale(.98);}
+  .btn:disabled{opacity:.6; cursor:default; transform:none;}
+  .btn-outline{background:transparent; color:var(--text); border:1.5px solid var(--border);}
+  .btn-outline:hover{background:#fff; border-color:var(--accent); color:var(--accent);}
+  .btn-sm{padding:8px 14px; font-size:13px; border-radius:8px;}
+
+  /* ===== Form controls ===== */
+  .field-row{margin-bottom:14px;}
+  .field-row label{display:block; font-size:12.5px; color:var(--text-sub); margin-bottom:6px; font-weight:600;}
+  .form-control{
+    width:100%; background:var(--bg); border:1px solid var(--border); border-radius:9px;
+    padding:10px 12px; font-size:13.5px; color:var(--text); font-family:'Sarabun',sans-serif;
+  }
+  .form-control:focus{outline:none; border-color:var(--accent); background:#fff;}
+  select.form-control{cursor:pointer;}
+
+  .report-grid{display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start;}
+
+  .toolbar{display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:flex-end;}
+  .toolbar .field-row{margin-bottom:0; min-width:170px;}
+
+  .action-btns{display:flex; gap:6px; flex-wrap:wrap;}
+  .icon-btn{
+    background:none; border:1px solid var(--border); border-radius:7px;
+    padding:6px 10px; font-size:12px; color:var(--text-sub); cursor:pointer; font-weight:600;
+    white-space:nowrap;
+  }
+  .icon-btn:hover{border-color:var(--accent); color:var(--accent);}
+  .icon-btn.danger:hover{border-color:var(--danger); color:var(--danger);}
+
+  /* ===== Modal ===== */
+  .modal-overlay{
+    display:none; position:fixed; inset:0; background:rgba(26,32,50,.45); z-index:600;
+    align-items:center; justify-content:center; padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  #memberModalOverlay{z-index:650;}
+  .modal{background:#fff; border-radius:16px; padding:26px; max-width:420px; width:100%; box-shadow:var(--shadow);}
+  .modal h3{margin:0 0 18px; font-size:18px;}
+  .modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:20px;}
+  .form-msg{font-size:12.5px; color:var(--danger); margin-top:2px; display:none;}
+  .wi-section-label{
+    font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.04em;
+    color:var(--accent); margin:18px 0 8px; padding-top:14px; border-top:1px solid var(--border);
+  }
+
+  @media (max-width:860px){
+    .sidebar{transform:translateX(-100%);}
+    .sidebar.open{transform:translateX(0); box-shadow:var(--shadow);}
+    .sb-backdrop.open{display:block;}
+    .main{margin-left:0;}
+    .hamburger{display:flex; align-items:center; justify-content:center;}
+    .grid-3{grid-template-columns:1fr;}
+    .grid-2{grid-template-columns:1fr;}
+    .report-grid{grid-template-columns:1fr;}
+    .content{padding:18px;}
+    .topbar{padding:0 14px; gap:8px;}
+    .btn-label{display:none;}
+    .badge-dot{padding:7px 10px;}
+
+    table.responsive-collapse thead{display:none;}
+    table.responsive-collapse, table.responsive-collapse tbody{display:block; width:100%;}
+    table.responsive-collapse tr{
+      display:block; margin-bottom:12px; border:1px solid var(--border); border-radius:12px;
+      padding:4px 12px; background:var(--card);
+    }
+    table.responsive-collapse tr:last-child{margin-bottom:0;}
+    table.responsive-collapse td{
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      padding:9px 0; border-bottom:1px solid var(--border); text-align:right;
+    }
+    table.responsive-collapse td:last-child{border-bottom:none;}
+    table.responsive-collapse td::before{
+      content:attr(data-label); font-weight:600; color:var(--text-sub); text-align:left;
+      font-size:12px; flex-shrink:0;
+    }
+    table.responsive-collapse td:empty::before,
+    table.responsive-collapse td[data-label=""]::before{content:none;}
+    table.responsive-collapse td .action-btns{justify-content:flex-end; width:100%;}
+
+    .mini-stat-grid{grid-template-columns:repeat(3,1fr) !important;}
+    .mini-stat{padding:8px 10px;}
+    .mini-stat .label{font-size:10.5px !important;}
+    .mini-stat .num{font-size:18px !important;}
+    .dash-compact .card{padding:14px !important;}
+
+    #teamTableCard{display:none;}
+    .team-mcard-list{display:block;}
+
+    .brand-summary-grid{grid-template-columns:repeat(2,1fr) !important; gap:8px;}
+    .brand-summary-card{padding:8px 9px;}
+    .brand-summary-card .bs-head{margin-bottom:6px; gap:6px;}
+    .brand-summary-card .avatar{width:24px; height:24px; font-size:11px; margin-right:6px;}
+    .brand-summary-card .li-title{font-size:12px;}
+    .brand-summary-card .li-sub{font-size:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .brand-summary-card .bs-stats{gap:2px;}
+    .brand-summary-card .stat-num{font-size:13px;}
+    .brand-summary-card .stat-label{font-size:9px;}
+
+    .type-chip{padding:4px 9px; font-size:11px;}
+    .type-chip .n{font-size:12px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Boot loading / error ===== -->
+<div class="boot-overlay" id="bootLoadingOverlay">
+  <div class="boot-card">
+    <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#1a2032,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;margin:0 auto 16px;">CF</div>
+    <div style="font-weight:700; font-size:15px; margin-bottom:6px;">กำลังโหลดข้อมูล...</div>
+    <div style="font-size:13px; color:var(--text-sub);">เชื่อมต่อกับเซิร์ฟเวอร์ข้อมูลกลาง</div>
+  </div>
+</div>
+<div class="boot-overlay" id="bootErrorOverlay" style="display:none;">
+  <div class="boot-card">
+    <div style="font-size:32px; margin-bottom:10px;">⚠️</div>
+    <div style="font-weight:700; font-size:15px; margin-bottom:6px;">เชื่อมต่อเซิร์ฟเวอร์ไม่สำเร็จ</div>
+    <div style="font-size:13px; color:var(--text-sub); margin-bottom:16px;">ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง</div>
+    <button class="btn btn-sm" id="bootRetryBtn" style="margin:0 auto;">ลองใหม่</button>
+  </div>
+</div>
+
+<!-- ===== Login Gate ===== -->
+<div class="login-gate" id="loginGate">
+  <div class="login-card">
+    <div class="login-logo"><span class="mark" id="loginLogoMark">CF</span> <span id="loginLogoName">ContentFlow</span></div>
+    <div class="login-sub">เลือกชื่อของคุณเพื่อเข้าใช้งาน (ไม่ต้องใช้รหัสผ่าน — ใช้สำหรับบันทึกประวัติการใช้งานเท่านั้น)</div>
+    <div class="login-member-list" id="loginMemberList"></div>
+    <div class="empty-mini" id="loginEmptyMsg" style="display:none;">ยังไม่มีสมาชิกในระบบ กดปุ่มด้านล่างเพื่อเพิ่มสมาชิกคนแรก</div>
+    <button class="btn btn-outline btn-sm" id="loginManageProfileBtn" style="width:100%; justify-content:center; margin-top:16px;">🗂️ จัดการโปรไฟล์ผู้ใช้</button>
+  </div>
+</div>
+
+<div class="app-shell hidden" id="appShell">
+  <div class="sb-backdrop" id="sbBackdrop"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <span class="mark" id="sbLogoMark">CF</span>
+      <div style="min-width:0; flex:1;">
+        <div id="sbLogoName" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">ContentFlow</div>
+        <div class="sb-team">ทีม Content Creator</div>
+      </div>
+      <button class="logo-edit-btn" id="openBrandingBtn" title="แก้ไขโลโก้และชื่อแอป">✎</button>
+    </div>
+    <nav class="sb-menu" id="sbMenu">
+      <button class="sb-item" data-page="dashboard"><span class="ic">📊</span> แดชบอร์ด</button>
+      <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงานประจำวัน</button>
+      <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
+      <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
+      <button class="sb-item" data-page="plan"><span class="ic">🗓️</span> แพลนคอนเทนต์</button>
+      <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
+      <button class="sb-item" data-page="ideas"><span class="ic">💡</span> ไอเดีย & เทรนด์</button>
+      <button class="sb-item" data-page="team"><span class="ic">👥</span> ทีมงาน</button>
+      <button class="sb-item" data-page="summary"><span class="ic">📈</span> สรุป KPI</button>
+      <button class="sb-item" data-page="activity"><span class="ic">🕒</span> ประวัติการใช้งาน</button>
+    </nav>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <span class="avatar" id="currentUserAvatar"></span>
+        <span class="name" id="currentUserName"></span>
+      </div>
+      <button class="icon-btn" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburgerBtn">☰</button>
+        <div class="page-title" id="pageTitle">แดชบอร์ด</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <button class="icon-btn" id="refreshDataBtn" title="ดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์">🔄 <span class="btn-label">รีเฟรชข้อมูล</span></button>
+        <span class="badge-dot" id="topbarBadge">🔔 0 คอนเทนต์ใกล้ถึงวันลง</span>
+      </div>
+    </div>
+    <div class="sync-banner" id="syncBanner" style="display:none;"></div>
+
+    <div class="content">
+      <div class="page dash-compact" data-page="dashboard">
+        <div class="mini-stat-grid">
+          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num" id="kpiTotal">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">ลงแล้ว</div><div class="num" id="kpiPublished">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">ส่งรีพอร์ต</div><div class="num" id="kpiMembers">0 <small>/0 คน</small></div></div>
+          <div class="mini-stat"><div class="label">กำลังทำ</div><div class="num" id="teamWorkInProgress">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">รอตรวจ</div><div class="num" id="teamWorkPendingReview">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">โพสต์แล้ว</div><div class="num" id="teamWorkPosted">0 <small>งาน</small></div></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="page-head" style="margin-bottom:8px;">
+            <div style="font-weight:700; font-size:13px;">สรุปงานแยกตามแบรนด์</div>
+            <button class="icon-btn" onclick="showPage('brands')">🏢 จัดการแบรนด์</button>
+          </div>
+          <div class="brand-summary-grid" id="brandWorkSummaryList"></div>
+          <div class="empty-mini" id="brandWorkSummaryEmpty" style="display:none;">ยังไม่มีแบรนด์ในระบบ ไปเพิ่มที่หน้า "งานที่บริษัทรับผิดชอบ" ก่อน</div>
+        </div>
+
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">ใครทำอะไรบ้าง (เดือนนี้)</div>
+            <div class="bar-list" id="byMemberList"></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามแบรนด์ (เดือนนี้)</div>
+            <div class="bar-list" id="byBrandList"></div>
+            <div style="font-weight:700; font-size:13px; margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--border);">แยกตามประเภทงาน</div>
+            <div class="type-chip-row" id="byTypeChips"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">คอนเทนต์ใกล้ถึงวันลง (7 วัน)</div>
+          <div id="upcomingList"></div>
+        </div>
+      </div>
+
+      <div class="page" data-page="workplan">
+        <div class="page-head">
+          <div>
+            <h2>รายงานการทำงานประจำวัน</h2>
+            <p>บันทึกงานที่ทำวันนี้ ฟอร์มเดียวได้ทั้งยอดรีพอร์ตนับจำนวนชิ้นรายเดือนและรายละเอียดงานผูกกับแบรนด์ (ดูสรุปรีพอร์ตย้อนหลังได้ที่เมนู "สรุป KPI")</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:22px;">
+          <div style="font-weight:600; font-size:13.5px; margin-bottom:14px;">บันทึกงานวันนี้ <span style="font-weight:400;color:var(--text-sub);">(กด "เพิ่มงาน" ได้เรื่อยๆ ถ้าทำหลายอย่างในวันเดียวกัน แล้วกดบันทึกทั้งหมดทีเดียว)</span></div>
+          <div id="awBlockList"></div>
+          <button type="button" class="btn btn-outline btn-sm" id="awAddBlockBtn" style="margin-top:6px;">＋ เพิ่มงาน</button>
+          <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
+            <button class="btn btn-sm" id="saveAwFormBtn">💾 บันทึกทั้งหมด</button>
+            <div class="form-msg" id="awFormMsg"></div>
+          </div>
+        </div>
+
+        <div class="page-head">
+          <div>
+            <h3 style="margin:0 0 4px; font-size:16px; font-weight:700;">แพลนงานรายวัน (ละเอียด)</h3>
+            <p style="margin:0; color:var(--text-sub); font-size:13px;">รายการงานที่บันทึกไว้ ตั้งแต่วางแผนจนถึงโพสต์จริง</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="toolbar" style="margin-bottom:0;">
+            <div class="field-row">
+              <label>กรองตามแบรนด์</label>
+              <select class="form-control" id="wiFilterBrand"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row">
+              <label>กรองตามผู้รับผิดชอบ</label>
+              <select class="form-control" id="wiFilterOwner"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row">
+              <label>กรองตามสถานะ</label>
+              <select class="form-control" id="wiFilterStatus"><option value="">ทั้งหมด</option></select>
+            </div>
+            <button class="btn btn-outline btn-sm" id="wiClearFilterBtn">ล้างตัวกรอง</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="responsive-collapse">
+            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th></th></tr></thead>
+            <tbody id="workItemsTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="calendar">
+        <div class="page-head">
+          <div>
+            <h2>ปฏิทิน</h2>
+            <p>ปฏิทินบอกเหตุการณ์ — แสดงคอนเทนต์ที่วางแผนลง วันสำคัญ/วันนักขัตฤกษ์ และเหตุการณ์ที่เพิ่มเอง คลิกวันที่เพื่อเพิ่มเหตุการณ์ลงวันนั้นได้เลย (ไม่รวมงานที่ทีมงานบันทึกรายวัน ดูงานเหล่านั้นได้ที่เมนู "รายงานการทำงานประจำวัน")</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <button class="icon-btn" id="calendarPrevBtn">← เดือนก่อน</button>
+            <div style="font-weight:700; font-size:15px; min-width:120px; text-align:center;" id="calendarMonthLabel"></div>
+            <button class="icon-btn" id="calendarNextBtn">เดือนถัดไป →</button>
+            <button class="btn btn-sm" id="calendarAddEventBtn">➕ เพิ่มเหตุการณ์</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="calendar-weekday-row">
+            <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </div>
+
+      <div class="page" data-page="brands">
+        <div class="page-head">
+          <div>
+            <h2>งานที่บริษัทรับผิดชอบ</h2>
+            <p>จัดการรายชื่อแบรนด์ที่ทีมรับทำคอนเทนต์ให้ — ใช้เป็นตัวเลือกตอนลงรีพอร์ต/แพลนงานรายวัน และสรุปอัตโนมัติที่หน้าแดชบอร์ด</p>
+          </div>
+          <button class="btn btn-sm" id="addBrandBtn">➕ เพิ่มแบรนด์</button>
+        </div>
+        <div class="card">
+          <div id="brandsList"></div>
+          <div class="empty-mini" id="brandsEmptyMsg" style="display:none;">ยังไม่มีแบรนด์ในระบบ กด "เพิ่มแบรนด์" เพื่อเริ่มต้น</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="plan">
+        <div class="page-head">
+          <div>
+            <h2>แพลนคอนเทนต์</h2>
+            <p>ตารางคอนเทนต์รายวัน-รายเดือน ไล่สถานะตั้งแต่ไอเดียจนถึงลงแล้ว พร้อมกำหนดผู้รับผิดชอบและแพลตฟอร์ม</p>
+          </div>
+          <button class="btn btn-sm" id="addPlanBtn">➕ เพิ่มคอนเทนต์</button>
+        </div>
+        <div class="card">
+          <table class="responsive-collapse">
+            <thead><tr><th>หัวข้อคอนเทนต์</th><th>แพลตฟอร์ม</th><th>วันที่ลง</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>สคริปต์</th><th></th></tr></thead>
+            <tbody id="planTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีคอนเทนต์ในแพลน กด "เพิ่มคอนเทนต์" เพื่อเริ่มวางแผน</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="scripts">
+        <div class="page-head">
+          <div>
+            <h2>คลังสคริปต์</h2>
+            <p>เขียนสคริปต์ตามเทมเพลตมาตรฐาน Hook / เนื้อหา / CTA ทุกชิ้นต้องผูกกับแพลนคอนเทนต์ที่มีอยู่แล้ว</p>
+          </div>
+          <button class="btn btn-sm" id="addScriptBtn">➕ เพิ่มสคริปต์</button>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="field-row" style="margin-bottom:0; max-width:360px;">
+            <label>ค้นหาสคริปต์</label>
+            <input type="text" class="form-control" id="scriptSearchInput" placeholder="ค้นหาจากหัวข้อ / Hook / เนื้อหา / CTA">
+          </div>
+        </div>
+        <div id="scriptsList"></div>
+        <div class="card" id="scriptsEmptyMsg" style="display:none;">
+          <div class="empty-mini" id="scriptsEmptyMsgText">ยังไม่มีสคริปต์ในคลัง</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="ideas">
+        <div class="page-head">
+          <div>
+            <h2>ไอเดีย & เทรนด์</h2>
+            <p>เก็บไอเดียคอนเทนต์ เทรนด์ที่เจอ และแคปชั่นสำเร็จรูปไว้ที่เดียว ติดแท็กประเภทได้ ค้นหา/กรองได้</p>
+          </div>
+          <button class="btn btn-sm" id="addIdeaBtn">➕ เพิ่มไอเดีย</button>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="toolbar" style="margin-bottom:0;">
+            <div class="field-row">
+              <label>กรองตามแท็ก</label>
+              <select class="form-control" id="ideaFilterTag"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row" style="flex:1; min-width:220px;">
+              <label>ค้นหา</label>
+              <input type="text" class="form-control" id="ideaSearchInput" placeholder="ค้นหาจากเนื้อหา">
+            </div>
+            <button class="btn btn-outline btn-sm" id="clearIdeaFilterBtn">ล้างตัวกรอง</button>
+          </div>
+        </div>
+        <div class="grid-3" id="ideasList"></div>
+        <div class="card" id="ideasEmptyMsg" style="display:none;">
+          <div class="empty-mini" id="ideasEmptyMsgText">ยังไม่มีไอเดียในระบบ</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="team">
+        <div class="page-head">
+          <div>
+            <h2>ทีมงาน</h2>
+            <p>รายชื่อสมาชิกทีม เพิ่ม แก้ไข หรือเปลี่ยนสถานะได้ทันทีจากตาราง — เปลี่ยนเป็น "พ้นทีม" แทนการลบ เพื่อไม่ให้ตัวเลขย้อนหลังของสมาชิกหาย</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" id="openManageTeamBtn">🗂️ จัดการทีมงาน</button>
+            <button class="btn btn-sm" id="addMemberBtn">➕ เพิ่มสมาชิก</button>
+          </div>
+        </div>
+        <div class="card" id="teamTableCard">
+          <table>
+            <thead><tr><th>สมาชิก</th><th>ตำแหน่ง</th><th>แผนก</th><th>เข้าร่วมทีม</th><th>สถานะ</th><th class="num-cell">ชิ้นงานเดือนนี้</th><th></th></tr></thead>
+            <tbody id="teamTableBody"></tbody>
+          </table>
+        </div>
+        <div class="team-mcard-list" id="teamMobileList"></div>
+      </div>
+
+      <div class="page dash-compact" data-page="memberDashboard">
+        <div class="page-head" style="margin-bottom:10px;">
+          <div>
+            <button class="icon-btn" id="backToTeamBtn">← กลับไปหน้าทีมงาน</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:16px; margin-bottom:14px;">
+            <div class="member-avatar-lg" id="mdAvatar"></div>
+            <div>
+              <div style="font-size:18px; font-weight:700;" id="mdName"></div>
+              <div style="font-size:12.5px; color:var(--text-sub); margin-top:4px;" id="mdMeta"></div>
+            </div>
+          </div>
+          <div class="hr-info-grid" id="mdHrInfo" style="padding-top:12px; border-top:1px solid var(--border);"></div>
+        </div>
+        <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
+          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">ชิ้นงานสะสมทั้งหมด</div><div class="num" id="mdKpiTotal">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">สคริปต์ที่เขียนทั้งหมด</div><div class="num" id="mdKpiScripts">0 <small>ชิ้น</small></div></div>
+        </div>
+        <div class="grid-2" style="margin-bottom:14px;">
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แนวโน้ม 6 เดือนล่าสุด</div>
+            <div class="bar-list" id="mdTrendList"></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามประเภทงาน (เดือนนี้)</div>
+            <div class="type-chip-row" id="mdByTypeChips"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">รีพอร์ตล่าสุด</div>
+          <table class="responsive-collapse">
+            <thead><tr><th>วันที่</th><th>ประเภทงาน</th><th class="num-cell">จำนวน</th><th>หมายเหตุ</th></tr></thead>
+            <tbody id="mdReportsTable"></tbody>
+          </table>
+          <div class="empty-mini" id="mdReportsEmpty" style="display:none;">ยังไม่มีรีพอร์ต</div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:6px;">คอนเทนต์ที่รับผิดชอบ</div>
+            <div id="mdPlansList"></div>
+            <div class="empty-mini" id="mdPlansEmpty" style="display:none;">ยังไม่มีคอนเทนต์ที่รับผิดชอบ</div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:6px;">สคริปต์ที่เขียน</div>
+            <div id="mdScriptsList"></div>
+            <div class="empty-mini" id="mdScriptsEmpty" style="display:none;">ยังไม่มีสคริปต์</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" data-page="summary">
+        <div class="page-head">
+          <div>
+            <h2>สรุป KPI</h2>
+            <p>ดูสรุปยอดชิ้นงานแบบรายเดือน หรือสลับไปดูรีพอร์ตของวันใดวันหนึ่งแบบละเอียด คำนวณจากรีพอร์ตประจำวันจริงเท่านั้น</p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-sm" id="summaryViewMonthBtn">รายเดือน</button>
+            <button class="btn btn-outline btn-sm" id="summaryViewDayBtn">รายวัน</button>
+          </div>
+        </div>
+
+        <div id="summaryMonthView">
+          <div class="page-head" style="margin-bottom:12px;">
+            <div class="field-row" style="max-width:220px; margin-bottom:0;">
+              <label>เลือกเดือน</label>
+              <input type="month" class="form-control" id="summaryMonthInput">
+            </div>
+            <button class="csv-btn" id="exportCsvBtn">⬇ ออกรายงาน CSV</button>
+          </div>
+
+          <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
+            <div class="mini-stat">
+              <div class="label">ยอดชิ้นงานเดือนนี้</div>
+              <div class="num" id="summaryKpiTotal">0 <small>ชิ้น</small></div>
+              <div style="font-size:11.5px; margin-top:2px;" id="summaryKpiTrend"></div>
+            </div>
+            <div class="mini-stat">
+              <div class="label">เฉลี่ย/วันทำงาน</div>
+              <div class="num" id="summaryKpiAvg">0 <small>ชิ้น/วัน</small></div>
+              <div style="font-size:11.5px; color:var(--text-sub); margin-top:2px;" id="summaryKpiAvgSub">—</div>
+            </div>
+            <div class="mini-stat">
+              <div class="label">คนทำงานเยอะสุด</div>
+              <div class="num" id="summaryKpiTopCount">0 <small>ชิ้น</small></div>
+              <div style="font-size:11.5px; color:var(--text-sub); margin-top:2px;" id="summaryKpiTopName">—</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:14px;">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">อันดับคนทำงาน (เดือนนี้)</div>
+            <div class="bar-list" id="summaryRankList"></div>
+          </div>
+
+          <div class="card">
+            <table class="responsive-collapse">
+              <thead>
+                <tr id="summaryTableHead"></tr>
+              </thead>
+              <tbody id="summaryTableBody"></tbody>
+            </table>
+            <div class="empty-mini" id="summaryEmptyMsg" style="display:none;">ไม่มีรีพอร์ตในเดือนนี้</div>
+          </div>
+        </div>
+
+        <div id="summaryDayView" style="display:none;">
+          <div class="card" style="margin-bottom:16px;">
+            <div class="toolbar" style="margin-bottom:0;">
+              <div class="field-row">
+                <label>เลือกวันที่</label>
+                <input type="date" class="form-control" id="filterDate">
+              </div>
+              <div class="field-row">
+                <label>กรองตามคน</label>
+                <select class="form-control" id="filterMember"><option value="">ทั้งหมด</option></select>
+              </div>
+              <button class="btn btn-outline btn-sm" id="clearFilterBtn">ล้างตัวกรอง</button>
+              <button class="csv-btn" id="exportDayCsvBtn">⬇ ออกรายงาน CSV</button>
+            </div>
+          </div>
+          <div class="card">
+            <table class="responsive-collapse">
+              <thead><tr><th>คน</th><th>วันที่</th><th>ประเภทงาน</th><th class="num-cell">จำนวน</th><th>แบรนด์</th><th>หมายเหตุ</th><th></th></tr></thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+            <div class="empty-mini" id="reportEmptyMsg" style="display:none;">ยังไม่มีรีพอร์ตตรงตามตัวกรอง</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" data-page="activity">
+        <div class="page-head">
+          <div>
+            <h2>ประวัติการใช้งาน</h2>
+            <p>ประวัติการเข้าใช้งาน (login) และประวัติการทำงานของแต่ละคนในระบบ ย้อนหลังทั้งหมด</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="page-head" style="margin-bottom:12px;">
+            <div style="font-weight:600; font-size:13.5px;">ประวัติการเข้าใช้งาน</div>
+            <button class="csv-btn" id="exportSessionsCsvBtn">⬇ ออกรายงาน CSV</button>
+          </div>
+          <table>
+            <thead><tr><th>คน</th><th>เข้าใช้งานเมื่อ</th></tr></thead>
+            <tbody id="sessionsTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="sessionsEmptyMsg" style="display:none;">ยังไม่มีประวัติการเข้าใช้งาน</div>
+        </div>
+
+        <div class="card">
+          <div class="page-head" style="margin-bottom:12px;">
+            <div style="font-weight:600; font-size:13.5px;">ประวัติการทำงาน</div>
+            <button class="csv-btn" id="exportActivityCsvBtn">⬇ ออกรายงาน CSV</button>
+          </div>
+          <table class="responsive-collapse">
+            <thead><tr><th>คน</th><th>เวลา</th><th>โมดูล</th><th>สิ่งที่ทำ</th></tr></thead>
+            <tbody id="activityTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="activityEmptyMsg" style="display:none;">ยังไม่มีประวัติการทำงาน</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Member Modal ===== -->
+<div class="modal-overlay" id="memberModalOverlay">
+  <div class="modal" style="max-height:85vh; overflow-y:auto;">
+    <h3 id="memberModalTitle">เพิ่มสมาชิก</h3>
+    <div class="field-row">
+      <label>รูปโปรไฟล์ (ไม่บังคับ)</label>
+      <div class="avatar-upload-row">
+        <span class="avatar-upload-preview" id="memberFormPhotoPreview"></span>
+        <input type="file" accept="image/*" class="form-control" id="memberFormPhotoFile">
+      </div>
+      <button class="icon-btn" id="memberFormPhotoResetBtn" style="margin-top:8px;">ลบรูป</button>
+    </div>
+    <div class="field-row">
+      <label>ชื่อเล่น</label>
+      <input type="text" class="form-control" id="memberFormName" placeholder="เช่น แนน">
+    </div>
+    <div class="field-row">
+      <label>วันที่เข้าร่วมทีม</label>
+      <input type="date" class="form-control" id="memberFormJoinDate">
+    </div>
+    <div class="field-row">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="memberFormNote" placeholder="ถนัดงานด้านไหน">
+    </div>
+
+    <div class="wi-section-label">ข้อมูลพนักงาน (ไม่บังคับ)</div>
+    <div class="field-row">
+      <label>ตำแหน่ง</label>
+      <input type="text" class="form-control" id="memberFormPosition" placeholder="เช่น Content Creator">
+    </div>
+    <div class="field-row">
+      <label>แผนก</label>
+      <input type="text" class="form-control" id="memberFormDepartment" placeholder="เช่น ฝ่ายผลิตคอนเทนต์">
+    </div>
+    <div class="field-row">
+      <label>รหัสพนักงาน</label>
+      <input type="text" class="form-control" id="memberFormEmployeeCode" placeholder="เช่น EMP001">
+    </div>
+    <div class="field-row">
+      <label>วันเดือนปีเกิด</label>
+      <input type="date" class="form-control" id="memberFormBirthDate">
+    </div>
+    <div class="field-row">
+      <label>เบอร์โทรติดต่อ</label>
+      <input type="tel" class="form-control" id="memberFormPhone" placeholder="เช่น 081-234-5678">
+    </div>
+    <div class="field-row">
+      <label>อีเมล</label>
+      <input type="email" class="form-control" id="memberFormEmail" placeholder="เช่น name@email.com">
+    </div>
+    <div class="field-row">
+      <label>สถานะ</label>
+      <select class="form-control" id="memberFormStatus"></select>
+    </div>
+
+    <div class="form-msg" id="memberFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="memberModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="memberModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Manage Team Modal ===== -->
+<div class="modal-overlay" id="manageTeamModalOverlay">
+  <div class="modal" style="max-width:460px;">
+    <h3>จัดการทีมงาน</h3>
+    <div id="manageTeamList" style="max-height:280px; overflow-y:auto; margin-bottom:16px; display:flex; flex-direction:column; gap:8px;"></div>
+    <div style="border-top:1px solid var(--border); padding-top:16px; margin-top:4px;">
+      <div style="font-weight:600; font-size:13px; margin-bottom:10px;">เพิ่มสมาชิกใหม่</div>
+      <div class="field-row">
+        <label>ชื่อเล่น</label>
+        <input type="text" class="form-control" id="quickAddName" placeholder="เช่น แนน">
+      </div>
+      <div class="field-row">
+        <label>ตำแหน่ง (ไม่บังคับ)</label>
+        <input type="text" class="form-control" id="quickAddPosition" placeholder="เช่น Content Creator">
+      </div>
+      <div class="field-row">
+        <label>แผนก (ไม่บังคับ)</label>
+        <input type="text" class="form-control" id="quickAddDepartment" placeholder="เช่น ฝ่ายผลิตคอนเทนต์">
+      </div>
+      <div class="field-row">
+        <label>วันที่เข้าร่วมทีม</label>
+        <input type="date" class="form-control" id="quickAddJoinDate">
+      </div>
+      <div class="form-msg" id="quickAddMsg"></div>
+      <button class="btn btn-sm" style="width:100%; justify-content:center;" id="quickAddSaveBtn">➕ เพิ่มสมาชิก</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="manageTeamCloseBtn">ปิด</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Brand Modal ===== -->
+<div class="modal-overlay" id="brandModalOverlay">
+  <div class="modal">
+    <h3 id="brandModalTitle">เพิ่มแบรนด์</h3>
+    <div class="field-row">
+      <label>โลโก้แบรนด์ (ไม่บังคับ)</label>
+      <div class="avatar-upload-row">
+        <span class="avatar-upload-preview" id="brandFormLogoPreview"></span>
+        <input type="file" accept="image/*" class="form-control" id="brandFormLogoFile">
+      </div>
+      <button class="icon-btn" id="brandFormLogoResetBtn" style="margin-top:8px;">ลบรูป</button>
+    </div>
+    <div class="field-row">
+      <label>ชื่อแบรนด์</label>
+      <input type="text" class="form-control" id="brandFormName" placeholder="เช่น ร้านกาแฟ ABC">
+    </div>
+    <div class="field-row">
+      <label>ช่อง TikTok ที่ดูแล</label>
+      <input type="text" class="form-control" id="brandFormChannel" placeholder="เช่น @abccoffee">
+    </div>
+    <div class="field-row">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="brandFormNote" placeholder="รายละเอียดเพิ่มเติม">
+    </div>
+    <div class="field-row">
+      <label>สินค้าของแบรนด์นี้</label>
+      <div class="tag-list" id="brandProductsList"></div>
+      <div style="display:flex; gap:6px; margin-top:8px;">
+        <input type="text" class="form-control" id="brandProductInput" placeholder="เพิ่มชื่อสินค้า แล้วกด Enter">
+        <button type="button" class="btn btn-outline btn-sm" id="brandProductAddBtn">เพิ่ม</button>
+      </div>
+    </div>
+    <div class="form-msg" id="brandFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="brandModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="brandModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Work Item Modal (แพลนงานรายวัน) ===== -->
+<div class="modal-overlay" id="workItemModalOverlay">
+  <div class="modal" style="max-width:560px; max-height:85vh; overflow-y:auto;">
+    <h3 id="workItemModalTitle">เพิ่มงาน</h3>
+
+    <div class="field-row">
+      <label>ชื่อข้อหัว <span style="font-weight:400;color:var(--text-sub);">(ไม่บังคับ แก้ไขได้)</span></label>
+      <input type="text" class="form-control" id="wiFormTitle" placeholder="ตั้งชื่อสั้นๆ ให้งานนี้">
+    </div>
+    <div class="field-row">
+      <label>วันที่ *</label>
+      <input type="date" class="form-control" id="wiFormDate">
+    </div>
+    <div class="field-row">
+      <label>ทีมงาน *</label>
+      <select class="form-control" id="wiFormOwner"></select>
+    </div>
+    <div class="field-row">
+      <label>แบรนด์ *</label>
+      <select class="form-control" id="wiFormBrand"></select>
+    </div>
+    <div class="field-row">
+      <label>ประเภทงาน *</label>
+      <select class="form-control" id="wiFormWorkType">
+        <option>ตัดคลิป</option>
+        <option>ถ่ายฟุตเทจ</option>
+        <option>ออกกอง</option>
+        <option>พากย์เสียง</option>
+        <option>เขียนสคริปต์</option>
+        <option>อื่นๆ</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>จำนวนชิ้น *</label>
+      <input type="number" min="1" class="form-control" id="wiFormQty" style="width:90px;">
+    </div>
+    <div class="field-row">
+      <label>Product (ไม่บังคับ)</label>
+      <div class="ss-wrap">
+        <input type="text" class="form-control ss-input" id="wiFormProductSearch" placeholder="พิมพ์ค้นหาสินค้า..." autocomplete="off">
+        <input type="hidden" id="wiFormProduct" value="">
+        <div class="ss-dropdown" id="wiFormProductDropdown"></div>
+      </div>
+    </div>
+    <div class="field-row">
+      <label>สถานที่ (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="wiFormLocation" placeholder="สถานที่ (สำหรับงานออกกอง)">
+    </div>
+    <div class="field-row">
+      <label>Description</label>
+      <textarea class="form-control" id="wiFormDescription" rows="2" placeholder="รายละเอียดงาน"></textarea>
+    </div>
+    <div class="field-row">
+      <label>Status</label>
+      <select class="form-control" id="wiFormStatus"></select>
+    </div>
+    <div class="field-row">
+      <label>Image (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="wiFormImageNote" placeholder="ลิงก์รูป หรือคำอธิบายภาพ">
+    </div>
+    <div class="field-row">
+      <label>ลิงก์ไดรฟ์งาน (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="wiFormDriveLink" placeholder="https://...">
+    </div>
+
+    <div class="form-msg" id="wiFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="workItemModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="workItemModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Post Details Modal ===== -->
+<div class="modal-overlay" id="postDetailsModalOverlay">
+  <div class="modal">
+    <h3>ใส่ข้อมูลการโพสต์</h3>
+    <div class="field-row">
+      <label>วันที่โพสต์ *</label>
+      <input type="date" class="form-control" id="postFormDate">
+    </div>
+    <div class="field-row">
+      <label>ลิงก์โพสต์ *</label>
+      <input type="text" class="form-control" id="postFormLink" placeholder="https://...">
+    </div>
+    <div class="form-msg" id="postFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="postDetailsModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="postDetailsModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Calendar Event Modal ===== -->
+<div class="modal-overlay" id="calendarEventModalOverlay">
+  <div class="modal">
+    <h3 id="calendarEventModalTitle">เพิ่มเหตุการณ์</h3>
+    <div class="field-row">
+      <label>วันที่ *</label>
+      <input type="date" class="form-control" id="ceFormDate">
+    </div>
+    <div class="field-row">
+      <label>ชื่อเหตุการณ์ *</label>
+      <input type="text" class="form-control" id="ceFormTitle" placeholder="เช่น ประชุมทีม, ไลฟ์สด, เดดไลน์แคมเปญ">
+    </div>
+    <div class="field-row">
+      <label>รายละเอียด (ไม่บังคับ)</label>
+      <textarea class="form-control" id="ceFormNote" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
+    </div>
+    <div class="form-msg" id="ceFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="calendarEventDeleteBtn" style="display:none; margin-right:auto; color:var(--danger); border-color:var(--danger);">ลบ</button>
+      <button class="btn btn-outline btn-sm" id="calendarEventModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="calendarEventModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Content Plan Modal ===== -->
+<div class="modal-overlay" id="planModalOverlay">
+  <div class="modal">
+    <h3 id="planModalTitle">เพิ่มคอนเทนต์</h3>
+    <div class="field-row">
+      <label>หัวข้อคอนเทนต์</label>
+      <input type="text" class="form-control" id="planFormTopic" placeholder="เช่น รีวิวของกิน EP1">
+    </div>
+    <div class="field-row">
+      <label>แพลตฟอร์ม</label>
+      <select class="form-control" id="planFormPlatform">
+        <option>TikTok</option>
+        <option>Reels</option>
+        <option>Shorts</option>
+        <option>อื่นๆ</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>วันที่วางแผนลง</label>
+      <input type="date" class="form-control" id="planFormDate">
+    </div>
+    <div class="field-row">
+      <label>ผู้รับผิดชอบ</label>
+      <select class="form-control" id="planFormOwner"></select>
+    </div>
+    <div class="field-row">
+      <label>สถานะ</label>
+      <select class="form-control" id="planFormStatus"></select>
+    </div>
+    <div class="field-row">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="planFormNote" placeholder="รายละเอียดเพิ่มเติม">
+    </div>
+    <div class="form-msg" id="planFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="planModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="planModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Script Modal ===== -->
+<div class="modal-overlay" id="scriptModalOverlay">
+  <div class="modal" style="max-width:520px;">
+    <h3 id="scriptModalTitle">เพิ่มสคริปต์</h3>
+    <div class="field-row">
+      <label>ผูกกับคอนเทนต์ (แพลนคอนเทนต์)</label>
+      <select class="form-control" id="scriptFormPlan"></select>
+    </div>
+    <div class="field-row">
+      <label>หัวข้อ</label>
+      <input type="text" class="form-control" id="scriptFormTopic" placeholder="หัวข้อสคริปต์">
+    </div>
+    <div class="field-row">
+      <label>Hook (3 วิแรก)</label>
+      <textarea class="form-control" id="scriptFormHook" rows="2" placeholder="ประโยคเปิดที่ดึงคนดู"></textarea>
+    </div>
+    <div class="field-row">
+      <label>เนื้อหา</label>
+      <textarea class="form-control" id="scriptFormContent" rows="3" placeholder="เนื้อหาหลักของคลิป"></textarea>
+    </div>
+    <div class="field-row">
+      <label>CTA (ปิดท้ายอย่างไร)</label>
+      <textarea class="form-control" id="scriptFormCta" rows="2" placeholder="ชวนคนดูทำอะไรต่อ"></textarea>
+    </div>
+    <div class="field-row">
+      <label>ผู้เขียน</label>
+      <select class="form-control" id="scriptFormAuthor"></select>
+    </div>
+    <div class="field-row">
+      <label>วันที่เขียน</label>
+      <input type="date" class="form-control" id="scriptFormDate">
+    </div>
+    <div class="form-msg" id="scriptFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="scriptModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="scriptModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Idea Modal ===== -->
+<div class="modal-overlay" id="ideaModalOverlay">
+  <div class="modal">
+    <h3 id="ideaModalTitle">เพิ่มไอเดีย</h3>
+    <div class="field-row">
+      <label>ประเภท</label>
+      <select class="form-control" id="ideaFormType">
+        <option>ไอเดียคอนเทนต์</option>
+        <option>เทรนด์</option>
+        <option>แคปชั่นสำเร็จรูป</option>
+      </select>
+    </div>
+    <div class="field-row">
+      <label>เนื้อหา</label>
+      <textarea class="form-control" id="ideaFormContent" rows="3" placeholder="รายละเอียดไอเดีย/เทรนด์/แคปชั่น"></textarea>
+    </div>
+    <div class="field-row">
+      <label>ผู้บันทึก</label>
+      <select class="form-control" id="ideaFormAuthor"></select>
+    </div>
+    <div class="field-row">
+      <label>วันที่บันทึก</label>
+      <input type="date" class="form-control" id="ideaFormDate">
+    </div>
+    <div class="form-msg" id="ideaFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="ideaModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="ideaModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Branding Settings Modal ===== -->
+<div class="modal-overlay" id="brandingModalOverlay">
+  <div class="modal">
+    <h3>แก้ไขโลโก้และชื่อแอป</h3>
+    <div class="logo-preview" id="brandingLogoPreview">CF</div>
+    <div class="field-row">
+      <label>ชื่อแอป</label>
+      <input type="text" class="form-control" id="brandingFormName" placeholder="เช่น ContentFlow">
+    </div>
+    <div class="field-row">
+      <label>รูปโลโก้ (ไม่บังคับ — ไฟล์ภาพ)</label>
+      <input type="file" accept="image/*" class="form-control" id="brandingFormFile">
+    </div>
+    <button class="btn btn-outline btn-sm" id="brandingResetBtn" style="width:100%; justify-content:center; margin-bottom:6px;">↺ ใช้ตัวอักษรย่อแทน</button>
+    <div class="form-msg" id="brandingFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="brandingModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="brandingModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'contentflow_data';
+  const SESSION_KEY = 'contentflow_current_user';
+  const SUPABASE_URL = 'https://qcrvsskqirlskhcfahno.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_wxNJOmMWcBrfgJQsEvIfqQ_UDSZtJG9';
+  const SUPABASE_HEADERS = {
+    apikey: SUPABASE_KEY,
+    Authorization: `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json'
+  };
+  const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
+  const PAGE_TITLES = {
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงานประจำวัน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'แพลนคอนเทนต์',
+    scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
+    activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
+  };
+
+  const STATUS_LIST = ['ไอเดีย','เขียนสคริปต์','ถ่ายทำ','ตัดต่อ','พร้อมลง','ลงแล้ว'];
+  const PLATFORM_LIST = ['TikTok','Reels','Shorts','อื่นๆ'];
+  const STATUS_CHIP_CLASS = {
+    'ไอเดีย':'chip-idea', 'เขียนสคริปต์':'chip-script', 'ถ่ายทำ':'chip-shoot',
+    'ตัดต่อ':'chip-edit', 'พร้อมลง':'chip-ready', 'ลงแล้ว':'chip-done'
+  };
+  const WORK_TYPES = ['ตัดคลิป','ถ่ายฟุตเทจ','ออกกอง','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
+  const IDEA_TYPES = ['ไอเดียคอนเทนต์','เทรนด์','แคปชั่นสำเร็จรูป'];
+  const IDEA_CHIP_CLASS = {
+    'ไอเดียคอนเทนต์':'chip-script', 'เทรนด์':'chip-shoot', 'แคปชั่นสำเร็จรูป':'chip-done'
+  };
+  const WORKITEM_STATUS_LIST = ['ดำเนินการ','รอตรวจ','แก้ไข','สำเร็จ','Post','ยกเลิก'];
+  const WORKITEM_STATUS_CHIP_CLASS = {
+    'ดำเนินการ':'chip-script', 'รอตรวจ':'chip-shoot', 'แก้ไข':'chip-edit',
+    'สำเร็จ':'chip-ready', 'Post':'chip-done', 'ยกเลิก':'chip-idea'
+  };
+  const WORK_IN_PROGRESS_STATUSES = ['ดำเนินการ', 'แก้ไข', 'สำเร็จ'];
+  const WORK_PENDING_REVIEW_STATUSES = ['รอตรวจ'];
+  const WORK_POSTED_STATUSES = ['Post'];
+  const MEMBER_STATUS_LIST = ['เทสงาน', 'ทดลองงาน', 'ประจำ', 'พ้นทีม'];
+  const MEMBER_STATUS_CHIP_CLASS = {
+    'เทสงาน':'chip-shoot', 'ทดลองงาน':'chip-script', 'ประจำ':'chip-done', 'พ้นทีม':'chip-idea'
+  };
+  const DEFAULT_NEW_MEMBER_STATUS = 'ทดลองงาน';
+  function isActiveStatus(status){ return status !== 'พ้นทีม'; }
+
+  /* <เดาให้ — แก้ได้> วันสำคัญ/วันนักขัตฤกษ์ไทย — เฉพาะวันที่ตายตัวทุกปี (ไม่รวมวันหยุดตามจันทรคติ เช่น วันมาฆบูชา/วิสาขบูชา เพราะวันเปลี่ยนทุกปีและต้องอ้างอิงปฏิทินจันทรคติ) แก้ไข/เพิ่มรายการได้ตามต้องการ */
+  const THAI_FIXED_HOLIDAYS = [
+    { month: 1, day: 1, name: 'วันขึ้นปีใหม่' },
+    { month: 2, day: 14, name: 'วันวาเลนไทน์' },
+    { month: 4, day: 6, name: 'วันจักรี' },
+    { month: 4, day: 13, name: 'วันสงกรานต์' },
+    { month: 4, day: 14, name: 'วันสงกรานต์' },
+    { month: 4, day: 15, name: 'วันสงกรานต์' },
+    { month: 5, day: 1, name: 'วันแรงงานแห่งชาติ' },
+    { month: 5, day: 4, name: 'วันฉัตรมงคล' },
+    { month: 6, day: 3, name: 'วันเฉลิมพระชนมพรรษาพระราชินี' },
+    { month: 7, day: 28, name: 'วันเฉลิมพระชนมพรรษา ร.10' },
+    { month: 8, day: 12, name: 'วันแม่แห่งชาติ' },
+    { month: 10, day: 13, name: 'วันคล้ายวันสวรรคต ร.9' },
+    { month: 10, day: 23, name: 'วันปิยมหาราช' },
+    { month: 10, day: 31, name: 'วันฮาโลวีน' },
+    { month: 12, day: 5, name: 'วันพ่อแห่งชาติ' },
+    { month: 12, day: 10, name: 'วันรัฐธรรมนูญ' },
+    { month: 12, day: 25, name: 'วันคริสต์มาส' },
+    { month: 12, day: 31, name: 'วันสิ้นปี' }
+  ];
+  function getHolidayForDate(dateStr){
+    const [, m, d] = dateStr.split('-').map(Number);
+    return THAI_FIXED_HOLIDAYS.find(h => h.month === m && h.day === d) || null;
+  }
+
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+  /* กันกดปุ่มบันทึกซ้ำเร็วๆ (double-tap บนมือถือ) — ปิดปุ่มทันทีที่กด รันฟังก์ชันเดิม แล้วเปิดใหม่หลังดีเลย์สั้นๆ */
+  function guardClick(el, handler, cooldownMs){
+    el.addEventListener('click', () => {
+      if(el.disabled) return;
+      el.disabled = true;
+      try { handler(); } finally {
+        setTimeout(() => { el.disabled = false; }, cooldownMs || 700);
+      }
+    });
+  }
+
+  function escapeHtml(str){
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function avatarHtml(member){
+    if(!member) return `<span class="avatar">?</span>`;
+    if(member.photoDataUrl) return `<span class="avatar"><img src="${member.photoDataUrl}" alt=""></span>`;
+    return `<span class="avatar">${escapeHtml(member.name.charAt(0))}</span>`;
+  }
+
+  function brandLogoHtml(brand){
+    if(!brand) return `<span class="avatar">?</span>`;
+    if(brand.logoDataUrl) return `<span class="avatar"><img src="${brand.logoDataUrl}" alt=""></span>`;
+    return `<span class="avatar">${escapeHtml(brand.name.charAt(0))}</span>`;
+  }
+
+  function todayISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function nowISO(){ return new Date().toISOString(); }
+
+  function seedData(){
+    return {
+      members:[
+        { id: uid(), name:'แพร',   joinDate:'2025-01-03', note:'ตัดต่อ + ถ่ายฟุตเทจ', status:'ประจำ' },
+        { id: uid(), name:'โบว์',  joinDate:'2025-01-03', note:'ออกกอง + พากย์เสียง', status:'ประจำ' },
+        { id: uid(), name:'ต้นกล้า', joinDate:'2025-03-15', note:'เขียนสคริปต์', status:'ประจำ' },
+        { id: uid(), name:'ฟ้า',   joinDate:'2025-04-01', note:'', status:'ทดลองงาน' }
+      ],
+      dailyReports:[],
+      contentPlans:[],
+      scripts:[],
+      ideas:[],
+      sessions:[],
+      activityLog:[],
+      settings:{ appName:'ContentFlow', logoDataUrl:null },
+      brands:[],
+      workItems:[],
+      calendarEvents:[]
+    };
+  }
+
+  function migrateData(parsed){
+    if(!Array.isArray(parsed.members)) parsed.members = [];
+    if(!Array.isArray(parsed.dailyReports)) parsed.dailyReports = [];
+    if(!Array.isArray(parsed.contentPlans)) parsed.contentPlans = [];
+    if(!Array.isArray(parsed.scripts)) parsed.scripts = [];
+    if(!Array.isArray(parsed.ideas)) parsed.ideas = [];
+    if(!Array.isArray(parsed.sessions)) parsed.sessions = [];
+    if(!Array.isArray(parsed.activityLog)) parsed.activityLog = [];
+    if(!parsed.settings || typeof parsed.settings !== 'object'){
+      parsed.settings = { appName:'ContentFlow', logoDataUrl:null };
+    }
+    if(!Array.isArray(parsed.brands)) parsed.brands = [];
+    if(!Array.isArray(parsed.workItems)) parsed.workItems = [];
+    if(!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
+    parsed.brands.forEach(b => { if(!Array.isArray(b.products)) b.products = []; });
+    parsed.members.forEach(m => {
+      if(m.status === 'active') m.status = 'ประจำ';
+      else if(m.status === 'inactive') m.status = 'พ้นทีม';
+      else if(!MEMBER_STATUS_LIST.includes(m.status)) m.status = 'ประจำ';
+    });
+    (function migrateWorkItems(){
+      const oldStatusMap = {
+        'ไอเดีย/วางแผน':'ดำเนินการ', 'กำลังทำ':'ดำเนินการ',
+        'รอตรวจ Draft 1':'รอตรวจ', 'รอตรวจ Final':'รอตรวจ',
+        'แก้ไข Draft 2':'แก้ไข', 'พร้อมโพสต์':'สำเร็จ', 'โพสต์แล้ว':'Post'
+      };
+      const validNewStatuses = ['ดำเนินการ','รอตรวจ','แก้ไข','สำเร็จ','Post','ยกเลิก'];
+      parsed.workItems.forEach(w => {
+        if(!w.date) w.date = w.deadline || w.startDate || (w.month ? `${w.month}-01` : '') || todayISO();
+        if(!w.driveLink) w.driveLink = w.finalClipLink || w.draft2Link || w.draft1Link || w.linkRef || '';
+        if(w.title === undefined) w.title = '';
+        if(w.postDate === undefined) w.postDate = '';
+        if(w.linkPost === undefined) w.linkPost = '';
+        if(oldStatusMap[w.status]) w.status = oldStatusMap[w.status];
+        else if(!validNewStatuses.includes(w.status)) w.status = 'ดำเนินการ';
+        delete w.month; delete w.startDate; delete w.deadline; delete w.linkRef;
+        delete w.draft1Link; delete w.draft1Comment; delete w.draft2Link; delete w.draft2Comment; delete w.finalClipLink;
+      });
+    })();
+    return parsed;
+  }
+
+  async function pushRemoteData(payload, expectedUpdatedAt, force){
+    const url = (force || !expectedUpdatedAt)
+      ? SUPABASE_ROW_URL
+      : `${SUPABASE_ROW_URL}&updated_at=eq.${encodeURIComponent(expectedUpdatedAt)}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: { ...SUPABASE_HEADERS, Prefer: 'return=representation' },
+      body: JSON.stringify({ payload })
+    });
+    if(!res.ok) throw new Error('บันทึกข้อมูลไม่สำเร็จ');
+    const rows = await res.json();
+    return { conflict: rows.length === 0, updatedAt: rows[0] ? rows[0].updated_at : null };
+  }
+
+  async function fetchRemoteData(){
+    const res = await fetch(SUPABASE_ROW_URL + '&select=payload,updated_at', { headers: SUPABASE_HEADERS });
+    if(!res.ok) throw new Error('โหลดข้อมูลจากเซิร์ฟเวอร์ไม่สำเร็จ');
+    const rows = await res.json();
+    if(rows.length === 0 || !rows[0].payload || Object.keys(rows[0].payload).length === 0){
+      const seeded = seedData();
+      const pushed = await pushRemoteData(seeded, null, true);
+      return { payload: seeded, updatedAt: pushed.updatedAt };
+    }
+    return { payload: rows[0].payload, updatedAt: rows[0].updated_at };
+  }
+
+  function showSyncBanner(text){
+    const el = document.getElementById('syncBanner');
+    el.innerHTML = `<span>⚠️ ${escapeHtml(text)}</span>`;
+    el.style.display = 'flex';
+  }
+
+  function hideSyncBanner(){
+    document.getElementById('syncBanner').style.display = 'none';
+  }
+
+  let data = seedData();
+  let isDataLoaded = false;
+  let lastKnownUpdatedAt = null;
+
+  async function saveData(force){
+    if(!isDataLoaded) return;
+    try {
+      const result = await pushRemoteData(data, lastKnownUpdatedAt, force);
+      if(result.conflict){
+        const proceed = confirm('มีการแก้ไขข้อมูลจากอุปกรณ์อื่นระหว่างที่คุณกำลังทำงานอยู่\n\nกด "ตกลง" เพื่อบันทึกทับด้วยข้อมูลของคุณตอนนี้ (การเปลี่ยนแปลงจากอุปกรณ์อื่นล่าสุดจะหาย)\nกด "ยกเลิก" เพื่อไม่บันทึก แล้วกดปุ่ม "รีเฟรชข้อมูล" ที่แถบด้านบนเพื่อดึงข้อมูลล่าสุดมาดูก่อน');
+        if(proceed){ await saveData(true); return; }
+        showSyncBanner('ยังไม่ได้บันทึกการเปลี่ยนแปลงล่าสุด เพราะมีข้อมูลใหม่จากอุปกรณ์อื่น — กด "รีเฟรชข้อมูล" แล้วทำรายการนี้ใหม่');
+        return;
+      }
+      lastKnownUpdatedAt = result.updatedAt;
+      hideSyncBanner();
+    } catch(e){
+      showSyncBanner('บันทึกไม่สำเร็จ เช็คอินเทอร์เน็ตแล้วลองใหม่ (การเปลี่ยนแปลงล่าสุดอาจยังไม่ถูกบันทึก)');
+    }
+  }
+
+  async function refreshFromRemote(){
+    try {
+      const remote = await fetchRemoteData();
+      data = migrateData(remote.payload);
+      lastKnownUpdatedAt = remote.updatedAt;
+      hideSyncBanner();
+      renderEverything();
+    } catch(e){
+      showSyncBanner('รีเฟรชข้อมูลไม่สำเร็จ เช็คอินเทอร์เน็ตแล้วลองใหม่');
+    }
+  }
+  let editingMemberId = null;
+  let editingPlanId = null;
+  let editingScriptId = null;
+  let focusScriptId = null;
+  let editingIdeaId = null;
+  let pendingLogoDataUrl = undefined;
+  let currentMemberDashboardId = null;
+  let memberDashboardReturnPage = 'team';
+  let pendingMemberPhotoDataUrl = undefined;
+  let editingBrandId = null;
+  let editingWorkItemId = null;
+  let calendarMonthStr = null;
+  let pendingBrandProducts = [];
+  let pendingBrandLogoDataUrl = undefined;
+  let pendingPostWorkItemId = null;
+
+  function formatThaiDate(iso){
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const d = new Date(iso + 'T00:00:00');
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+  }
+
+  function formatThaiDateTime(iso){
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const d = new Date(iso);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543} ${hh}:${mm}`;
+  }
+
+  function formatMonthShort(monthStr){
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const parts = (monthStr || '').split('-');
+    const y = Number(parts[0]), m = Number(parts[1]);
+    if(!y || !m) return monthStr || '—';
+    return `${months[m-1]} ${y+543}`;
+  }
+
+  /* ===== Login / current user ===== */
+  function getCurrentUserId(){ return sessionStorage.getItem(SESSION_KEY); }
+
+  function updateCurrentUserDisplay(){
+    const m = data.members.find(x => x.id === getCurrentUserId());
+    const avatarEl = document.getElementById('currentUserAvatar');
+    if(m && m.photoDataUrl){
+      avatarEl.innerHTML = `<img src="${m.photoDataUrl}" alt="">`;
+    } else {
+      avatarEl.innerHTML = '';
+      avatarEl.textContent = m ? m.name.charAt(0) : '';
+    }
+    document.getElementById('currentUserName').textContent = m ? m.name : '';
+  }
+
+  function renderLoginGate(){
+    const currentId = getCurrentUserId();
+    const gate = document.getElementById('loginGate');
+    const shell = document.getElementById('appShell');
+
+    if(currentId && data.members.find(m => m.id === currentId)){
+      gate.classList.add('hidden');
+      shell.classList.remove('hidden');
+      updateCurrentUserDisplay();
+      return;
+    }
+
+    gate.classList.remove('hidden');
+    shell.classList.add('hidden');
+
+    const listEl = document.getElementById('loginMemberList');
+    const emptyMsg = document.getElementById('loginEmptyMsg');
+    if(data.members.length === 0){
+      listEl.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    listEl.innerHTML = data.members.map(m => `
+      <div class="login-member-row">
+        <button class="login-member-btn" onclick="loginAs('${m.id}')">
+          ${avatarHtml(m)}
+          <span class="login-member-info">
+            <span>${escapeHtml(m.name)}${!isActiveStatus(m.status) ? ' <span class="status-note">(พ้นทีม)</span>' : ''}</span>
+            ${m.position ? `<span class="login-member-position">${escapeHtml(m.position)}</span>` : ''}
+          </span>
+        </button>
+      </div>
+    `).join('');
+  }
+
+  function loginAs(memberId){
+    sessionStorage.setItem(SESSION_KEY, memberId);
+    data.sessions.push({ id: uid(), memberId, loginAt: nowISO() });
+    saveData();
+    renderSessionsTable();
+    renderLoginGate();
+  }
+
+  function logout(){
+    sessionStorage.removeItem(SESSION_KEY);
+    renderLoginGate();
+  }
+
+  /* ===== Activity log ===== */
+  function logActivity(module, action){
+    const memberId = getCurrentUserId();
+    if(!memberId) return;
+    data.activityLog.push({ id: uid(), memberId, timestamp: nowISO(), module, action });
+    renderActivityTable();
+  }
+
+  /* ===== Branding (logo + app name) ===== */
+  function brandInitials(name){
+    const trimmed = (name || '').trim();
+    if(!trimmed) return 'CF';
+    const words = trimmed.replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/).filter(Boolean);
+    if(words.length >= 2) return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    return trimmed.slice(0, 2).toUpperCase();
+  }
+
+  function renderBranding(){
+    const name = data.settings.appName || 'ContentFlow';
+    document.getElementById('sbLogoName').textContent = name;
+    document.getElementById('loginLogoName').textContent = name;
+    document.title = `${name} — แอป`;
+
+    const sbMark = document.getElementById('sbLogoMark');
+    const loginMark = document.getElementById('loginLogoMark');
+    if(data.settings.logoDataUrl){
+      sbMark.innerHTML = `<img src="${data.settings.logoDataUrl}" alt="โลโก้">`;
+      loginMark.innerHTML = `<img src="${data.settings.logoDataUrl}" alt="โลโก้">`;
+    } else {
+      const initials = brandInitials(name);
+      sbMark.textContent = initials;
+      loginMark.textContent = initials;
+    }
+  }
+
+  function updateBrandingPreview(logoDataUrl, appName){
+    const preview = document.getElementById('brandingLogoPreview');
+    if(logoDataUrl){
+      preview.innerHTML = `<img src="${logoDataUrl}" alt="โลโก้">`;
+    } else {
+      preview.textContent = brandInitials(appName);
+    }
+  }
+
+  function compressImageFile(file, maxSize, callback, onError){
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if(w > h){ if(w > maxSize){ h = Math.round(h * maxSize / w); w = maxSize; } }
+        else { if(h > maxSize){ w = Math.round(w * maxSize / h); h = maxSize; } }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        callback(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = () => onError && onError();
+      img.src = e.target.result;
+    };
+    reader.onerror = () => onError && onError();
+    reader.readAsDataURL(file);
+  }
+
+  function openBrandingModal(){
+    pendingLogoDataUrl = undefined;
+    document.getElementById('brandingFormMsg').style.display = 'none';
+    document.getElementById('brandingFormName').value = data.settings.appName || 'ContentFlow';
+    document.getElementById('brandingFormFile').value = '';
+    updateBrandingPreview(data.settings.logoDataUrl, data.settings.appName);
+    document.getElementById('brandingModalOverlay').classList.add('open');
+  }
+
+  function closeBrandingModal(){
+    document.getElementById('brandingModalOverlay').classList.remove('open');
+  }
+
+  function saveBranding(){
+    const appName = document.getElementById('brandingFormName').value.trim();
+    const msgEl = document.getElementById('brandingFormMsg');
+    if(!appName){ msgEl.textContent = 'กรอกชื่อแอป'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    data.settings.appName = appName;
+    if(pendingLogoDataUrl !== undefined){
+      data.settings.logoDataUrl = pendingLogoDataUrl;
+    }
+    logActivity('ตั้งค่า', `แก้ไขชื่อแอป/โลโก้เป็น "${appName}"`);
+    saveData();
+    closeBrandingModal();
+    renderBranding();
+  }
+
+  /* ===== Team page ===== */
+  function renderTeamPage(){
+    const monthStr = currentMonthStr();
+    const tbody = document.getElementById('teamTableBody');
+    tbody.innerHTML = data.members.map(m => {
+      const monthTotal = data.dailyReports
+        .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
+        .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      return `
+      <tr>
+        <td data-label="สมาชิก">${avatarHtml(m)}${escapeHtml(m.name)}</td>
+        <td data-label="ตำแหน่ง">${m.position ? escapeHtml(m.position) : '—'}${m.employeeCode ? `<div class="li-sub">${escapeHtml(m.employeeCode)}</div>` : ''}</td>
+        <td data-label="แผนก">${m.department ? escapeHtml(m.department) : '—'}</td>
+        <td data-label="เข้าร่วมทีม">${formatThaiDate(m.joinDate)}</td>
+        <td data-label="สถานะ">
+          <select class="form-control status-select member-status-select" data-id="${m.id}">
+            ${MEMBER_STATUS_LIST.map(s => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="num-cell" data-label="ชิ้นงานเดือนนี้">${monthTotal} ชิ้น</td>
+        <td data-label="">
+          <div class="action-btns">
+            <button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>
+            <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
+          </div>
+        </td>
+      </tr>
+    `;
+    }).join('');
+
+    tbody.querySelectorAll('.member-status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updateMemberStatus(e.target.dataset.id, e.target.value));
+    });
+
+    const mobileList = document.getElementById('teamMobileList');
+    mobileList.innerHTML = data.members.map(m => {
+      const monthTotal = data.dailyReports
+        .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
+        .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      const subLine = [m.position, m.department].filter(Boolean).join(' · ') || '—';
+      return `
+      <div class="team-mcard">
+        <div class="team-mcard-top">
+          ${avatarHtml(m)}
+          <div class="team-mcard-name">
+            <div class="nm">${escapeHtml(m.name)}</div>
+            <div class="sub">${escapeHtml(subLine)}</div>
+          </div>
+          <select class="form-control status-select member-status-select" data-id="${m.id}">
+            ${MEMBER_STATUS_LIST.map(s => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="team-mcard-bottom">
+          <span>เข้าร่วม ${formatThaiDate(m.joinDate)}</span>
+          <span class="qty">${monthTotal} ชิ้น/เดือนนี้</span>
+        </div>
+        <div class="team-mcard-bottom" style="border-top:none; padding-top:0; margin-top:8px;">
+          <div class="action-btns">
+            <button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>
+            <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
+          </div>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    mobileList.querySelectorAll('.member-status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updateMemberStatus(e.target.dataset.id, e.target.value));
+    });
+  }
+
+  /* ===== Manage team modal ===== */
+  function memberHasLinkedData(memberId){
+    return data.dailyReports.some(r => r.memberId === memberId)
+      || data.contentPlans.some(p => p.ownerId === memberId)
+      || data.scripts.some(s => s.authorId === memberId)
+      || data.ideas.some(i => i.authorId === memberId)
+      || (Array.isArray(data.workItems) && data.workItems.some(w => w.ownerId === memberId));
+  }
+
+  function openManageTeamModal(){
+    document.getElementById('quickAddName').value = '';
+    document.getElementById('quickAddPosition').value = '';
+    document.getElementById('quickAddDepartment').value = '';
+    document.getElementById('quickAddJoinDate').value = todayISO();
+    document.getElementById('quickAddMsg').style.display = 'none';
+    renderManageTeamList();
+    document.getElementById('manageTeamModalOverlay').classList.add('open');
+  }
+
+  function closeManageTeamModal(){
+    document.getElementById('manageTeamModalOverlay').classList.remove('open');
+  }
+
+  function renderManageTeamList(){
+    const list = document.getElementById('manageTeamList');
+    list.innerHTML = data.members.map(m => `
+      <div class="list-item">
+        <div style="display:flex; align-items:center; gap:0;">
+          ${avatarHtml(m)}
+          <div>
+            <div class="li-title">${escapeHtml(m.name)}</div>
+            <div class="li-sub">${escapeHtml(m.status)}${m.position ? ' · ' + escapeHtml(m.position) : ''}</div>
+          </div>
+        </div>
+        <div class="action-btns">
+          <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
+          <button class="icon-btn danger" onclick="deleteMemberHard('${m.id}')">ลบ</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function deleteMemberHard(memberId){
+    const m = data.members.find(x => x.id === memberId);
+    if(!m) return;
+    if(memberHasLinkedData(memberId)){
+      alert(`ลบ "${m.name}" ไม่ได้ เพราะมีข้อมูลผูกอยู่ในระบบแล้ว (รีพอร์ต/แพลนคอนเทนต์/สคริปต์/ไอเดีย/แพลนงานรายวัน) — ไปเปลี่ยนสถานะเป็น "พ้นทีม" จากหน้าทีมงานแทน เพื่อไม่ให้ตัวเลขย้อนหลังหาย`);
+      return;
+    }
+    if(!confirm(`ลบสมาชิก "${m.name}" ออกจากระบบถาวร? การกระทำนี้ย้อนกลับไม่ได้`)) return;
+    data.members = data.members.filter(x => x.id !== memberId);
+    logActivity('ทีมงาน', `ลบสมาชิก: ${m.name}`);
+    saveData();
+    renderTeamPage();
+    renderManageTeamList();
+    renderFilterMemberOptions();
+    renderWorkItemFilterOptions();
+    renderDashboard();
+    renderSummaryTable();
+    renderLoginGate();
+  }
+
+  /* ===== Per-member dashboard ===== */
+  function thaiMonthShort(d){
+    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    const yy = String((d.getFullYear() + 543) % 100).padStart(2, '0');
+    return `${months[d.getMonth()]}${yy}`;
+  }
+
+  const MEMBER_DASHBOARD_BACK_LABELS = {
+    dashboard: '← กลับไปแดชบอร์ด',
+    summary: '← กลับไปสรุป KPI',
+    team: '← กลับไปหน้าทีมงาน'
+  };
+
+  function openMemberDashboard(memberId, returnPage){
+    currentMemberDashboardId = memberId;
+    memberDashboardReturnPage = returnPage || 'team';
+    document.getElementById('backToTeamBtn').textContent = MEMBER_DASHBOARD_BACK_LABELS[memberDashboardReturnPage] || MEMBER_DASHBOARD_BACK_LABELS.team;
+    renderMemberDashboard();
+    showPage('memberDashboard');
+  }
+
+  function renderMemberDashboard(){
+    const m = data.members.find(x => x.id === currentMemberDashboardId);
+    if(!m) return;
+
+    const mdAvatarEl = document.getElementById('mdAvatar');
+    if(m.photoDataUrl){ mdAvatarEl.innerHTML = `<img src="${m.photoDataUrl}" alt="">`; }
+    else { mdAvatarEl.innerHTML = ''; mdAvatarEl.textContent = m.name.charAt(0); }
+    document.getElementById('mdName').textContent = m.name;
+    document.getElementById('mdMeta').innerHTML = `เข้าร่วม ${formatThaiDate(m.joinDate)} · <span class="chip ${MEMBER_STATUS_CHIP_CLASS[m.status] || 'chip-idea'}">${escapeHtml(m.status)}</span>`;
+
+    const hrFields = [
+      { label:'ตำแหน่ง', value: m.position },
+      { label:'แผนก', value: m.department },
+      { label:'รหัสพนักงาน', value: m.employeeCode },
+      { label:'วันเดือนปีเกิด', value: m.birthDate ? formatThaiDate(m.birthDate) : '' },
+      { label:'เบอร์โทรติดต่อ', value: m.phone },
+      { label:'อีเมล', value: m.email }
+    ];
+    document.getElementById('mdHrInfo').innerHTML = hrFields.map(f => `
+      <div class="hr-item">
+        <div class="hr-label">${escapeHtml(f.label)}</div>
+        <div class="hr-value">${f.value ? escapeHtml(f.value) : '—'}</div>
+      </div>
+    `).join('');
+
+    const monthStr = currentMonthStr();
+    const myReportsAll = data.dailyReports.filter(r => r.memberId === m.id);
+    const myReportsMonth = myReportsAll.filter(r => r.date.startsWith(monthStr));
+
+    const monthTotal = myReportsMonth.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    const allTimeTotal = myReportsAll.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    const scriptCount = data.scripts.filter(s => s.authorId === m.id).length;
+
+    document.getElementById('mdKpiMonth').innerHTML = `${monthTotal} <small>ชิ้น</small>`;
+    document.getElementById('mdKpiTotal').innerHTML = `${allTimeTotal} <small>ชิ้น</small>`;
+    document.getElementById('mdKpiScripts').innerHTML = `${scriptCount} <small>ชิ้น</small>`;
+
+    const now = new Date();
+    const trendMonths = [];
+    for(let i = 5; i >= 0; i--){
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const total = myReportsAll.filter(r => r.date.startsWith(key)).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      trendMonths.push({ label: thaiMonthShort(d), total });
+    }
+    const maxTrend = Math.max(1, ...trendMonths.map(x => x.total));
+    document.getElementById('mdTrendList').innerHTML = trendMonths.map(x => `
+      <div class="bar-row">
+        <span class="name">${x.label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / maxTrend * 100)}%"></div></div>
+        <span class="val">${x.total} ชิ้น</span>
+      </div>
+    `).join('');
+
+    document.getElementById('mdByTypeChips').innerHTML = WORK_TYPES.map(t => {
+      const total = myReportsMonth.filter(r => r.workType === t).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      return `<span class="type-chip"><span class="n">${total}</span><span class="t">${escapeHtml(t)}</span></span>`;
+    }).join('');
+
+    const recentReports = [...myReportsAll].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10);
+    const reportsTbody = document.getElementById('mdReportsTable');
+    const reportsEmpty = document.getElementById('mdReportsEmpty');
+    if(recentReports.length === 0){
+      reportsTbody.innerHTML = '';
+      reportsEmpty.style.display = 'block';
+    } else {
+      reportsEmpty.style.display = 'none';
+      reportsTbody.innerHTML = recentReports.map(r => `
+        <tr><td data-label="วันที่">${formatThaiDate(r.date)}</td><td data-label="ประเภทงาน">${escapeHtml(r.workType)}</td><td class="num-cell" data-label="จำนวน">${r.quantity} ชิ้น</td><td data-label="หมายเหตุ">${r.note ? escapeHtml(r.note) : '—'}</td></tr>
+      `).join('');
+    }
+
+    const myPlans = [...data.contentPlans].filter(p => p.ownerId === m.id).sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+    const plansList = document.getElementById('mdPlansList');
+    const plansEmpty = document.getElementById('mdPlansEmpty');
+    if(myPlans.length === 0){
+      plansList.innerHTML = '';
+      plansEmpty.style.display = 'block';
+    } else {
+      plansEmpty.style.display = 'none';
+      plansList.innerHTML = myPlans.map(p => `
+        <div class="list-item">
+          <div><div class="li-title">${escapeHtml(p.topic)}</div><div class="li-sub">${escapeHtml(p.platform)} · ลง ${formatThaiDate(p.publishDate)}</div></div>
+          <span class="chip ${STATUS_CHIP_CLASS[p.status] || 'chip-idea'}">${escapeHtml(p.status)}</span>
+        </div>
+      `).join('');
+    }
+
+    const myScripts = [...data.scripts].filter(s => s.authorId === m.id).sort((a, b) => b.writtenDate.localeCompare(a.writtenDate));
+    const scriptsList = document.getElementById('mdScriptsList');
+    const scriptsEmpty = document.getElementById('mdScriptsEmpty');
+    if(myScripts.length === 0){
+      scriptsList.innerHTML = '';
+      scriptsEmpty.style.display = 'block';
+    } else {
+      scriptsEmpty.style.display = 'none';
+      scriptsList.innerHTML = myScripts.map(s => `
+        <div class="list-item">
+          <div><div class="li-title">${escapeHtml(s.topic)}</div><div class="li-sub">${formatThaiDate(s.writtenDate)}</div></div>
+        </div>
+      `).join('');
+    }
+  }
+
+  function updateMemberPhotoPreview(photoDataUrl, name){
+    const preview = document.getElementById('memberFormPhotoPreview');
+    if(photoDataUrl){
+      preview.innerHTML = `<img src="${photoDataUrl}" alt="">`;
+    } else {
+      preview.innerHTML = '';
+      preview.textContent = (name || '').charAt(0) || '?';
+    }
+  }
+
+  function openMemberModal(memberId){
+    editingMemberId = memberId || null;
+    pendingMemberPhotoDataUrl = undefined;
+    document.getElementById('memberFormMsg').style.display = 'none';
+    document.getElementById('memberFormPhotoFile').value = '';
+    document.getElementById('memberFormStatus').innerHTML = MEMBER_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    if(memberId){
+      const m = data.members.find(x => x.id === memberId);
+      document.getElementById('memberModalTitle').textContent = 'แก้ไขสมาชิก';
+      document.getElementById('memberFormName').value = m.name;
+      document.getElementById('memberFormJoinDate').value = m.joinDate;
+      document.getElementById('memberFormNote').value = m.note || '';
+      document.getElementById('memberFormPosition').value = m.position || '';
+      document.getElementById('memberFormDepartment').value = m.department || '';
+      document.getElementById('memberFormEmployeeCode').value = m.employeeCode || '';
+      document.getElementById('memberFormBirthDate').value = m.birthDate || '';
+      document.getElementById('memberFormPhone').value = m.phone || '';
+      document.getElementById('memberFormEmail').value = m.email || '';
+      document.getElementById('memberFormStatus').value = m.status;
+      updateMemberPhotoPreview(m.photoDataUrl, m.name);
+    } else {
+      document.getElementById('memberModalTitle').textContent = 'เพิ่มสมาชิก';
+      document.getElementById('memberFormName').value = '';
+      document.getElementById('memberFormJoinDate').value = todayISO();
+      document.getElementById('memberFormNote').value = '';
+      document.getElementById('memberFormPosition').value = '';
+      document.getElementById('memberFormDepartment').value = '';
+      document.getElementById('memberFormEmployeeCode').value = '';
+      document.getElementById('memberFormBirthDate').value = '';
+      document.getElementById('memberFormPhone').value = '';
+      document.getElementById('memberFormEmail').value = '';
+      document.getElementById('memberFormStatus').value = DEFAULT_NEW_MEMBER_STATUS;
+      updateMemberPhotoPreview(null, '');
+    }
+    document.getElementById('memberModalOverlay').classList.add('open');
+  }
+
+  function closeMemberModal(){
+    document.getElementById('memberModalOverlay').classList.remove('open');
+  }
+
+  function saveMember(){
+    const name = document.getElementById('memberFormName').value.trim();
+    const joinDate = document.getElementById('memberFormJoinDate').value;
+    const note = document.getElementById('memberFormNote').value.trim();
+    const position = document.getElementById('memberFormPosition').value.trim();
+    const department = document.getElementById('memberFormDepartment').value.trim();
+    const employeeCode = document.getElementById('memberFormEmployeeCode').value.trim();
+    const birthDate = document.getElementById('memberFormBirthDate').value;
+    const phone = document.getElementById('memberFormPhone').value.trim();
+    const email = document.getElementById('memberFormEmail').value.trim();
+    const status = document.getElementById('memberFormStatus').value;
+    const msgEl = document.getElementById('memberFormMsg');
+
+    if(!name || !joinDate){
+      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เข้าร่วมทีมให้ครบ';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    if(editingMemberId){
+      const m = data.members.find(x => x.id === editingMemberId);
+      m.name = name; m.joinDate = joinDate; m.note = note;
+      m.position = position; m.department = department; m.employeeCode = employeeCode; m.birthDate = birthDate; m.phone = phone; m.email = email;
+      m.status = status;
+      if(pendingMemberPhotoDataUrl !== undefined) m.photoDataUrl = pendingMemberPhotoDataUrl;
+      logActivity('ทีมงาน', `แก้ไขสมาชิก: ${name}`);
+    } else {
+      data.members.push({
+        id: uid(), name, joinDate, note, status, photoDataUrl: pendingMemberPhotoDataUrl || null,
+        position, department, employeeCode, birthDate, phone, email
+      });
+      logActivity('ทีมงาน', `เพิ่มสมาชิก: ${name}`);
+    }
+    saveData();
+    closeMemberModal();
+    renderTeamPage();
+    renderFilterMemberOptions();
+    renderReportTable();
+    renderWorkItemFilterOptions();
+    renderWorkItemsTable();
+    renderDashboard();
+    renderSummaryTable();
+    updateCurrentUserDisplay();
+    renderLoginGate();
+    renderManageTeamList();
+  }
+
+  function updateMemberStatus(memberId, newStatus){
+    const m = data.members.find(x => x.id === memberId);
+    m.status = newStatus;
+    logActivity('ทีมงาน', `เปลี่ยนสถานะ ${m.name} เป็น ${newStatus}`);
+    saveData();
+    renderTeamPage();
+    renderFilterMemberOptions();
+    renderWorkItemFilterOptions();
+    renderWorkItemsTable();
+    renderDashboard();
+    renderSummaryTable();
+    renderLoginGate();
+  }
+
+  /* ===== Daily report page ===== */
+  function renderFilterMemberOptions(){
+    const sel = document.getElementById('filterMember');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">ทั้งหมด</option>' + data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    sel.value = current;
+  }
+
+  function deleteReport(reportId){
+    if(!confirm('ลบรีพอร์ตนี้?')) return;
+    const target = data.dailyReports.find(r => r.id === reportId);
+    const targetMember = target ? data.members.find(m => m.id === target.memberId) : null;
+    data.dailyReports = data.dailyReports.filter(r => r.id !== reportId);
+    const linkedWorkItem = data.workItems.find(w => w.reportId === reportId);
+    if(linkedWorkItem){
+      data.workItems = data.workItems.filter(w => w.id !== linkedWorkItem.id);
+    }
+    if(target) logActivity('รีพอร์ตประจำวัน', `ลบรีพอร์ต: ${target.workType} ${target.quantity} ชิ้น (${targetMember ? targetMember.name : '—'}, ${formatThaiDate(target.date)})`);
+    saveData();
+    renderReportTable();
+    renderWorkItemsTable();
+    renderDashboard();
+    renderTeamPage();
+    renderSummaryTable();
+    renderCalendar();
+  }
+
+  function renderReportTable(){
+    const rows = getFilteredDailyReportRows();
+    const tbody = document.getElementById('reportTableBody');
+    const emptyMsg = document.getElementById('reportEmptyMsg');
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    tbody.innerHTML = rows.map(r => {
+      const m = data.members.find(x => x.id === r.memberId);
+      const name = m ? m.name : '(สมาชิกถูกลบ)';
+      const brand = r.brandId ? data.brands.find(b => b.id === r.brandId) : null;
+      return `
+        <tr>
+          <td data-label="คน">${avatarHtml(m)}${escapeHtml(name)}</td>
+          <td data-label="วันที่">${formatThaiDate(r.date)}</td>
+          <td data-label="ประเภทงาน">${escapeHtml(r.workType)}</td>
+          <td class="num-cell" data-label="จำนวน">${r.quantity} ชิ้น</td>
+          <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
+          <td data-label="หมายเหตุ">${r.note ? escapeHtml(r.note) : '—'}</td>
+          <td data-label=""><button class="icon-btn danger" onclick="deleteReport('${r.id}')">ลบ</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  /* ===== Content plan page ===== */
+  function renderPlanFormSelectOptions(){
+    const ownerSel = document.getElementById('planFormOwner');
+    ownerSel.innerHTML = data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}${!isActiveStatus(m.status) ? ' (พ้นทีม)' : ''}</option>`).join('')
+      || '<option value="">ไม่มีสมาชิก</option>';
+
+    const statusSel = document.getElementById('planFormStatus');
+    statusSel.innerHTML = STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    const platformSel = document.getElementById('planFormPlatform');
+    platformSel.innerHTML = PLATFORM_LIST.map(p => `<option value="${p}">${p}</option>`).join('');
+  }
+
+  function openPlanModal(planId){
+    editingPlanId = planId || null;
+    document.getElementById('planFormMsg').style.display = 'none';
+    renderPlanFormSelectOptions();
+
+    if(planId){
+      const p = data.contentPlans.find(x => x.id === planId);
+      document.getElementById('planModalTitle').textContent = 'แก้ไขคอนเทนต์';
+      document.getElementById('planFormTopic').value = p.topic;
+      document.getElementById('planFormPlatform').value = p.platform;
+      document.getElementById('planFormDate').value = p.publishDate;
+      document.getElementById('planFormOwner').value = p.ownerId;
+      document.getElementById('planFormStatus').value = p.status;
+      document.getElementById('planFormNote').value = p.note || '';
+    } else {
+      document.getElementById('planModalTitle').textContent = 'เพิ่มคอนเทนต์';
+      document.getElementById('planFormTopic').value = '';
+      document.getElementById('planFormPlatform').value = 'TikTok';
+      document.getElementById('planFormDate').value = todayISO();
+      const firstActive = data.members.find(m => isActiveStatus(m.status));
+      document.getElementById('planFormOwner').value = firstActive ? firstActive.id : '';
+      document.getElementById('planFormStatus').value = 'ไอเดีย';
+      document.getElementById('planFormNote').value = '';
+    }
+    document.getElementById('planModalOverlay').classList.add('open');
+  }
+
+  function closePlanModal(){
+    document.getElementById('planModalOverlay').classList.remove('open');
+  }
+
+  function savePlan(){
+    const topic = document.getElementById('planFormTopic').value.trim();
+    const platform = document.getElementById('planFormPlatform').value;
+    const publishDate = document.getElementById('planFormDate').value;
+    const ownerId = document.getElementById('planFormOwner').value;
+    const status = document.getElementById('planFormStatus').value;
+    const note = document.getElementById('planFormNote').value.trim();
+    const msgEl = document.getElementById('planFormMsg');
+
+    if(!topic){ msgEl.textContent = 'กรอกหัวข้อคอนเทนต์'; msgEl.style.display = 'block'; return; }
+    if(!publishDate){ msgEl.textContent = 'กรุณาเลือกวันที่วางแผนลง'; msgEl.style.display = 'block'; return; }
+    if(!ownerId){ msgEl.textContent = 'กรุณาเลือกผู้รับผิดชอบ'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    if(editingPlanId){
+      const p = data.contentPlans.find(x => x.id === editingPlanId);
+      p.topic = topic; p.platform = platform; p.publishDate = publishDate;
+      p.ownerId = ownerId; p.status = status; p.note = note;
+      logActivity('แพลนคอนเทนต์', `แก้ไขคอนเทนต์: ${topic}`);
+    } else {
+      data.contentPlans.push({ id: uid(), topic, platform, publishDate, ownerId, status, note });
+      logActivity('แพลนคอนเทนต์', `เพิ่มคอนเทนต์: ${topic}`);
+    }
+    saveData();
+    closePlanModal();
+    renderPlanTable();
+    renderDashboard();
+    renderTopbarBadge();
+    renderCalendar();
+  }
+
+  function deletePlan(planId){
+    const target = data.contentPlans.find(p => p.id === planId);
+    if(!target) return;
+    const linkedScript = data.scripts.find(s => s.contentPlanId === planId);
+    if(linkedScript){
+      alert(`ลบคอนเทนต์ "${target.topic}" ไม่ได้ เพราะมีสคริปต์ "${linkedScript.topic}" ผูกอยู่ — ไปลบหรือย้ายสคริปต์นั้นไปผูกกับคอนเทนต์อื่นก่อนจากหน้า "คลังสคริปต์"`);
+      return;
+    }
+    if(!confirm('ลบคอนเทนต์นี้ออกจากแพลน?')) return;
+    data.contentPlans = data.contentPlans.filter(p => p.id !== planId);
+    logActivity('แพลนคอนเทนต์', `ลบคอนเทนต์: ${target.topic}`);
+    saveData();
+    renderPlanTable();
+    renderDashboard();
+    renderTopbarBadge();
+    renderCalendar();
+  }
+
+  function updatePlanStatus(planId, newStatus){
+    const p = data.contentPlans.find(x => x.id === planId);
+    p.status = newStatus;
+    logActivity('แพลนคอนเทนต์', `เปลี่ยนสถานะ "${p.topic}" เป็น ${newStatus}`);
+    saveData();
+    renderDashboard();
+    renderTopbarBadge();
+    renderCalendar();
+  }
+
+  function renderPlanTable(){
+    const tbody = document.getElementById('planTableBody');
+    const emptyMsg = document.getElementById('planEmptyMsg');
+    const rows = [...data.contentPlans].sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    tbody.innerHTML = rows.map(p => {
+      const owner = data.members.find(m => m.id === p.ownerId);
+      const ownerName = owner ? owner.name : '—';
+      return `
+        <tr>
+          <td data-label="หัวข้อคอนเทนต์">${escapeHtml(p.topic)}</td>
+          <td data-label="แพลตฟอร์ม"><span class="chip chip-outline">${escapeHtml(p.platform)}</span></td>
+          <td data-label="วันที่ลง">${formatThaiDate(p.publishDate)}</td>
+          <td data-label="ผู้รับผิดชอบ">${owner ? `${avatarHtml(owner)}${escapeHtml(ownerName)}` : '—'}</td>
+          <td data-label="สถานะ">
+            <select class="form-control status-select" data-id="${p.id}">
+              ${STATUS_LIST.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td data-label="สคริปต์">
+            ${(() => {
+              const linkedScript = data.scripts.find(s => s.contentPlanId === p.id);
+              return linkedScript
+                ? `<button class="icon-btn" onclick="goToScript('${linkedScript.id}')">📜 ดูสคริปต์</button>`
+                : `<button class="icon-btn" onclick="openScriptModal(null, '${p.id}')">✎ เขียนสคริปต์</button>`;
+            })()}
+          </td>
+          <td data-label="">
+            <div class="action-btns">
+              <button class="icon-btn" onclick="openPlanModal('${p.id}')">แก้ไข</button>
+              <button class="icon-btn danger" onclick="deletePlan('${p.id}')">ลบ</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updatePlanStatus(e.target.dataset.id, e.target.value));
+    });
+  }
+
+  /* ===== Script page ===== */
+  function renderScriptFormSelectOptions(){
+    const planSel = document.getElementById('scriptFormPlan');
+    planSel.innerHTML = data.contentPlans.map(p => `<option value="${p.id}">${escapeHtml(p.topic)} (${escapeHtml(p.platform)} · ${formatThaiDate(p.publishDate)})</option>`).join('')
+      || '<option value="">— ยังไม่มีแพลนคอนเทนต์ ไปสร้างที่หน้าแพลนคอนเทนต์ก่อน —</option>';
+
+    const authorSel = document.getElementById('scriptFormAuthor');
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    authorSel.innerHTML = activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')
+      || '<option value="">ไม่มีสมาชิกที่ทำงานอยู่</option>';
+  }
+
+  function openScriptModal(scriptId, prefillPlanId){
+    editingScriptId = scriptId || null;
+    document.getElementById('scriptFormMsg').style.display = 'none';
+    renderScriptFormSelectOptions();
+
+    if(scriptId){
+      const s = data.scripts.find(x => x.id === scriptId);
+      document.getElementById('scriptModalTitle').textContent = 'แก้ไขสคริปต์';
+      document.getElementById('scriptFormPlan').value = s.contentPlanId;
+      document.getElementById('scriptFormTopic').value = s.topic;
+      document.getElementById('scriptFormHook').value = s.hook;
+      document.getElementById('scriptFormContent').value = s.content;
+      document.getElementById('scriptFormCta').value = s.cta;
+      document.getElementById('scriptFormAuthor').value = s.authorId;
+      document.getElementById('scriptFormDate').value = s.writtenDate;
+    } else {
+      document.getElementById('scriptModalTitle').textContent = 'เพิ่มสคริปต์';
+      const planId = prefillPlanId || (data.contentPlans[0] ? data.contentPlans[0].id : '');
+      document.getElementById('scriptFormPlan').value = planId;
+      const selectedPlan = data.contentPlans.find(p => p.id === planId);
+      document.getElementById('scriptFormTopic').value = selectedPlan ? selectedPlan.topic : '';
+      document.getElementById('scriptFormHook').value = '';
+      document.getElementById('scriptFormContent').value = '';
+      document.getElementById('scriptFormCta').value = '';
+      const firstActive = data.members.find(m => isActiveStatus(m.status));
+      document.getElementById('scriptFormAuthor').value = firstActive ? firstActive.id : '';
+      document.getElementById('scriptFormDate').value = todayISO();
+    }
+    document.getElementById('scriptModalOverlay').classList.add('open');
+  }
+
+  function closeScriptModal(){
+    document.getElementById('scriptModalOverlay').classList.remove('open');
+  }
+
+  function saveScript(){
+    const contentPlanId = document.getElementById('scriptFormPlan').value;
+    const topic = document.getElementById('scriptFormTopic').value.trim();
+    const hook = document.getElementById('scriptFormHook').value.trim();
+    const content = document.getElementById('scriptFormContent').value.trim();
+    const cta = document.getElementById('scriptFormCta').value.trim();
+    const authorId = document.getElementById('scriptFormAuthor').value;
+    const writtenDate = document.getElementById('scriptFormDate').value;
+    const msgEl = document.getElementById('scriptFormMsg');
+
+    if(!contentPlanId){ msgEl.textContent = 'ต้องเลือกคอนเทนต์ที่จะผูกก่อน (ไปสร้างที่หน้าแพลนคอนเทนต์ถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
+    if(!topic){ msgEl.textContent = 'กรอกหัวข้อ'; msgEl.style.display = 'block'; return; }
+    if(!hook){ msgEl.textContent = 'กรอก Hook (3 วิแรก)'; msgEl.style.display = 'block'; return; }
+    if(!content){ msgEl.textContent = 'กรอกเนื้อหา'; msgEl.style.display = 'block'; return; }
+    if(!cta){ msgEl.textContent = 'กรอก CTA'; msgEl.style.display = 'block'; return; }
+    if(!authorId){ msgEl.textContent = 'ต้องมีสมาชิกที่ทำงานอยู่อย่างน้อย 1 คนเป็นผู้เขียน'; msgEl.style.display = 'block'; return; }
+    if(!writtenDate){ msgEl.textContent = 'กรุณาเลือกวันที่เขียน'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    if(editingScriptId){
+      const s = data.scripts.find(x => x.id === editingScriptId);
+      s.contentPlanId = contentPlanId; s.topic = topic; s.hook = hook;
+      s.content = content; s.cta = cta; s.authorId = authorId; s.writtenDate = writtenDate;
+      logActivity('คลังสคริปต์', `แก้ไขสคริปต์: ${topic}`);
+    } else {
+      data.scripts.push({ id: uid(), contentPlanId, topic, hook, content, cta, authorId, writtenDate });
+      logActivity('คลังสคริปต์', `เพิ่มสคริปต์: ${topic}`);
+    }
+    saveData();
+    closeScriptModal();
+    renderScriptsList();
+    renderPlanTable();
+  }
+
+  function deleteScript(scriptId){
+    if(!confirm('ลบสคริปต์นี้?')) return;
+    const target = data.scripts.find(s => s.id === scriptId);
+    data.scripts = data.scripts.filter(s => s.id !== scriptId);
+    if(target) logActivity('คลังสคริปต์', `ลบสคริปต์: ${target.topic}`);
+    saveData();
+    renderScriptsList();
+    renderPlanTable();
+  }
+
+  function goToScript(scriptId){
+    focusScriptId = scriptId;
+    document.getElementById('scriptSearchInput').value = '';
+    showPage('scripts');
+    renderScriptsList();
+  }
+
+  function renderScriptsList(){
+    const searchTerm = document.getElementById('scriptSearchInput').value.trim().toLowerCase();
+    const container = document.getElementById('scriptsList');
+    const emptyMsg = document.getElementById('scriptsEmptyMsg');
+    const emptyMsgText = document.getElementById('scriptsEmptyMsgText');
+
+    let rows = [...data.scripts].sort((a, b) => b.writtenDate.localeCompare(a.writtenDate));
+    if(searchTerm){
+      rows = rows.filter(s =>
+        s.topic.toLowerCase().includes(searchTerm) ||
+        s.hook.toLowerCase().includes(searchTerm) ||
+        s.content.toLowerCase().includes(searchTerm) ||
+        s.cta.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    if(rows.length === 0){
+      container.innerHTML = '';
+      emptyMsgText.textContent = data.scripts.length === 0 ? 'ยังไม่มีสคริปต์ในคลัง' : 'ไม่พบสคริปต์ที่ตรงกับคำค้นหา';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    container.innerHTML = rows.map(s => {
+      const plan = data.contentPlans.find(p => p.id === s.contentPlanId);
+      const author = data.members.find(m => m.id === s.authorId);
+      return `
+        <div class="script-card" data-script-id="${s.id}">
+          <div class="script-card-head">
+            <div>
+              <div class="li-title">${escapeHtml(s.topic)}</div>
+              <div class="li-sub">เขียนโดย ${author ? escapeHtml(author.name) : '—'} · ${formatThaiDate(s.writtenDate)}${plan ? ` · ผูกกับ ${escapeHtml(plan.topic)}` : ' · คอนเทนต์ถูกลบไปแล้ว'}</div>
+            </div>
+            <div class="action-btns">
+              <button class="icon-btn" onclick="openScriptModal('${s.id}')">แก้ไข</button>
+              <button class="icon-btn danger" onclick="deleteScript('${s.id}')">ลบ</button>
+            </div>
+          </div>
+          <div class="script-box">
+            <div class="k">Hook (3 วิแรก)</div><div class="v">${escapeHtml(s.hook)}</div>
+            <div class="k">เนื้อหา</div><div class="v">${escapeHtml(s.content)}</div>
+            <div class="k">CTA</div><div class="v">${escapeHtml(s.cta)}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if(focusScriptId){
+      const el = container.querySelector(`[data-script-id="${focusScriptId}"]`);
+      if(el){
+        el.scrollIntoView({ behavior:'smooth', block:'center' });
+        el.classList.add('flash-highlight');
+        setTimeout(() => el.classList.remove('flash-highlight'), 1600);
+      }
+      focusScriptId = null;
+    }
+  }
+
+  /* ===== Ideas & trends page ===== */
+  function renderIdeaFormSelectOptions(){
+    const authorSel = document.getElementById('ideaFormAuthor');
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    authorSel.innerHTML = activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')
+      || '<option value="">ไม่มีสมาชิกที่ทำงานอยู่</option>';
+  }
+
+  function renderIdeaFilterOptions(){
+    const sel = document.getElementById('ideaFilterTag');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">ทั้งหมด</option>' + IDEA_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
+    sel.value = current;
+  }
+
+  function openIdeaModal(ideaId){
+    editingIdeaId = ideaId || null;
+    document.getElementById('ideaFormMsg').style.display = 'none';
+    renderIdeaFormSelectOptions();
+
+    if(ideaId){
+      const idea = data.ideas.find(x => x.id === ideaId);
+      document.getElementById('ideaModalTitle').textContent = 'แก้ไขไอเดีย';
+      document.getElementById('ideaFormType').value = idea.type;
+      document.getElementById('ideaFormContent').value = idea.content;
+      document.getElementById('ideaFormAuthor').value = idea.authorId;
+      document.getElementById('ideaFormDate').value = idea.recordedDate;
+    } else {
+      document.getElementById('ideaModalTitle').textContent = 'เพิ่มไอเดีย';
+      document.getElementById('ideaFormType').value = 'ไอเดียคอนเทนต์';
+      document.getElementById('ideaFormContent').value = '';
+      const firstActive = data.members.find(m => isActiveStatus(m.status));
+      document.getElementById('ideaFormAuthor').value = firstActive ? firstActive.id : '';
+      document.getElementById('ideaFormDate').value = todayISO();
+    }
+    document.getElementById('ideaModalOverlay').classList.add('open');
+  }
+
+  function closeIdeaModal(){
+    document.getElementById('ideaModalOverlay').classList.remove('open');
+  }
+
+  function saveIdea(){
+    const type = document.getElementById('ideaFormType').value;
+    const content = document.getElementById('ideaFormContent').value.trim();
+    const authorId = document.getElementById('ideaFormAuthor').value;
+    const recordedDate = document.getElementById('ideaFormDate').value;
+    const msgEl = document.getElementById('ideaFormMsg');
+
+    if(!content){ msgEl.textContent = 'กรอกเนื้อหาไอเดีย'; msgEl.style.display = 'block'; return; }
+    if(!authorId){ msgEl.textContent = 'ต้องมีสมาชิกที่ทำงานอยู่อย่างน้อย 1 คนเป็นผู้บันทึก'; msgEl.style.display = 'block'; return; }
+    if(!recordedDate){ msgEl.textContent = 'กรุณาเลือกวันที่บันทึก'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    if(editingIdeaId){
+      const idea = data.ideas.find(x => x.id === editingIdeaId);
+      idea.type = type; idea.content = content; idea.authorId = authorId; idea.recordedDate = recordedDate;
+      logActivity('ไอเดีย & เทรนด์', `แก้ไขไอเดีย (${type})`);
+    } else {
+      data.ideas.push({ id: uid(), type, content, authorId, recordedDate });
+      logActivity('ไอเดีย & เทรนด์', `เพิ่มไอเดีย (${type})`);
+    }
+    saveData();
+    closeIdeaModal();
+    renderIdeasList();
+  }
+
+  function deleteIdea(ideaId){
+    if(!confirm('ลบไอเดียนี้?')) return;
+    const target = data.ideas.find(x => x.id === ideaId);
+    data.ideas = data.ideas.filter(x => x.id !== ideaId);
+    if(target) logActivity('ไอเดีย & เทรนด์', `ลบไอเดีย (${target.type})`);
+    saveData();
+    renderIdeasList();
+  }
+
+  function renderIdeasList(){
+    const tagFilter = document.getElementById('ideaFilterTag').value;
+    const searchTerm = document.getElementById('ideaSearchInput').value.trim().toLowerCase();
+    const container = document.getElementById('ideasList');
+    const emptyMsg = document.getElementById('ideasEmptyMsg');
+    const emptyMsgText = document.getElementById('ideasEmptyMsgText');
+
+    let rows = [...data.ideas].sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
+    if(tagFilter) rows = rows.filter(i => i.type === tagFilter);
+    if(searchTerm) rows = rows.filter(i => i.content.toLowerCase().includes(searchTerm));
+
+    if(rows.length === 0){
+      container.innerHTML = '';
+      emptyMsgText.textContent = data.ideas.length === 0 ? 'ยังไม่มีไอเดียในระบบ' : 'ไม่พบไอเดียที่ตรงกับตัวกรอง';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    container.innerHTML = rows.map(idea => {
+      const author = data.members.find(m => m.id === idea.authorId);
+      return `
+        <div class="idea-card">
+          <span class="chip ${IDEA_CHIP_CLASS[idea.type] || 'chip-idea'}">${escapeHtml(idea.type)}</span>
+          <div class="idea-content">${escapeHtml(idea.content)}</div>
+          <div class="idea-meta">บันทึกโดย ${author ? escapeHtml(author.name) : '—'} · ${formatThaiDate(idea.recordedDate)}</div>
+          <div class="idea-actions">
+            <button class="icon-btn" onclick="openIdeaModal('${idea.id}')">แก้ไข</button>
+            <button class="icon-btn danger" onclick="deleteIdea('${idea.id}')">ลบ</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ===== Brands ===== */
+  function brandHasLinkedWorkItems(brandId){
+    return (Array.isArray(data.workItems) && data.workItems.some(w => w.brandId === brandId))
+      || (Array.isArray(data.dailyReports) && data.dailyReports.some(r => r.brandId === brandId));
+  }
+
+  function renderBrandsList(){
+    const list = document.getElementById('brandsList');
+    const emptyMsg = document.getElementById('brandsEmptyMsg');
+    if(data.brands.length === 0){
+      list.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    list.innerHTML = data.brands.map(b => `
+      <div class="list-item">
+        <div style="display:flex; align-items:center; gap:0;">
+          ${brandLogoHtml(b)}
+          <div>
+            <div class="li-title">${escapeHtml(b.name)}</div>
+            <div class="li-sub">${b.tiktokChannel ? escapeHtml(b.tiktokChannel) : 'ยังไม่ระบุช่อง TikTok'}${b.note ? ' · ' + escapeHtml(b.note) : ''}</div>
+          </div>
+        </div>
+        <div class="action-btns">
+          <button class="icon-btn" onclick="openBrandModal('${b.id}')">แก้ไข</button>
+          <button class="icon-btn danger" onclick="deleteBrand('${b.id}')">ลบ</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderBrandProductsList(){
+    const list = document.getElementById('brandProductsList');
+    if(pendingBrandProducts.length === 0){
+      list.innerHTML = '<div class="empty-mini" style="padding:8px 0;">ยังไม่มีสินค้า</div>';
+      return;
+    }
+    list.innerHTML = pendingBrandProducts.map((p, i) => `
+      <span class="tag-chip">${escapeHtml(p)}<button type="button" onclick="removeBrandProduct(${i})">✕</button></span>
+    `).join('');
+  }
+
+  function addBrandProduct(){
+    const input = document.getElementById('brandProductInput');
+    const val = input.value.trim();
+    if(!val) return;
+    if(pendingBrandProducts.includes(val)){ input.value = ''; return; }
+    pendingBrandProducts.push(val);
+    input.value = '';
+    renderBrandProductsList();
+  }
+
+  function removeBrandProduct(index){
+    pendingBrandProducts.splice(index, 1);
+    renderBrandProductsList();
+  }
+
+  function updateBrandLogoPreview(logoDataUrl, name){
+    const preview = document.getElementById('brandFormLogoPreview');
+    if(logoDataUrl){
+      preview.innerHTML = `<img src="${logoDataUrl}" alt="">`;
+    } else {
+      preview.innerHTML = '';
+      preview.textContent = (name || '').charAt(0) || '?';
+    }
+  }
+
+  function openBrandModal(brandId){
+    editingBrandId = brandId || null;
+    pendingBrandLogoDataUrl = undefined;
+    document.getElementById('brandFormMsg').style.display = 'none';
+    document.getElementById('brandProductInput').value = '';
+    document.getElementById('brandFormLogoFile').value = '';
+    if(brandId){
+      const b = data.brands.find(x => x.id === brandId);
+      document.getElementById('brandModalTitle').textContent = 'แก้ไขแบรนด์';
+      document.getElementById('brandFormName').value = b.name;
+      document.getElementById('brandFormChannel').value = b.tiktokChannel || '';
+      document.getElementById('brandFormNote').value = b.note || '';
+      pendingBrandProducts = Array.isArray(b.products) ? [...b.products] : [];
+      updateBrandLogoPreview(b.logoDataUrl || null, b.name);
+    } else {
+      document.getElementById('brandModalTitle').textContent = 'เพิ่มแบรนด์';
+      document.getElementById('brandFormName').value = '';
+      document.getElementById('brandFormChannel').value = '';
+      document.getElementById('brandFormNote').value = '';
+      pendingBrandProducts = [];
+      updateBrandLogoPreview(null, '');
+    }
+    renderBrandProductsList();
+    document.getElementById('brandModalOverlay').classList.add('open');
+  }
+
+  function closeBrandModal(){
+    document.getElementById('brandModalOverlay').classList.remove('open');
+  }
+
+  function saveBrand(){
+    const name = document.getElementById('brandFormName').value.trim();
+    const tiktokChannel = document.getElementById('brandFormChannel').value.trim();
+    const note = document.getElementById('brandFormNote').value.trim();
+    const msgEl = document.getElementById('brandFormMsg');
+
+    if(!name){
+      msgEl.textContent = 'กรอกชื่อแบรนด์';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    const products = [...pendingBrandProducts];
+
+    if(editingBrandId){
+      const b = data.brands.find(x => x.id === editingBrandId);
+      b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.products = products;
+      if(pendingBrandLogoDataUrl !== undefined) b.logoDataUrl = pendingBrandLogoDataUrl;
+      logActivity('แบรนด์', `แก้ไขแบรนด์: ${name}`);
+    } else {
+      data.brands.push({ id: uid(), name, tiktokChannel, note, products, logoDataUrl: pendingBrandLogoDataUrl || null });
+      logActivity('แบรนด์', `เพิ่มแบรนด์: ${name}`);
+    }
+    saveData();
+    closeBrandModal();
+    renderBrandsList();
+    renderWorkItemFilterOptions();
+    renderWorkItemsTable();
+    renderTeamWorkSummary();
+    populateWorkFormOptions('wiForm');
+    refreshAwBlockBrandOptions();
+    renderDashboard();
+  }
+
+  function deleteBrand(brandId){
+    const b = data.brands.find(x => x.id === brandId);
+    if(!b) return;
+    if(brandHasLinkedWorkItems(brandId)){
+      alert(`ลบแบรนด์ "${b.name}" ไม่ได้ เพราะมีรีพอร์ตหรือแพลนงานรายวันผูกอยู่แล้ว`);
+      return;
+    }
+    if(!confirm(`ลบแบรนด์ "${b.name}"?`)) return;
+    data.brands = data.brands.filter(x => x.id !== brandId);
+    logActivity('แบรนด์', `ลบแบรนด์: ${b.name}`);
+    saveData();
+    renderBrandsList();
+    renderWorkItemFilterOptions();
+    renderWorkItemsTable();
+    renderTeamWorkSummary();
+    populateWorkFormOptions('wiForm');
+    refreshAwBlockBrandOptions();
+    renderDashboard();
+  }
+
+  /* ===== Work items (รายงานการทำงานประจำวัน) ===== */
+  function populateWorkFormProductOptions(prefix){
+    const brandId = document.getElementById(prefix + 'Brand').value;
+    const brand = data.brands.find(b => b.id === brandId);
+    const products = brand && Array.isArray(brand.products) ? brand.products : [];
+    const hiddenInput = document.getElementById(prefix + 'Product');
+    if(hiddenInput.value && !products.includes(hiddenInput.value)) hiddenInput.value = '';
+    hiddenInput.dataset.products = JSON.stringify(products);
+    syncProductSearchDisplay(prefix);
+  }
+
+  function syncProductSearchDisplay(prefix){
+    const hiddenInput = document.getElementById(prefix + 'Product');
+    const searchInput = document.getElementById(prefix + 'ProductSearch');
+    if(searchInput) searchInput.value = hiddenInput.value || '';
+  }
+
+  function renderProductDropdown(prefix){
+    const hiddenInput = document.getElementById(prefix + 'Product');
+    const searchInput = document.getElementById(prefix + 'ProductSearch');
+    const dropdown = document.getElementById(prefix + 'ProductDropdown');
+    const products = JSON.parse(hiddenInput.dataset.products || '[]');
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = q ? products.filter(p => p.toLowerCase().includes(q)) : products;
+    const optionsHtml = filtered.map(p => `<div class="ss-option" data-value="${escapeHtml(p)}">${escapeHtml(p)}</div>`).join('')
+      || '<div class="ss-option-empty">ไม่พบสินค้า</div>';
+    dropdown.innerHTML = '<div class="ss-option ss-option-clear" data-value="">— ไม่ระบุ —</div>' + optionsHtml;
+    dropdown.classList.add('open');
+    dropdown.querySelectorAll('.ss-option').forEach(el => {
+      el.addEventListener('click', () => {
+        hiddenInput.value = el.dataset.value;
+        searchInput.value = el.dataset.value;
+        dropdown.classList.remove('open');
+      });
+    });
+  }
+
+  function hideProductDropdown(prefix){
+    const dropdown = document.getElementById(prefix + 'ProductDropdown');
+    if(dropdown) dropdown.classList.remove('open');
+    syncProductSearchDisplay(prefix);
+  }
+
+  function populateWorkFormOptions(prefix){
+    const brandSel = document.getElementById(prefix + 'Brand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')
+      || '<option value="">— ยังไม่มีแบรนด์ ไปเพิ่มที่หน้างานที่บริษัทรับผิดชอบก่อน —</option>';
+    if(data.brands.some(b => b.id === curBrand)) brandSel.value = curBrand;
+
+    const ownerSel = document.getElementById(prefix + 'Owner');
+    const curOwner = ownerSel.value;
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    ownerSel.innerHTML = activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')
+      || '<option value="">ไม่มีสมาชิกที่ทำงานอยู่</option>';
+    if(activeMembers.some(m => m.id === curOwner)) ownerSel.value = curOwner;
+
+    const statusSel = document.getElementById(prefix + 'Status');
+    if(statusSel){
+      const curStatus = statusSel.value;
+      statusSel.innerHTML = WORKITEM_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+      if(WORKITEM_STATUS_LIST.includes(curStatus)) statusSel.value = curStatus;
+    }
+
+    populateWorkFormProductOptions(prefix);
+  }
+
+  function renderWorkItemFilterOptions(){
+    const brandSel = document.getElementById('wiFilterBrand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = '<option value="">ทั้งหมด</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    brandSel.value = curBrand;
+
+    const ownerSel = document.getElementById('wiFilterOwner');
+    const curOwner = ownerSel.value;
+    ownerSel.innerHTML = '<option value="">ทั้งหมด</option>' + data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    ownerSel.value = curOwner;
+
+    const statusSel = document.getElementById('wiFilterStatus');
+    const curStatus = statusSel.value;
+    statusSel.innerHTML = '<option value="">ทั้งหมด</option>' + WORKITEM_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    statusSel.value = curStatus;
+  }
+
+  function openWorkItemModal(workItemId, prefillDate){
+    editingWorkItemId = workItemId || null;
+    document.getElementById('wiFormMsg').style.display = 'none';
+    populateWorkFormOptions('wiForm');
+
+    if(workItemId){
+      const w = data.workItems.find(x => x.id === workItemId);
+      document.getElementById('workItemModalTitle').textContent = 'แก้ไขงาน';
+      document.getElementById('wiFormTitle').value = w.title || '';
+      document.getElementById('wiFormDate').value = w.date || '';
+      document.getElementById('wiFormOwner').value = w.ownerId || '';
+      document.getElementById('wiFormBrand').value = w.brandId;
+      document.getElementById('wiFormWorkType').value = w.workType || 'ตัดคลิป';
+      populateWorkFormProductOptions('wiForm');
+      document.getElementById('wiFormQty').value = w.quantity || 1;
+      document.getElementById('wiFormProduct').value = w.product || '';
+      syncProductSearchDisplay('wiForm');
+      document.getElementById('wiFormLocation').value = w.location || '';
+      document.getElementById('wiFormDescription').value = w.description || '';
+      document.getElementById('wiFormStatus').value = w.status;
+      document.getElementById('wiFormImageNote').value = w.imageNote || '';
+      document.getElementById('wiFormDriveLink').value = w.driveLink || '';
+    } else {
+      document.getElementById('workItemModalTitle').textContent = 'เพิ่มงาน';
+      document.getElementById('wiFormTitle').value = '';
+      document.getElementById('wiFormDate').value = prefillDate || todayISO();
+      const firstActive = data.members.find(m => isActiveStatus(m.status));
+      document.getElementById('wiFormOwner').value = firstActive ? firstActive.id : '';
+      document.getElementById('wiFormBrand').value = data.brands[0] ? data.brands[0].id : '';
+      document.getElementById('wiFormWorkType').value = 'ตัดคลิป';
+      populateWorkFormProductOptions('wiForm');
+      document.getElementById('wiFormQty').value = 1;
+      document.getElementById('wiFormLocation').value = '';
+      document.getElementById('wiFormDescription').value = '';
+      document.getElementById('wiFormStatus').value = WORKITEM_STATUS_LIST[0];
+      document.getElementById('wiFormImageNote').value = '';
+      document.getElementById('wiFormDriveLink').value = '';
+    }
+    document.getElementById('workItemModalOverlay').classList.add('open');
+  }
+
+  function closeWorkItemModal(){
+    document.getElementById('workItemModalOverlay').classList.remove('open');
+  }
+
+  function syncLinkedReport(w){
+    let report = w.reportId ? data.dailyReports.find(r => r.id === w.reportId) : null;
+    if(!report){
+      report = { id: uid(), memberId: w.ownerId, date: w.date, workType: w.workType, quantity: w.quantity, contentPlanId: null, brandId: w.brandId, note: w.description };
+      data.dailyReports.push(report);
+      w.reportId = report.id;
+    } else {
+      report.memberId = w.ownerId; report.date = w.date; report.workType = w.workType;
+      report.quantity = w.quantity; report.brandId = w.brandId; report.note = w.description;
+    }
+  }
+
+  function saveWorkItem(){
+    const title = document.getElementById('wiFormTitle').value.trim();
+    const date = document.getElementById('wiFormDate').value;
+    const ownerId = document.getElementById('wiFormOwner').value;
+    const brandId = document.getElementById('wiFormBrand').value;
+    const workType = document.getElementById('wiFormWorkType').value;
+    const quantity = Number(document.getElementById('wiFormQty').value);
+    const product = document.getElementById('wiFormProduct').value.trim();
+    const location = document.getElementById('wiFormLocation').value.trim();
+    const description = document.getElementById('wiFormDescription').value.trim();
+    const status = document.getElementById('wiFormStatus').value;
+    const imageNote = document.getElementById('wiFormImageNote').value.trim();
+    const driveLink = document.getElementById('wiFormDriveLink').value.trim();
+    const msgEl = document.getElementById('wiFormMsg');
+
+    if(!date){ msgEl.textContent = 'กรุณาเลือกวันที่'; msgEl.style.display = 'block'; return; }
+    if(!ownerId){ msgEl.textContent = 'ต้องมีสมาชิกที่ทำงานอยู่อย่างน้อย 1 คนเป็นผู้รับผิดชอบ'; msgEl.style.display = 'block'; return; }
+    if(!brandId){ msgEl.textContent = 'ต้องเลือกแบรนด์ (ไปเพิ่มที่หน้า "งานที่บริษัทรับผิดชอบ" ถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
+    if(!quantity || quantity < 1){ msgEl.textContent = 'จำนวนชิ้นต้องมากกว่า 0'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    if(editingWorkItemId){
+      const w = data.workItems.find(x => x.id === editingWorkItemId);
+      const wasPost = w.status === 'Post';
+      const goingToPost = status === 'Post' && !wasPost;
+      Object.assign(w, { title, date, ownerId, brandId, workType, quantity, product, location, description, imageNote, driveLink });
+      if(!goingToPost){
+        w.status = status;
+        if(status !== 'Post' && wasPost){ w.postDate = ''; w.linkPost = ''; }
+      }
+      syncLinkedReport(w);
+      logActivity('รายงานการทำงานประจำวัน', `แก้ไขงาน: ${title || product}`);
+      saveData();
+      closeWorkItemModal();
+      renderWorkItemsTable();
+      renderReportTable();
+      renderDashboard();
+      renderTeamPage();
+      renderSummaryTable();
+      renderCalendar();
+      if(goingToPost){ openPostDetailsModal(w.id); }
+    } else {
+      const initialStatus = status === 'Post' ? WORKITEM_STATUS_LIST[0] : status;
+      const report = { id: uid(), memberId: ownerId, date, workType, quantity, contentPlanId: null, brandId, note: description };
+      data.dailyReports.push(report);
+      const w = { id: uid(), title, date, ownerId, brandId, workType, quantity, product, location, description, status: initialStatus, imageNote, driveLink, postDate: '', linkPost: '', reportId: report.id };
+      data.workItems.push(w);
+      logActivity('รายงานการทำงานประจำวัน', `เพิ่มงาน: ${title || product} (${workType} ${quantity} ชิ้น)`);
+      saveData();
+      closeWorkItemModal();
+      renderWorkItemsTable();
+      renderReportTable();
+      renderDashboard();
+      renderTeamPage();
+      renderSummaryTable();
+      renderCalendar();
+      if(status === 'Post'){ openPostDetailsModal(w.id); }
+    }
+  }
+
+  function deleteWorkItem(workItemId){
+    if(!confirm('ลบงานนี้?')) return;
+    const target = data.workItems.find(w => w.id === workItemId);
+    data.workItems = data.workItems.filter(w => w.id !== workItemId);
+    if(target){
+      logActivity('รายงานการทำงานประจำวัน', `ลบงาน: ${target.title || target.product}`);
+      if(target.reportId){
+        data.dailyReports = data.dailyReports.filter(r => r.id !== target.reportId);
+      }
+    }
+    saveData();
+    renderWorkItemsTable();
+    renderReportTable();
+    renderDashboard();
+    renderTeamPage();
+    renderSummaryTable();
+    renderCalendar();
+  }
+
+  /* ===== "บันทึกงานวันนี้" — เพิ่มได้หลายก้อนงาน ฟิลด์เปลี่ยนตามประเภทงาน ===== */
+  let awBlocks = [];
+  let awBlockSeq = 0;
+  const AW_CLIP_DRIVE_REQUIRED_STATUSES = ['รอตรวจ', 'สำเร็จ'];
+
+  function awBlockTypeFieldsHtml(id, type){
+    if(type === 'ตัดคลิป'){
+      return `
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>แบรนด์ *</label><select class="form-control" id="aw_${id}_brand"></select></div>
+          <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
+          <div class="field-row"><label>จำนวน *</label><input type="number" min="1" class="form-control" id="aw_${id}_quantity" value="1" style="width:90px;"></div>
+          <div class="field-row"><label>สถานะ</label>
+            <select class="form-control" id="aw_${id}_status" onchange="onAwStatusChange('${id}')">
+              ${WORKITEM_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>รูป *</label><input type="text" class="form-control" id="aw_${id}_image" placeholder="ลิงก์รูป/หมายเหตุรูป"></div>
+          <div class="field-row"><label id="aw_${id}_drivelink_label">ไดร์ฟงาน (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_drivelink" placeholder="ลิงก์ไดรฟ์งาน"></div>
+          <div class="field-row" id="aw_${id}_linkpost_row" style="display:none;"><label>ลิงค์โพสต์ *</label><input type="text" class="form-control" id="aw_${id}_linkpost" placeholder="ลิงก์โพสต์"></div>
+        </div>
+      `;
+    }
+    if(type === 'ออกกอง'){
+      return `
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>แบรนด์ *</label><select class="form-control" id="aw_${id}_brand"></select></div>
+          <div class="field-row"><label>สถานที่ (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_location" placeholder="สถานที่ออกกอง"></div>
+          <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
+        </div>
+      `;
+    }
+    if(type === 'พากย์เสียง'){
+      return `
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>แบรนด์ *</label><select class="form-control" id="aw_${id}_brand"></select></div>
+          <div class="field-row"><label>จำนวน *</label><input type="number" min="1" class="form-control" id="aw_${id}_quantity" value="1" style="width:90px;"></div>
+        </div>
+      `;
+    }
+    return `
+      <div class="toolbar" style="margin-top:10px;">
+        <div class="field-row"><label>แบรนด์ *</label><select class="form-control" id="aw_${id}_brand"></select></div>
+        <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
+      </div>
+    `;
+  }
+
+  function awBlockHtml(id, num, defaultDate, defaultType){
+    const type = defaultType || 'ตัดคลิป';
+    return `
+      <div class="aw-block" id="aw_${id}_wrap" data-block-id="${id}">
+        <div class="aw-block-head">
+          <span class="aw-block-num">งานที่ ${num}</span>
+          <button type="button" class="icon-btn danger" onclick="removeAwBlock('${id}')">✕ ลบ</button>
+        </div>
+        <div class="toolbar">
+          <div class="field-row"><label>วันที่ *</label><input type="date" class="form-control" id="aw_${id}_date" value="${defaultDate}"></div>
+          <div class="field-row"><label>ประเภทงาน *</label>
+            <select class="form-control" id="aw_${id}_type" onchange="onAwBlockTypeChange('${id}')">
+              ${WORK_TYPES.map(t => `<option value="${t}" ${t === type ? 'selected' : ''}>${t}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div id="aw_${id}_fields">${awBlockTypeFieldsHtml(id, type)}</div>
+      </div>
+    `;
+  }
+
+  function populateAwBlockBrand(id){
+    const sel = document.getElementById(`aw_${id}_brand`);
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')
+      || '<option value="">— ยังไม่มีแบรนด์ ไปเพิ่มที่หน้างานที่บริษัทรับผิดชอบก่อน —</option>';
+    if(data.brands.some(b => b.id === cur)) sel.value = cur;
+  }
+
+  function refreshAwBlockBrandOptions(){
+    awBlocks.forEach(id => populateAwBlockBrand(id));
+  }
+
+  function onAwStatusChange(id){
+    const statusEl = document.getElementById(`aw_${id}_status`);
+    if(!statusEl) return;
+    const status = statusEl.value;
+    const driveLabel = document.getElementById(`aw_${id}_drivelink_label`);
+    const linkpostRow = document.getElementById(`aw_${id}_linkpost_row`);
+    if(driveLabel) driveLabel.textContent = AW_CLIP_DRIVE_REQUIRED_STATUSES.includes(status) ? 'ไดร์ฟงาน *' : 'ไดร์ฟงาน (ไม่บังคับ)';
+    if(linkpostRow) linkpostRow.style.display = status === 'Post' ? '' : 'none';
+  }
+
+  function onAwBlockTypeChange(id){
+    const type = document.getElementById(`aw_${id}_type`).value;
+    document.getElementById(`aw_${id}_fields`).innerHTML = awBlockTypeFieldsHtml(id, type);
+    populateAwBlockBrand(id);
+    onAwStatusChange(id);
+  }
+
+  function renumberAwBlocks(){
+    awBlocks.forEach((id, i) => {
+      const numEl = document.querySelector(`#aw_${id}_wrap .aw-block-num`);
+      if(numEl) numEl.textContent = `งานที่ ${i + 1}`;
+    });
+  }
+
+  function addAwBlock(){
+    const id = 'b' + (++awBlockSeq) + Date.now().toString(36);
+    const lastId = awBlocks[awBlocks.length - 1];
+    let defaultDate = todayISO();
+    if(lastId){
+      const lastDateEl = document.getElementById(`aw_${lastId}_date`);
+      if(lastDateEl && lastDateEl.value) defaultDate = lastDateEl.value;
+    }
+    awBlocks.push(id);
+    document.getElementById('awBlockList').insertAdjacentHTML('beforeend', awBlockHtml(id, awBlocks.length, defaultDate, 'ตัดคลิป'));
+    populateAwBlockBrand(id);
+    onAwStatusChange(id);
+  }
+
+  function removeAwBlock(id){
+    awBlocks = awBlocks.filter(x => x !== id);
+    const el = document.getElementById(`aw_${id}_wrap`);
+    if(el) el.remove();
+    renumberAwBlocks();
+    if(awBlocks.length === 0) addAwBlock();
+  }
+
+  function resetAwBlocks(){
+    awBlocks = [];
+    document.getElementById('awBlockList').innerHTML = '';
+    addAwBlock();
+  }
+
+  function ensureAwBlocks(){
+    if(awBlocks.length === 0) addAwBlock();
+    else refreshAwBlockBrandOptions();
+  }
+
+  function saveNewWorkEntry(){
+    const msgEl = document.getElementById('awFormMsg');
+    const currentUserId = getCurrentUserId();
+    if(!currentUserId){ msgEl.textContent = 'ไม่พบผู้ใช้ที่ล็อกอินอยู่ กรุณาล็อกอินใหม่'; msgEl.style.display = 'block'; return; }
+
+    const entries = [];
+    for(let i = 0; i < awBlocks.length; i++){
+      const id = awBlocks[i];
+      const num = i + 1;
+      const date = document.getElementById(`aw_${id}_date`).value;
+      const workType = document.getElementById(`aw_${id}_type`).value;
+      const brandEl = document.getElementById(`aw_${id}_brand`);
+      const brandId = brandEl ? brandEl.value : '';
+
+      if(!date){ msgEl.textContent = `งานที่ ${num}: กรุณาเลือกวันที่`; msgEl.style.display = 'block'; return; }
+      if(!brandId){ msgEl.textContent = `งานที่ ${num}: ต้องเลือกแบรนด์ (ไปเพิ่มที่หน้า "งานที่บริษัทรับผิดชอบ" ถ้ายังไม่มี)`; msgEl.style.display = 'block'; return; }
+
+      const entry = {
+        date, workType, ownerId: currentUserId, brandId, quantity: 1,
+        description: '', location: '', imageNote: '', driveLink: '',
+        status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: ''
+      };
+
+      if(workType === 'ตัดคลิป'){
+        entry.description = document.getElementById(`aw_${id}_description`).value.trim();
+        entry.quantity = Number(document.getElementById(`aw_${id}_quantity`).value);
+        entry.status = document.getElementById(`aw_${id}_status`).value;
+        entry.imageNote = document.getElementById(`aw_${id}_image`).value.trim();
+        entry.driveLink = document.getElementById(`aw_${id}_drivelink`).value.trim();
+        const linkPostEl = document.getElementById(`aw_${id}_linkpost`);
+        entry.linkPost = linkPostEl ? linkPostEl.value.trim() : '';
+
+        if(!entry.quantity || entry.quantity < 1){ msgEl.textContent = `งานที่ ${num}: จำนวนชิ้นต้องมากกว่า 0`; msgEl.style.display = 'block'; return; }
+        if(!entry.imageNote){ msgEl.textContent = `งานที่ ${num}: ตัดคลิปต้องใส่รูป`; msgEl.style.display = 'block'; return; }
+        if(AW_CLIP_DRIVE_REQUIRED_STATUSES.includes(entry.status) && !entry.driveLink){ msgEl.textContent = `งานที่ ${num}: สถานะ "${entry.status}" ต้องใส่ไดร์ฟงาน`; msgEl.style.display = 'block'; return; }
+        if(entry.status === 'Post'){
+          if(!entry.linkPost){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องใส่ลิงค์โพสต์`; msgEl.style.display = 'block'; return; }
+          entry.postDate = date;
+        }
+      } else if(workType === 'ออกกอง'){
+        entry.location = document.getElementById(`aw_${id}_location`).value.trim();
+        entry.description = document.getElementById(`aw_${id}_description`).value.trim();
+      } else if(workType === 'พากย์เสียง'){
+        entry.quantity = Number(document.getElementById(`aw_${id}_quantity`).value);
+        if(!entry.quantity || entry.quantity < 1){ msgEl.textContent = `งานที่ ${num}: จำนวนชิ้นต้องมากกว่า 0`; msgEl.style.display = 'block'; return; }
+      } else {
+        entry.description = document.getElementById(`aw_${id}_description`).value.trim();
+      }
+
+      entries.push(entry);
+    }
+
+    if(entries.length === 0){ msgEl.textContent = 'ยังไม่มีงานให้บันทึก'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    entries.forEach(entry => {
+      const report = { id: uid(), memberId: entry.ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
+      data.dailyReports.push(report);
+      const w = {
+        id: uid(), title: '', date: entry.date, ownerId: entry.ownerId, brandId: entry.brandId,
+        workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
+        location: entry.location, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
+        postDate: entry.postDate, linkPost: entry.linkPost, reportId: report.id
+      };
+      data.workItems.push(w);
+      logActivity('รายงานการทำงานประจำวัน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น`);
+    });
+
+    saveData();
+    resetAwBlocks();
+
+    renderWorkItemsTable();
+    renderReportTable();
+    renderDashboard();
+    renderTeamPage();
+    renderSummaryTable();
+    renderCalendar();
+  }
+
+  function updateWorkItemStatus(workItemId, newStatus){
+    const w = data.workItems.find(x => x.id === workItemId);
+    const oldStatus = w.status;
+    if(newStatus === 'Post' && oldStatus !== 'Post'){
+      openPostDetailsModal(workItemId);
+      return;
+    }
+    w.status = newStatus;
+    if(newStatus !== 'Post'){ w.postDate = ''; w.linkPost = ''; }
+    logActivity('รายงานการทำงานประจำวัน', `เปลี่ยนสถานะงาน "${w.title || w.product}" เป็น ${newStatus}`);
+    saveData();
+    renderWorkItemsTable();
+    renderDashboard();
+    renderCalendar();
+  }
+
+  function openPostDetailsModal(workItemId){
+    pendingPostWorkItemId = workItemId;
+    const w = data.workItems.find(x => x.id === workItemId);
+    document.getElementById('postFormMsg').style.display = 'none';
+    document.getElementById('postFormDate').value = w.postDate || todayISO();
+    document.getElementById('postFormLink').value = w.linkPost || '';
+    document.getElementById('postDetailsModalOverlay').classList.add('open');
+  }
+
+  function closePostDetailsModal(){
+    document.getElementById('postDetailsModalOverlay').classList.remove('open');
+    pendingPostWorkItemId = null;
+    renderWorkItemsTable();
+  }
+
+  function savePostDetails(){
+    const postDate = document.getElementById('postFormDate').value;
+    const linkPost = document.getElementById('postFormLink').value.trim();
+    const msgEl = document.getElementById('postFormMsg');
+    if(!postDate){ msgEl.textContent = 'กรุณาเลือกวันที่โพสต์'; msgEl.style.display = 'block'; return; }
+    if(!linkPost){ msgEl.textContent = 'กรุณาใส่ลิงก์โพสต์'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+    const w = data.workItems.find(x => x.id === pendingPostWorkItemId);
+    w.status = 'Post';
+    w.postDate = postDate;
+    w.linkPost = linkPost;
+    logActivity('รายงานการทำงานประจำวัน', `บันทึกข้อมูลการโพสต์: ${w.title || w.product}`);
+    saveData();
+    document.getElementById('postDetailsModalOverlay').classList.remove('open');
+    pendingPostWorkItemId = null;
+    renderWorkItemsTable();
+    renderReportTable();
+    renderDashboard();
+    renderTeamPage();
+    renderSummaryTable();
+    renderCalendar();
+  }
+
+  function renderWorkItemsTable(){
+    const brandFilter = document.getElementById('wiFilterBrand').value;
+    const ownerFilter = document.getElementById('wiFilterOwner').value;
+    const statusFilter = document.getElementById('wiFilterStatus').value;
+    const tbody = document.getElementById('workItemsTableBody');
+    const emptyMsg = document.getElementById('workItemsEmptyMsg');
+
+    let rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
+    if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
+    if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    tbody.innerHTML = rows.map(w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const owner = data.members.find(m => m.id === w.ownerId);
+      return `
+        <tr>
+          <td data-label="วันที่">${w.date ? formatThaiDate(w.date) : '—'}</td>
+          <td data-label="งาน"><div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}</div><div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}</div></td>
+          <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
+          <td data-label="ผู้รับผิดชอบ">${owner ? `${avatarHtml(owner)}${escapeHtml(owner.name)}` : '—'}</td>
+          <td data-label="สถานะ">
+            <select class="form-control status-select" data-id="${w.id}">
+              ${WORKITEM_STATUS_LIST.map(s => `<option value="${s}" ${s === w.status ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+            ${w.status === 'Post' ? `<div class="li-sub" style="margin-top:4px;">โพสต์ ${w.postDate ? formatThaiDate(w.postDate) : '—'}${w.linkPost ? ` · <a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a>` : ''} · <a href="javascript:void(0)" onclick="openPostDetailsModal('${w.id}')">แก้ไข</a></div>` : ''}
+          </td>
+          <td data-label="">
+            <div class="action-btns">
+              <button class="icon-btn" onclick="openWorkItemModal('${w.id}')">แก้ไข</button>
+              <button class="icon-btn danger" onclick="deleteWorkItem('${w.id}')">ลบ</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tbody.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updateWorkItemStatus(e.target.dataset.id, e.target.value));
+    });
+  }
+
+  /* ===== Calendar ===== */
+  function renderCalendar(){
+    if(!calendarMonthStr) calendarMonthStr = currentMonthStr();
+    const [y, m] = calendarMonthStr.split('-').map(Number);
+    const monthNamesFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+    document.getElementById('calendarMonthLabel').textContent = `${monthNamesFull[m - 1]} ${y + 543}`;
+
+    const startWeekday = new Date(y, m - 1, 1).getDay();
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const daysInPrevMonth = new Date(y, m - 1, 0).getDate();
+    const todayStr = todayISO();
+
+    const cells = [];
+    for(let i = startWeekday - 1; i >= 0; i--){
+      cells.push({ day: daysInPrevMonth - i, otherMonth: true, dateStr: null });
+    }
+    for(let d = 1; d <= daysInMonth; d++){
+      cells.push({ day: d, otherMonth: false, dateStr: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}` });
+    }
+    let trailDay = 1;
+    while(cells.length % 7 !== 0){
+      cells.push({ day: trailDay++, otherMonth: true, dateStr: null });
+    }
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = cells.map(c => {
+      if(c.otherMonth){
+        return `<div class="calendar-cell other-month"><div class="calendar-day-num">${c.day}</div></div>`;
+      }
+      const isToday = c.dateStr === todayStr;
+      const holiday = getHolidayForDate(c.dateStr);
+      const plansToday = data.contentPlans.filter(p => p.publishDate === c.dateStr);
+      const eventsToday = data.calendarEvents.filter(e => e.date === c.dateStr);
+      const items = [
+        ...plansToday.map(p => ({ label: p.topic, chipClass: STATUS_CHIP_CLASS[p.status] || 'chip-idea', onclick: `openPlanModal('${p.id}')` })),
+        ...eventsToday.map(e => ({ label: e.title, chipClass: 'chip-event', onclick: `openCalendarEventModal('${e.id}')` }))
+      ];
+      const shown = items.slice(0, 3);
+      const moreCount = items.length - shown.length;
+      return `
+        <div class="calendar-cell ${isToday ? 'is-today' : ''}" onclick="openCalendarEventModal(null, '${c.dateStr}')" title="คลิกเพื่อเพิ่มเหตุการณ์วันที่ ${c.day}">
+          <div class="calendar-day-num">${c.day}</div>
+          ${holiday ? `<div class="calendar-holiday">${escapeHtml(holiday.name)}</div>` : ''}
+          ${shown.map(it => `<div class="calendar-item chip ${it.chipClass}" onclick="event.stopPropagation(); ${it.onclick}">${escapeHtml(it.label)}</div>`).join('')}
+          ${moreCount > 0 ? `<div class="calendar-more">+${moreCount} เพิ่มเติม</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  function shiftCalendarMonth(delta){
+    if(!calendarMonthStr) calendarMonthStr = currentMonthStr();
+    const [y, m] = calendarMonthStr.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    calendarMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    renderCalendar();
+  }
+
+  /* ===== Calendar events (เหตุการณ์ในปฏิทิน) ===== */
+  let editingCalendarEventId = null;
+
+  function openCalendarEventModal(eventId, prefillDate){
+    editingCalendarEventId = eventId || null;
+    document.getElementById('ceFormMsg').style.display = 'none';
+    const deleteBtn = document.getElementById('calendarEventDeleteBtn');
+
+    if(eventId){
+      const e = data.calendarEvents.find(x => x.id === eventId);
+      document.getElementById('calendarEventModalTitle').textContent = 'แก้ไขเหตุการณ์';
+      document.getElementById('ceFormDate').value = e.date || '';
+      document.getElementById('ceFormTitle').value = e.title || '';
+      document.getElementById('ceFormNote').value = e.note || '';
+      deleteBtn.style.display = '';
+    } else {
+      document.getElementById('calendarEventModalTitle').textContent = 'เพิ่มเหตุการณ์';
+      document.getElementById('ceFormDate').value = prefillDate || todayISO();
+      document.getElementById('ceFormTitle').value = '';
+      document.getElementById('ceFormNote').value = '';
+      deleteBtn.style.display = 'none';
+    }
+    document.getElementById('calendarEventModalOverlay').classList.add('open');
+  }
+
+  function closeCalendarEventModal(){
+    document.getElementById('calendarEventModalOverlay').classList.remove('open');
+  }
+
+  function saveCalendarEvent(){
+    const date = document.getElementById('ceFormDate').value;
+    const title = document.getElementById('ceFormTitle').value.trim();
+    const note = document.getElementById('ceFormNote').value.trim();
+    const msgEl = document.getElementById('ceFormMsg');
+
+    if(!date){ msgEl.textContent = 'กรุณาเลือกวันที่'; msgEl.style.display = 'block'; return; }
+    if(!title){ msgEl.textContent = 'กรุณาใส่ชื่อเหตุการณ์'; msgEl.style.display = 'block'; return; }
+    msgEl.style.display = 'none';
+
+    const currentUserId = getCurrentUserId();
+
+    if(editingCalendarEventId){
+      const e = data.calendarEvents.find(x => x.id === editingCalendarEventId);
+      Object.assign(e, { date, title, note });
+      logActivity('ปฏิทิน', `แก้ไขเหตุการณ์: ${title}`);
+    } else {
+      data.calendarEvents.push({ id: uid(), date, title, note, createdBy: currentUserId, createdAt: nowISO() });
+      logActivity('ปฏิทิน', `เพิ่มเหตุการณ์: ${title}`);
+    }
+
+    saveData();
+    closeCalendarEventModal();
+    renderCalendar();
+  }
+
+  function deleteCalendarEvent(){
+    if(!editingCalendarEventId) return;
+    const e = data.calendarEvents.find(x => x.id === editingCalendarEventId);
+    if(!e) return;
+    if(!confirm(`ลบเหตุการณ์ "${e.title}"?`)) return;
+    data.calendarEvents = data.calendarEvents.filter(x => x.id !== editingCalendarEventId);
+    logActivity('ปฏิทิน', `ลบเหตุการณ์: ${e.title}`);
+    saveData();
+    closeCalendarEventModal();
+    renderCalendar();
+  }
+
+  /* ===== Dashboard ===== */
+  function getUpcomingContentPlans(){
+    const now = new Date(); now.setHours(0,0,0,0);
+    const in7days = new Date(now.getTime() + 7*24*60*60*1000);
+    return data.contentPlans.filter(p => {
+      const d = new Date(p.publishDate + 'T00:00:00');
+      return d >= now && d <= in7days && p.status !== 'ลงแล้ว';
+    }).sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+  }
+
+  function renderUpcomingList(){
+    const container = document.getElementById('upcomingList');
+    const upcoming = getUpcomingContentPlans();
+    if(upcoming.length === 0){
+      container.innerHTML = '<div class="empty-mini">ไม่มีคอนเทนต์ใกล้ถึงวันลงใน 7 วันข้างหน้า</div>';
+      return;
+    }
+    container.innerHTML = upcoming.map(p => `
+      <div class="list-item">
+        <div><div class="li-title">${escapeHtml(p.topic)}</div><div class="li-sub">${escapeHtml(p.platform)} · ลง ${formatThaiDate(p.publishDate)}</div></div>
+        <span class="chip ${STATUS_CHIP_CLASS[p.status] || 'chip-idea'}">${escapeHtml(p.status)}</span>
+      </div>
+    `).join('');
+  }
+
+  function currentMonthStr(){ return todayISO().slice(0, 7); }
+
+  function getWorkItemBucket(status){
+    if(WORK_IN_PROGRESS_STATUSES.includes(status)) return 'inProgress';
+    if(WORK_PENDING_REVIEW_STATUSES.includes(status)) return 'pendingReview';
+    if(WORK_POSTED_STATUSES.includes(status)) return 'posted';
+    return null;
+  }
+
+  function countWorkItemBuckets(items){
+    const counts = { inProgress: 0, pendingReview: 0, posted: 0 };
+    items.forEach(w => { const b = getWorkItemBucket(w.status); if(b) counts[b]++; });
+    return counts;
+  }
+
+  function renderTeamWorkSummary(){
+    const totalCounts = countWorkItemBuckets(data.workItems);
+    document.getElementById('teamWorkInProgress').innerHTML = `${totalCounts.inProgress} <small>งาน</small>`;
+    document.getElementById('teamWorkPendingReview').innerHTML = `${totalCounts.pendingReview} <small>งาน</small>`;
+    document.getElementById('teamWorkPosted').innerHTML = `${totalCounts.posted} <small>งาน</small>`;
+
+    const listEl = document.getElementById('brandWorkSummaryList');
+    const emptyEl = document.getElementById('brandWorkSummaryEmpty');
+    if(data.brands.length === 0){
+      listEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = data.brands.map(b => {
+      const brandItems = data.workItems.filter(w => w.brandId === b.id);
+      const counts = countWorkItemBuckets(brandItems);
+      return `
+        <div class="brand-summary-card">
+          <div class="bs-head">
+            ${brandLogoHtml(b)}
+            <div>
+              <div class="li-title">${escapeHtml(b.name)}</div>
+              <div class="li-sub">${b.tiktokChannel ? escapeHtml(b.tiktokChannel) : 'ยังไม่ระบุช่อง TikTok'}</div>
+            </div>
+          </div>
+          <div class="bs-stats">
+            <div class="stat"><div class="stat-num">${counts.inProgress}</div><div class="stat-label">กำลังทำ</div></div>
+            <div class="stat"><div class="stat-num">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
+            <div class="stat"><div class="stat-num">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderDashboard(){
+    const monthStr = currentMonthStr();
+    const monthReports = data.dailyReports.filter(r => r.date.startsWith(monthStr));
+
+    const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
+    const publishedCount = data.contentPlans.filter(p => p.status === 'ลงแล้ว' && p.publishDate.startsWith(monthStr)).length;
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status)).length;
+    const reportedMemberIds = new Set(monthReports.map(r => r.memberId));
+
+    document.getElementById('kpiTotal').innerHTML = `${totalItems} <small>ชิ้น</small>`;
+    document.getElementById('kpiPublished').innerHTML = `${publishedCount} <small>ชิ้น</small>`;
+    document.getElementById('kpiMembers').innerHTML = `${reportedMemberIds.size} <small>/${activeMembers} คน</small>`;
+
+    const byMember = data.members.map(m => ({
+      id: m.id,
+      name: m.name,
+      total: monthReports.filter(r => r.memberId === m.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
+    })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+
+    const memberListEl = document.getElementById('byMemberList');
+    if(byMember.length === 0){
+      memberListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในเดือนนี้</div>';
+    } else {
+      const max = Math.max(...byMember.map(x => x.total));
+      memberListEl.innerHTML = byMember.map(x => `
+        <div class="bar-row clickable" onclick="openMemberDashboard('${x.id}', 'dashboard')" title="ดูสรุปงานของ ${escapeHtml(x.name)}">
+          <span class="name">${escapeHtml(x.name)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / max * 100)}%"></div></div>
+          <span class="val">${x.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+
+    const byTypeEl = document.getElementById('byTypeChips');
+    byTypeEl.innerHTML = WORK_TYPES.map(t => {
+      const total = monthReports.filter(r => r.workType === t).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      return `<span class="type-chip"><span class="n">${total}</span><span class="t">${escapeHtml(t)}</span></span>`;
+    }).join('');
+
+    const byBrand = data.brands.map(b => ({
+      name: b.name,
+      total: monthReports.filter(r => r.brandId === b.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
+    })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+
+    const brandListEl = document.getElementById('byBrandList');
+    if(byBrand.length === 0){
+      brandListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตที่ระบุแบรนด์ในเดือนนี้</div>';
+    } else {
+      const maxBrand = Math.max(...byBrand.map(x => x.total));
+      brandListEl.innerHTML = byBrand.map(x => `
+        <div class="bar-row">
+          <span class="name">${escapeHtml(x.name)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / maxBrand * 100)}%"></div></div>
+          <span class="val">${x.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+
+    renderUpcomingList();
+    renderTeamWorkSummary();
+  }
+
+  function renderTopbarBadge(){
+    const count = getUpcomingContentPlans().length;
+    document.getElementById('topbarBadge').innerHTML = `🔔 ${count} <span class="btn-label">คอนเทนต์ใกล้ถึงวันลง</span>`;
+  }
+
+  /* ===== Monthly summary page ===== */
+  function getSummaryRows(monthStr){
+    return data.members.map(m => {
+      const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(monthStr));
+      const byType = {};
+      WORK_TYPES.forEach(t => { byType[t] = 0; });
+      let total = 0;
+      reportsForMember.forEach(r => {
+        byType[r.workType] = (byType[r.workType] || 0) + (Number(r.quantity) || 0);
+        total += Number(r.quantity) || 0;
+      });
+      return { member: m, byType, total };
+    }).sort((a, b) => b.total - a.total);
+  }
+
+  function prevMonthStr(monthStr){
+    const [y, m] = monthStr.split('-').map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function renderSummaryKpis(monthStr){
+    const totalEl = document.getElementById('summaryKpiTotal');
+    const trendEl = document.getElementById('summaryKpiTrend');
+    const avgEl = document.getElementById('summaryKpiAvg');
+    const avgSubEl = document.getElementById('summaryKpiAvgSub');
+    const topCountEl = document.getElementById('summaryKpiTopCount');
+    const topNameEl = document.getElementById('summaryKpiTopName');
+    const rankListEl = document.getElementById('summaryRankList');
+
+    if(!monthStr){
+      totalEl.innerHTML = '0 <small>ชิ้น</small>';
+      trendEl.textContent = '';
+      avgEl.innerHTML = '0 <small>ชิ้น/วัน</small>';
+      avgSubEl.textContent = '—';
+      topCountEl.innerHTML = '0 <small>ชิ้น</small>';
+      topNameEl.textContent = '—';
+      rankListEl.innerHTML = '<div class="empty-mini">เลือกเดือนก่อน</div>';
+      return;
+    }
+
+    const rows = getSummaryRows(monthStr);
+    const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+    const prevTotal = getSummaryRows(prevMonthStr(monthStr)).reduce((s, r) => s + r.total, 0);
+
+    totalEl.innerHTML = `${grandTotal} <small>ชิ้น</small>`;
+    if(prevTotal === 0 && grandTotal === 0){
+      trendEl.innerHTML = '';
+    } else if(prevTotal === 0){
+      trendEl.innerHTML = `<span class="trend-up">↑ ใหม่ทั้งหมด</span> (เดือนก่อนไม่มีข้อมูล)`;
+    } else {
+      const diffPct = Math.round(((grandTotal - prevTotal) / prevTotal) * 100);
+      if(diffPct > 0) trendEl.innerHTML = `<span class="trend-up">↑ ${diffPct}%</span> จากเดือนก่อน`;
+      else if(diffPct < 0) trendEl.innerHTML = `<span class="trend-down">↓ ${Math.abs(diffPct)}%</span> จากเดือนก่อน`;
+      else trendEl.innerHTML = `<span class="trend-flat">เท่าเดือนก่อน</span>`;
+    }
+
+    const uniqueDays = new Set(data.dailyReports.filter(r => r.date.startsWith(monthStr)).map(r => r.date)).size;
+    const avgPerDay = uniqueDays > 0 ? Math.round((grandTotal / uniqueDays) * 10) / 10 : 0;
+    avgEl.innerHTML = `${avgPerDay} <small>ชิ้น/วัน</small>`;
+    avgSubEl.textContent = uniqueDays > 0 ? `จาก ${uniqueDays} วันที่มีการบันทึก` : 'ยังไม่มีการบันทึก';
+
+    const ranked = rows.filter(r => r.total > 0);
+    const topPerformer = ranked[0] || null;
+    if(topPerformer){
+      topCountEl.innerHTML = `${topPerformer.total} <small>ชิ้น</small>`;
+      topNameEl.textContent = topPerformer.member.name;
+    } else {
+      topCountEl.innerHTML = '0 <small>ชิ้น</small>';
+      topNameEl.textContent = '—';
+    }
+
+    if(ranked.length === 0){
+      rankListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในเดือนนี้</div>';
+    } else {
+      const maxTotal = ranked[0].total;
+      rankListEl.innerHTML = ranked.map((r, i) => `
+        <div class="bar-row clickable" onclick="openMemberDashboard('${r.member.id}', 'summary')" title="ดูสรุปงานของ ${escapeHtml(r.member.name)}">
+          <span class="rank-badge ${i === 0 ? 'rank-1' : ''}">${i + 1}</span>
+          <span class="name">${escapeHtml(r.member.name)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(r.total / maxTotal * 100)}%"></div></div>
+          <span class="val">${r.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+  }
+
+  function renderSummaryTable(){
+    const monthStr = document.getElementById('summaryMonthInput').value;
+    const head = document.getElementById('summaryTableHead');
+    const body = document.getElementById('summaryTableBody');
+    const emptyMsg = document.getElementById('summaryEmptyMsg');
+
+    renderSummaryKpis(monthStr);
+
+    head.innerHTML = `<th>คน</th>${WORK_TYPES.map(t => `<th class="num-cell">${escapeHtml(t)}</th>`).join('')}<th class="num-cell">รวม</th>`;
+
+    if(!monthStr){ body.innerHTML = ''; emptyMsg.style.display = 'block'; return; }
+
+    const rows = getSummaryRows(monthStr);
+    const hasAnyData = rows.some(r => r.total > 0);
+
+    if(!hasAnyData){
+      body.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    const bodyRows = rows.map(r => `
+      <tr>
+        <td data-label="คน">${avatarHtml(r.member)}${escapeHtml(r.member.name)}</td>
+        ${WORK_TYPES.map(t => `<td class="num-cell" data-label="${escapeHtml(t)}">${r.byType[t]}</td>`).join('')}
+        <td class="num-cell" data-label="รวม" style="font-weight:700;">${r.total}</td>
+      </tr>
+    `).join('');
+
+    const grandTotalByType = WORK_TYPES.map(t => rows.reduce((s, r) => s + r.byType[t], 0));
+    const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+    const totalRow = `
+      <tr>
+        <td data-label="คน" style="font-weight:700;">รวมทั้งทีม</td>
+        ${grandTotalByType.map((v, i) => `<td class="num-cell" data-label="${escapeHtml(WORK_TYPES[i])}" style="font-weight:700;">${v}</td>`).join('')}
+        <td class="num-cell" data-label="รวม" style="font-weight:700;">${grandTotal}</td>
+      </tr>
+    `;
+
+    body.innerHTML = bodyRows + totalRow;
+  }
+
+  function csvEscape(val){ return `"${String(val).replace(/"/g, '""')}"`; }
+
+  function downloadCsv(csvBody, filename){
+    const csvContent = String.fromCharCode(0xFEFF) + csvBody;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function exportSummaryCsv(){
+    const monthStr = document.getElementById('summaryMonthInput').value;
+    if(!monthStr){ alert('กรุณาเลือกเดือนก่อนออกรายงาน'); return; }
+
+    const rows = getSummaryRows(monthStr);
+    const header = ['คน', ...WORK_TYPES, 'รวม'].map(csvEscape);
+    const lines = [header.join(',')];
+
+    rows.forEach(r => {
+      const line = [csvEscape(r.member.name), ...WORK_TYPES.map(t => r.byType[t]), r.total];
+      lines.push(line.join(','));
+    });
+
+    const grandTotalByType = WORK_TYPES.map(t => rows.reduce((s, r) => s + r.byType[t], 0));
+    const grandTotal = rows.reduce((s, r) => s + r.total, 0);
+    lines.push([csvEscape('รวมทั้งทีม'), ...grandTotalByType, grandTotal].join(','));
+
+    downloadCsv(lines.join('\r\n'), `contentflow-สรุป-KPI-${monthStr}.csv`);
+  }
+
+  function getFilteredDailyReportRows(){
+    const memberFilter = document.getElementById('filterMember').value;
+    const dateFilter = document.getElementById('filterDate').value;
+    let rows = [...data.dailyReports].sort((a, b) => b.date.localeCompare(a.date));
+    if(memberFilter) rows = rows.filter(r => r.memberId === memberFilter);
+    if(dateFilter) rows = rows.filter(r => r.date === dateFilter);
+    return rows;
+  }
+
+  function exportDayReportCsv(){
+    const rows = getFilteredDailyReportRows();
+    const header = ['คน', 'วันที่', 'ประเภทงาน', 'จำนวน', 'แบรนด์', 'หมายเหตุ'].map(csvEscape);
+    const lines = [header.join(',')];
+    rows.forEach(r => {
+      const m = data.members.find(x => x.id === r.memberId);
+      const name = m ? m.name : '(สมาชิกถูกลบ)';
+      const brand = r.brandId ? data.brands.find(b => b.id === r.brandId) : null;
+      lines.push([csvEscape(name), csvEscape(formatThaiDate(r.date)), csvEscape(r.workType), r.quantity, csvEscape(brand ? brand.name : ''), csvEscape(r.note || '')].join(','));
+    });
+    const dateFilter = document.getElementById('filterDate').value;
+    downloadCsv(lines.join('\r\n'), `contentflow-รีพอร์ตรายวัน-${dateFilter || 'ทั้งหมด'}.csv`);
+  }
+
+  function showSummaryView(view){
+    const isMonth = view === 'month';
+    document.getElementById('summaryMonthView').style.display = isMonth ? 'block' : 'none';
+    document.getElementById('summaryDayView').style.display = isMonth ? 'none' : 'block';
+    document.getElementById('summaryViewMonthBtn').className = isMonth ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+    document.getElementById('summaryViewDayBtn').className = !isMonth ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+    if(!isMonth) renderReportTable();
+  }
+
+  /* ===== Activity / sessions history page ===== */
+  function renderSessionsTable(){
+    const tbody = document.getElementById('sessionsTableBody');
+    const emptyMsg = document.getElementById('sessionsEmptyMsg');
+    const rows = [...data.sessions].sort((a, b) => b.loginAt.localeCompare(a.loginAt));
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    tbody.innerHTML = rows.map(s => {
+      const m = data.members.find(x => x.id === s.memberId);
+      const name = m ? m.name : '(ไม่พบสมาชิก)';
+      return `<tr><td>${avatarHtml(m)}${escapeHtml(name)}</td><td>${formatThaiDateTime(s.loginAt)}</td></tr>`;
+    }).join('');
+  }
+
+  function renderActivityTable(){
+    const tbody = document.getElementById('activityTableBody');
+    const emptyMsg = document.getElementById('activityEmptyMsg');
+    const rows = [...data.activityLog].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+    tbody.innerHTML = rows.map(a => {
+      const m = data.members.find(x => x.id === a.memberId);
+      const name = m ? m.name : '(ไม่พบสมาชิก)';
+      return `<tr><td data-label="คน">${avatarHtml(m)}${escapeHtml(name)}</td><td data-label="เวลา">${formatThaiDateTime(a.timestamp)}</td><td data-label="โมดูล">${escapeHtml(a.module)}</td><td data-label="สิ่งที่ทำ">${escapeHtml(a.action)}</td></tr>`;
+    }).join('');
+  }
+
+  function exportSessionsCsv(){
+    const rows = [...data.sessions].sort((a, b) => b.loginAt.localeCompare(a.loginAt));
+    const lines = [['คน', 'เข้าใช้งานเมื่อ'].map(csvEscape).join(',')];
+    rows.forEach(s => {
+      const m = data.members.find(x => x.id === s.memberId);
+      lines.push([csvEscape(m ? m.name : '(ไม่พบสมาชิก)'), csvEscape(formatThaiDateTime(s.loginAt))].join(','));
+    });
+    downloadCsv(lines.join('\r\n'), `contentflow-ประวัติการเข้าใช้งาน-${todayISO()}.csv`);
+  }
+
+  function exportActivityCsv(){
+    const rows = [...data.activityLog].sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    const lines = [['คน', 'เวลา', 'โมดูล', 'สิ่งที่ทำ'].map(csvEscape).join(',')];
+    rows.forEach(a => {
+      const m = data.members.find(x => x.id === a.memberId);
+      lines.push([csvEscape(m ? m.name : '(ไม่พบสมาชิก)'), csvEscape(formatThaiDateTime(a.timestamp)), csvEscape(a.module), csvEscape(a.action)].join(','));
+    });
+    downloadCsv(lines.join('\r\n'), `contentflow-ประวัติการทำงาน-${todayISO()}.csv`);
+  }
+
+  /* ===== Navigation ===== */
+  function showPage(pageKey){
+    document.querySelectorAll('.page').forEach(el => el.classList.toggle('active', el.dataset.page === pageKey));
+    document.querySelectorAll('.sb-item').forEach(el => el.classList.toggle('active', el.dataset.page === pageKey));
+    document.getElementById('pageTitle').textContent = PAGE_TITLES[pageKey] || '';
+    closeSidebarOnMobile();
+  }
+
+  function openSidebar(){
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sbBackdrop').classList.add('open');
+  }
+  function closeSidebarOnMobile(){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sbBackdrop').classList.remove('open');
+  }
+
+  document.getElementById('sbMenu').addEventListener('click', (e) => {
+    const btn = e.target.closest('.sb-item');
+    if(!btn) return;
+    showPage(btn.dataset.page);
+  });
+  document.getElementById('hamburgerBtn').addEventListener('click', openSidebar);
+  document.getElementById('sbBackdrop').addEventListener('click', closeSidebarOnMobile);
+
+  document.getElementById('calendarPrevBtn').addEventListener('click', () => shiftCalendarMonth(-1));
+  document.getElementById('calendarNextBtn').addEventListener('click', () => shiftCalendarMonth(1));
+  document.getElementById('calendarAddEventBtn').addEventListener('click', () => {
+    const todayStr = todayISO();
+    const viewedMonth = calendarMonthStr || currentMonthStr();
+    const prefillDate = todayStr.startsWith(viewedMonth) ? todayStr : `${viewedMonth}-01`;
+    openCalendarEventModal(null, prefillDate);
+  });
+  document.getElementById('calendarEventModalCancel').addEventListener('click', closeCalendarEventModal);
+  guardClick(document.getElementById('calendarEventModalSave'), saveCalendarEvent);
+  document.getElementById('calendarEventDeleteBtn').addEventListener('click', deleteCalendarEvent);
+  document.getElementById('calendarEventModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'calendarEventModalOverlay') closeCalendarEventModal();
+  });
+
+  document.getElementById('addBrandBtn').addEventListener('click', () => openBrandModal());
+  document.getElementById('brandModalCancel').addEventListener('click', closeBrandModal);
+  guardClick(document.getElementById('brandModalSave'), saveBrand);
+  document.getElementById('brandModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'brandModalOverlay') closeBrandModal();
+  });
+  document.getElementById('brandProductAddBtn').addEventListener('click', addBrandProduct);
+  document.getElementById('brandProductInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); addBrandProduct(); }
+  });
+
+  document.getElementById('workItemModalCancel').addEventListener('click', closeWorkItemModal);
+  guardClick(document.getElementById('workItemModalSave'), saveWorkItem);
+  document.getElementById('workItemModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'workItemModalOverlay') closeWorkItemModal();
+  });
+  document.getElementById('wiFormBrand').addEventListener('change', () => populateWorkFormProductOptions('wiForm'));
+
+  document.getElementById('wiFormProductSearch').addEventListener('input', () => renderProductDropdown('wiForm'));
+  document.getElementById('wiFormProductSearch').addEventListener('focus', () => renderProductDropdown('wiForm'));
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('#wiFormProductSearch') && !e.target.closest('#wiFormProductDropdown')) hideProductDropdown('wiForm');
+  });
+  document.addEventListener('keydown', (e) => {
+    if(e.key !== 'Escape') return;
+    const openModal = document.querySelector('.modal-overlay.open');
+    if(openModal) openModal.classList.remove('open');
+  });
+  document.getElementById('awAddBlockBtn').addEventListener('click', addAwBlock);
+  guardClick(document.getElementById('saveAwFormBtn'), saveNewWorkEntry);
+  document.getElementById('wiFilterBrand').addEventListener('change', renderWorkItemsTable);
+  document.getElementById('wiFilterOwner').addEventListener('change', renderWorkItemsTable);
+  document.getElementById('wiFilterStatus').addEventListener('change', renderWorkItemsTable);
+  document.getElementById('wiClearFilterBtn').addEventListener('click', () => {
+    document.getElementById('wiFilterBrand').value = '';
+    document.getElementById('wiFilterOwner').value = '';
+    document.getElementById('wiFilterStatus').value = '';
+    renderWorkItemsTable();
+  });
+
+  document.getElementById('postDetailsModalCancel').addEventListener('click', closePostDetailsModal);
+  guardClick(document.getElementById('postDetailsModalSave'), savePostDetails);
+  document.getElementById('postDetailsModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'postDetailsModalOverlay') closePostDetailsModal();
+  });
+
+  document.getElementById('openManageTeamBtn').addEventListener('click', openManageTeamModal);
+  document.getElementById('manageTeamCloseBtn').addEventListener('click', closeManageTeamModal);
+  document.getElementById('manageTeamModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'manageTeamModalOverlay') closeManageTeamModal();
+  });
+  guardClick(document.getElementById('quickAddSaveBtn'), () => {
+    const name = document.getElementById('quickAddName').value.trim();
+    const position = document.getElementById('quickAddPosition').value.trim();
+    const department = document.getElementById('quickAddDepartment').value.trim();
+    const joinDate = document.getElementById('quickAddJoinDate').value;
+    const msgEl = document.getElementById('quickAddMsg');
+    if(!name || !joinDate){
+      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เข้าร่วมทีมให้ครบ';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    data.members.push({ id: uid(), name, joinDate, note:'', status: DEFAULT_NEW_MEMBER_STATUS, photoDataUrl:null, position, department });
+    logActivity('ทีมงาน', `เพิ่มสมาชิก: ${name}`);
+    saveData();
+    document.getElementById('quickAddName').value = '';
+    document.getElementById('quickAddPosition').value = '';
+    document.getElementById('quickAddDepartment').value = '';
+    document.getElementById('quickAddJoinDate').value = todayISO();
+    renderTeamPage();
+    renderManageTeamList();
+    renderFilterMemberOptions();
+    renderWorkItemFilterOptions();
+    renderDashboard();
+    renderSummaryTable();
+    renderLoginGate();
+  });
+
+  document.getElementById('addMemberBtn').addEventListener('click', () => openMemberModal());
+  document.getElementById('memberModalCancel').addEventListener('click', closeMemberModal);
+  guardClick(document.getElementById('memberModalSave'), saveMember);
+  document.getElementById('memberModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'memberModalOverlay') closeMemberModal();
+  });
+  document.getElementById('memberFormPhotoFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const msgEl = document.getElementById('memberFormMsg');
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      msgEl.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    compressImageFile(file, 160, (dataUrl) => {
+      pendingMemberPhotoDataUrl = dataUrl;
+      updateMemberPhotoPreview(dataUrl, document.getElementById('memberFormName').value);
+    }, () => {
+      msgEl.textContent = 'อ่านไฟล์รูปภาพไม่สำเร็จ ลองไฟล์อื่น';
+      msgEl.style.display = 'block';
+    });
+  });
+  document.getElementById('memberFormPhotoResetBtn').addEventListener('click', () => {
+    pendingMemberPhotoDataUrl = null;
+    document.getElementById('memberFormPhotoFile').value = '';
+    updateMemberPhotoPreview(null, document.getElementById('memberFormName').value);
+  });
+  document.getElementById('brandFormLogoFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const msgEl = document.getElementById('brandFormMsg');
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      msgEl.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    compressImageFile(file, 160, (dataUrl) => {
+      pendingBrandLogoDataUrl = dataUrl;
+      updateBrandLogoPreview(dataUrl, document.getElementById('brandFormName').value);
+    }, () => {
+      msgEl.textContent = 'อ่านไฟล์รูปภาพไม่สำเร็จ ลองไฟล์อื่น';
+      msgEl.style.display = 'block';
+    });
+  });
+  document.getElementById('brandFormLogoResetBtn').addEventListener('click', () => {
+    pendingBrandLogoDataUrl = null;
+    document.getElementById('brandFormLogoFile').value = '';
+    updateBrandLogoPreview(null, document.getElementById('brandFormName').value);
+  });
+
+  document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal());
+  document.getElementById('planModalCancel').addEventListener('click', closePlanModal);
+  guardClick(document.getElementById('planModalSave'), savePlan);
+  document.getElementById('planModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'planModalOverlay') closePlanModal();
+  });
+
+  document.getElementById('addScriptBtn').addEventListener('click', () => openScriptModal());
+  document.getElementById('scriptModalCancel').addEventListener('click', closeScriptModal);
+  guardClick(document.getElementById('scriptModalSave'), saveScript);
+  document.getElementById('scriptModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'scriptModalOverlay') closeScriptModal();
+  });
+  document.getElementById('scriptFormPlan').addEventListener('change', (e) => {
+    if(editingScriptId) return;
+    const p = data.contentPlans.find(x => x.id === e.target.value);
+    document.getElementById('scriptFormTopic').value = p ? p.topic : '';
+  });
+  document.getElementById('scriptSearchInput').addEventListener('input', renderScriptsList);
+
+  document.getElementById('addIdeaBtn').addEventListener('click', () => openIdeaModal());
+  document.getElementById('ideaModalCancel').addEventListener('click', closeIdeaModal);
+  guardClick(document.getElementById('ideaModalSave'), saveIdea);
+  document.getElementById('ideaModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'ideaModalOverlay') closeIdeaModal();
+  });
+  document.getElementById('ideaFilterTag').addEventListener('change', renderIdeasList);
+  document.getElementById('ideaSearchInput').addEventListener('input', renderIdeasList);
+  document.getElementById('clearIdeaFilterBtn').addEventListener('click', () => {
+    document.getElementById('ideaFilterTag').value = '';
+    document.getElementById('ideaSearchInput').value = '';
+    renderIdeasList();
+  });
+
+  document.getElementById('summaryMonthInput').addEventListener('change', renderSummaryTable);
+  document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
+  document.getElementById('exportDayCsvBtn').addEventListener('click', exportDayReportCsv);
+  document.getElementById('summaryViewMonthBtn').addEventListener('click', () => showSummaryView('month'));
+  document.getElementById('summaryViewDayBtn').addEventListener('click', () => showSummaryView('day'));
+
+  document.getElementById('backToTeamBtn').addEventListener('click', () => showPage(memberDashboardReturnPage));
+
+  document.getElementById('logoutBtn').addEventListener('click', logout);
+  document.getElementById('loginManageProfileBtn').addEventListener('click', openManageTeamModal);
+  document.getElementById('exportSessionsCsvBtn').addEventListener('click', exportSessionsCsv);
+  document.getElementById('exportActivityCsvBtn').addEventListener('click', exportActivityCsv);
+
+  document.getElementById('openBrandingBtn').addEventListener('click', openBrandingModal);
+  document.getElementById('brandingModalCancel').addEventListener('click', closeBrandingModal);
+  guardClick(document.getElementById('brandingModalSave'), saveBranding);
+  document.getElementById('brandingModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'brandingModalOverlay') closeBrandingModal();
+  });
+  document.getElementById('brandingFormFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const msgEl = document.getElementById('brandingFormMsg');
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      msgEl.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    compressImageFile(file, 160, (dataUrl) => {
+      pendingLogoDataUrl = dataUrl;
+      updateBrandingPreview(dataUrl, document.getElementById('brandingFormName').value);
+    }, () => {
+      msgEl.textContent = 'อ่านไฟล์รูปภาพไม่สำเร็จ ลองไฟล์อื่น';
+      msgEl.style.display = 'block';
+    });
+  });
+  document.getElementById('brandingResetBtn').addEventListener('click', () => {
+    pendingLogoDataUrl = null;
+    document.getElementById('brandingFormFile').value = '';
+    updateBrandingPreview(null, document.getElementById('brandingFormName').value);
+  });
+
+  document.getElementById('filterMember').addEventListener('change', renderReportTable);
+  document.getElementById('filterDate').addEventListener('change', renderReportTable);
+  document.getElementById('clearFilterBtn').addEventListener('click', () => {
+    document.getElementById('filterMember').value = '';
+    document.getElementById('filterDate').value = '';
+    renderReportTable();
+  });
+
+  /* ===== Init ===== */
+  function renderEverything(){
+    renderTeamPage();
+    ensureAwBlocks();
+    renderFilterMemberOptions();
+    renderReportTable();
+    renderPlanTable();
+    renderScriptsList();
+    renderIdeaFilterOptions();
+    renderIdeasList();
+    renderSummaryTable();
+    renderSessionsTable();
+    renderActivityTable();
+    renderBrandsList();
+    renderWorkItemFilterOptions();
+    renderWorkItemsTable();
+    renderCalendar();
+    renderDashboard();
+    renderTopbarBadge();
+    renderBranding();
+    renderLoginGate();
+  }
+
+  document.getElementById('refreshDataBtn').addEventListener('click', refreshFromRemote);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && isDataLoaded){ refreshFromRemote(); }
+  });
+  document.getElementById('bootRetryBtn').addEventListener('click', () => {
+    document.getElementById('bootErrorOverlay').style.display = 'none';
+    document.getElementById('bootLoadingOverlay').style.display = 'flex';
+    boot();
+  });
+
+  async function boot(){
+    document.getElementById('summaryMonthInput').value = currentMonthStr();
+    try {
+      const remote = await fetchRemoteData();
+      data = migrateData(remote.payload);
+      lastKnownUpdatedAt = remote.updatedAt;
+      isDataLoaded = true;
+    } catch(e){
+      document.getElementById('bootLoadingOverlay').style.display = 'none';
+      document.getElementById('bootErrorOverlay').style.display = 'flex';
+      return;
+    }
+    renderEverything();
+    showPage('dashboard');
+    document.getElementById('bootLoadingOverlay').style.display = 'none';
+  }
+
+  boot();
+</script>
+
+</body>
+</html>
