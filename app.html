@@ -6,21 +6,25 @@
 <title>ContentFlow — แอป</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@400;500;600;700&family=Anuphan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#f9fafc;
+    --bg:#f6f7f9;
     --card:#ffffff;
+    --panel:#ffffff;
     --text:#1a2032;
-    --text-sub:#5c6478;
+    --text-sub:#6b7280;
     --accent:#2563eb;
-    --btn:#1a2032;
+    --accent2:#60a5fa;
+    --pop:#fef3e1;
+    --btn:#2563eb;
     --success:#16a34a;
     --warning:#d97706;
     --danger:#dc2626;
-    --border:#eef0f4;
-    --radius:14px;
-    --shadow:0 4px 18px rgba(26,32,50,.06), 0 1px 3px rgba(26,32,50,.04);
+    --border:#e5e7eb;
+    --ink:#1a2032;
+    --radius:16px;
+    --shadow:0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
     --sidebar-w:230px;
     --topbar-h:60px;
   }
@@ -29,19 +33,20 @@
     margin:0;
     background:var(--bg);
     color:var(--text);
-    font-family:'Sarabun',sans-serif;
+    font-family:'Anuphan',system-ui,sans-serif;
     line-height:1.6;
     -webkit-font-smoothing:antialiased;
   }
-  h1,h2,h3,h4,.num,.brand,.btn{font-family:'IBM Plex Sans Thai',sans-serif;}
+  h1,h2,h3,h4,.num,.brand,.btn{font-family:'Bai Jamjuree',system-ui,sans-serif;}
   a{color:inherit;text-decoration:none;}
-  button{font-family:'Sarabun',sans-serif;}
+  button{font-family:'Anuphan',system-ui,sans-serif;}
+  .glass{background:var(--card);}
 
   /* ===== Layout ===== */
   .app-shell{display:flex; min-height:100vh;}
 
   .sidebar{
-    width:var(--sidebar-w); flex-shrink:0; background:#fff;
+    width:var(--sidebar-w); flex-shrink:0; background:var(--panel);
     border-right:1px solid var(--border);
     display:flex; flex-direction:column;
     position:fixed; top:0; left:0; bottom:0; z-index:100;
@@ -54,7 +59,7 @@
   }
   .sb-logo .mark{
     width:34px; height:34px; border-radius:9px; flex-shrink:0;
-    background:linear-gradient(135deg,var(--btn),var(--accent));
+    background:var(--accent);
     display:flex; align-items:center; justify-content:center;
     font-size:13.5px; font-weight:700; color:#fff; letter-spacing:-.02em;
     overflow:hidden;
@@ -68,7 +73,7 @@
   .logo-edit-btn:hover{border-color:var(--accent); color:var(--accent);}
   .logo-preview{
     width:64px; height:64px; border-radius:14px; margin:0 auto 16px;
-    background:linear-gradient(135deg,var(--btn),var(--accent));
+    background:var(--accent);
     display:flex; align-items:center; justify-content:center; overflow:hidden;
     font-size:22px; font-weight:700; color:#fff;
   }
@@ -98,13 +103,13 @@
   .login-gate.hidden{display:none;}
   .app-shell.hidden{display:none;}
   .login-card{
-    background:#fff; border-radius:18px; box-shadow:var(--shadow); border:1px solid var(--border);
+    background:var(--panel); border-radius:18px; box-shadow:var(--shadow); border:1px solid var(--border);
     padding:38px 32px; max-width:400px; width:100%; text-align:center;
   }
   .login-logo{display:flex; align-items:center; justify-content:center; gap:10px; font-size:20px; font-weight:700; margin-bottom:6px;}
   .login-logo .mark{
     width:36px; height:36px; border-radius:10px;
-    background:linear-gradient(135deg,var(--btn),var(--accent));
+    background:var(--accent);
     display:flex; align-items:center; justify-content:center;
     font-size:14px; font-weight:700; color:#fff; letter-spacing:-.02em;
     overflow:hidden;
@@ -128,7 +133,7 @@
     font-weight:500; cursor:pointer; border:none; background:none; text-align:left; width:100%;
   }
   .sb-item:hover{background:var(--bg); color:var(--text);}
-  .sb-item.active{background:#eaf1ff; color:var(--accent); font-weight:600;}
+  .sb-item.active{background:#eaf1ff; color:var(--accent); font-weight:600; border-left:3px solid var(--accent); padding-left:9px;}
   .sb-item .ic{font-size:16px; width:20px; text-align:center;}
 
   .sb-backdrop{
@@ -138,7 +143,7 @@
   .main{flex:1; margin-left:var(--sidebar-w); min-width:0; display:flex; flex-direction:column;}
 
   .topbar{
-    height:var(--topbar-h); flex-shrink:0; background:rgba(249,250,252,.9); backdrop-filter:blur(8px);
+    height:var(--topbar-h); flex-shrink:0; background:rgba(246,247,249,.9); backdrop-filter:blur(8px);
     border-bottom:1px solid var(--border);
     display:flex; align-items:center; justify-content:space-between;
     padding:0 24px; position:sticky; top:0; z-index:50; gap:14px;
@@ -168,7 +173,8 @@
   .page.active{display:block;}
 
   .card{
-    background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow);
+    background:var(--card);
+    border-radius:var(--radius); box-shadow:var(--shadow);
     border:1px solid var(--border); padding:20px;
   }
   .grid-3{display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:18px;}
@@ -200,7 +206,7 @@
   .brand-summary-row:last-child{border-bottom:none;}
   .brand-summary-stats{display:flex; gap:22px; flex-wrap:wrap;}
   .brand-summary-stats .stat{text-align:right;}
-  .brand-summary-stats .stat-num{font-size:17px; font-weight:700; font-family:'IBM Plex Sans Thai',sans-serif;}
+  .brand-summary-stats .stat-num{font-size:17px; font-weight:700; font-family:'Bai Jamjuree',system-ui,sans-serif;}
   .brand-summary-stats .stat-label{font-size:11px; color:var(--text-sub);}
 
   .csv-btn{
@@ -211,22 +217,31 @@
   .csv-btn:hover{border-color:var(--accent); color:var(--accent);}
 
   .kpi-card .label{font-size:12.5px; color:var(--text-sub); margin-bottom:8px;}
-  .kpi-card .num{font-size:30px; font-weight:700;}
+  .kpi-card .num{font-size:30px; font-weight:700; color:var(--text);}
   .kpi-card .num small{font-size:14px; font-weight:500; color:var(--text-sub);}
 
-  .mini-stat-grid{display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:14px;}
-  .mini-stat{background:var(--card); border-radius:10px; box-shadow:var(--shadow); border:1px solid var(--border); padding:10px 12px;}
+  .mini-stat-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:10px; margin-bottom:14px;}
+  .mini-stat{
+    background:var(--card);
+    border-radius:10px; box-shadow:var(--shadow); border:1px solid var(--border); padding:10px 12px;
+  }
   .mini-stat .label{font-size:11px; color:var(--text-sub); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-  .mini-stat .num{font-size:22px; font-weight:700;}
+  .mini-stat .num{font-size:22px; font-weight:700; color:var(--text);}
   .mini-stat .num small{font-size:11.5px; font-weight:500; color:var(--text-sub);}
   @media (max-width:1180px){.mini-stat-grid{grid-template-columns:repeat(3,1fr);}}
+
+  /* ตัวเลขเน้น/ไม่เน้น — ใช้กับ .num (kpi-card/mini-stat) และ .stat-num (brand-summary-card) */
+  .num.accent, .stat-num.accent{color:var(--accent);}
+  .num.success, .stat-num.success{color:var(--success);}
+  .num.warning, .stat-num.warning{color:var(--warning);}
+  .num.progress, .stat-num.progress{color:#7c3aed;}
 
   .type-chip-row{display:flex; flex-wrap:wrap; gap:8px;}
   .type-chip{
     display:inline-flex; align-items:baseline; gap:5px; background:var(--bg); border:1px solid var(--border);
     border-radius:999px; padding:5px 12px; font-size:12px;
   }
-  .type-chip .n{font-weight:700; font-size:13px; color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif;}
+  .type-chip .n{font-weight:700; font-size:13px; color:var(--text); font-family:'Bai Jamjuree',system-ui,sans-serif;}
   .type-chip .t{color:var(--text-sub);}
 
   .brand-summary-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
@@ -236,7 +251,7 @@
   .brand-summary-card .li-sub{font-size:11.5px;}
   .brand-summary-card .bs-stats{display:flex; justify-content:space-between; gap:6px;}
   .brand-summary-card .stat{text-align:center; flex:1;}
-  .brand-summary-card .stat-num{font-size:15px; font-weight:700; font-family:'IBM Plex Sans Thai',sans-serif;}
+  .brand-summary-card .stat-num{font-size:15px; font-weight:700; font-family:'Bai Jamjuree',system-ui,sans-serif;}
   .brand-summary-card .stat-label{font-size:10px; color:var(--text-sub);}
 
   .chip{
@@ -245,12 +260,12 @@
     white-space:nowrap;
   }
   .chip-done{background:#e3f6e9; color:var(--success);}
-  .chip-idea{background:#eef0f4; color:var(--text-sub);}
+  .chip-idea{background:var(--bg); color:var(--text-sub);}
   .chip-script{background:#e6edfe; color:var(--accent);}
   .chip-shoot{background:#fef3e1; color:var(--warning);}
-  .chip-edit{background:#fde8e8; color:#b5443a;}
+  .chip-edit{background:#fde8e8; color:var(--danger);}
   .chip-ready{background:#e6edfe; color:var(--accent);}
-  .chip-outline{background:#fff; border:1px solid var(--border); color:var(--text-sub);}
+  .chip-outline{background:var(--card); border:1px solid var(--border); color:var(--text-sub);}
   .chip-event{background:#f3e8ff; color:#7c3aed;}
 
   .list-item{
@@ -396,7 +411,8 @@
 
   .team-mcard-list{display:none;}
   .team-mcard{
-    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    background:var(--card);
+    border:1px solid var(--border); border-radius:12px;
     padding:12px 14px; margin-bottom:10px; box-shadow:var(--shadow);
   }
   .team-mcard-top{display:flex; align-items:center; gap:0;}
@@ -409,13 +425,13 @@
     margin-top:10px; padding-top:10px; border-top:1px solid var(--border);
     font-size:12px; color:var(--text-sub);
   }
-  .team-mcard-bottom .qty{font-weight:700; color:var(--text); font-family:'IBM Plex Sans Thai',sans-serif;}
+  .team-mcard-bottom .qty{font-weight:700; color:var(--text); font-family:'Bai Jamjuree',system-ui,sans-serif;}
   .team-mcard-bottom .action-btns{margin:0;}
 
   .ss-wrap{position:relative;}
   .ss-dropdown{
     display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
-    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
     box-shadow:var(--shadow); max-height:240px; overflow-y:auto; z-index:40;
   }
   .ss-dropdown.open{display:block;}
@@ -433,10 +449,10 @@
     display:inline-flex; align-items:center; gap:8px;
     padding:11px 18px; border-radius:10px;
     background:var(--btn); color:#fff; font-weight:600; font-size:14px;
-    border:none; cursor:pointer; transition:background .15s ease, transform .1s ease;
+    border:none; cursor:pointer; transition:filter .15s ease, transform .1s ease;
     white-space:nowrap;
   }
-  .btn:hover{background:var(--accent);}
+  .btn:hover{filter:brightness(.9);}
   .btn:active{transform:scale(.98);}
   .btn:disabled{opacity:.6; cursor:default; transform:none;}
   .btn-outline{background:transparent; color:var(--text); border:1.5px solid var(--border);}
@@ -448,10 +464,11 @@
   .field-row label{display:block; font-size:12.5px; color:var(--text-sub); margin-bottom:6px; font-weight:600;}
   .form-control{
     width:100%; background:var(--bg); border:1px solid var(--border); border-radius:9px;
-    padding:10px 12px; font-size:13.5px; color:var(--text); font-family:'Sarabun',sans-serif;
+    padding:10px 12px; font-size:13.5px; color:var(--text); font-family:'Anuphan',system-ui,sans-serif;
   }
   .form-control:focus{outline:none; border-color:var(--accent); background:#fff;}
   select.form-control{cursor:pointer;}
+  select.form-control option{background:#fff; color:var(--text);}
 
   .report-grid{display:grid; grid-template-columns:1fr 320px; gap:18px; align-items:start;}
 
@@ -474,7 +491,7 @@
   }
   .modal-overlay.open{display:flex;}
   #memberModalOverlay{z-index:650;}
-  .modal{background:#fff; border-radius:16px; padding:26px; max-width:420px; width:100%; box-shadow:var(--shadow);}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:26px; max-width:420px; width:100%; box-shadow:var(--shadow);}
   .modal h3{margin:0 0 18px; font-size:18px;}
   .modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:20px;}
   .form-msg{font-size:12.5px; color:var(--danger); margin-top:2px; display:none;}
@@ -546,7 +563,7 @@
 <!-- ===== Boot loading / error ===== -->
 <div class="boot-overlay" id="bootLoadingOverlay">
   <div class="boot-card">
-    <div style="width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#1a2032,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;margin:0 auto 16px;">CF</div>
+    <div style="width:48px;height:48px;border-radius:14px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;margin:0 auto 16px;">CF</div>
     <div style="font-weight:700; font-size:15px; margin-bottom:6px;">กำลังโหลดข้อมูล...</div>
     <div style="font-size:13px; color:var(--text-sub);">เชื่อมต่อกับเซิร์ฟเวอร์ข้อมูลกลาง</div>
   </div>
@@ -619,13 +636,30 @@
 
     <div class="content">
       <div class="page dash-compact" data-page="dashboard">
+        <div class="toolbar" style="margin-bottom:12px;">
+          <div class="field-row" style="margin-bottom:0;">
+            <label>ช่วงเวลา</label>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-outline btn-sm" type="button" id="dashPeriodDayBtn" onclick="setDashPeriodType('day')">รายวัน</button>
+              <button class="btn btn-sm" type="button" id="dashPeriodMonthBtn" onclick="setDashPeriodType('month')">รายเดือน</button>
+              <button class="btn btn-outline btn-sm" type="button" id="dashPeriodYearBtn" onclick="setDashPeriodType('year')">รายปี</button>
+            </div>
+          </div>
+          <div class="field-row" style="margin-bottom:0; min-width:160px;">
+            <label>&nbsp;</label>
+            <input type="date" class="form-control" id="dashPeriodDayInput" style="display:none;">
+            <input type="month" class="form-control" id="dashPeriodMonthInput">
+            <input type="number" class="form-control" id="dashPeriodYearInput" style="display:none;" min="2020" max="2100">
+          </div>
+        </div>
         <div class="mini-stat-grid">
-          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num" id="kpiTotal">0 <small>ชิ้น</small></div></div>
-          <div class="mini-stat"><div class="label">ลงแล้ว</div><div class="num" id="kpiPublished">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label" id="kpiTotalLabel">ชิ้นงานเดือนนี้</div><div class="num accent" id="kpiTotal">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">ลงแล้ว</div><div class="num success" id="kpiPublished">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ส่งรีพอร์ต</div><div class="num" id="kpiMembers">0 <small>/0 คน</small></div></div>
-          <div class="mini-stat"><div class="label">กำลังทำ</div><div class="num" id="teamWorkInProgress">0 <small>งาน</small></div></div>
-          <div class="mini-stat"><div class="label">รอตรวจ</div><div class="num" id="teamWorkPendingReview">0 <small>งาน</small></div></div>
-          <div class="mini-stat"><div class="label">โพสต์แล้ว</div><div class="num" id="teamWorkPosted">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">กำลังทำ</div><div class="num progress" id="teamWorkInProgress">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">รอตรวจ</div><div class="num warning" id="teamWorkPendingReview">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">โพสต์แล้ว</div><div class="num success" id="teamWorkPosted">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">ช่องทางที่ลง</div><div class="num accent" id="dashChannelCount">0 <small>ช่อง</small></div></div>
         </div>
 
         <div class="card" style="margin-bottom:14px;">
@@ -761,7 +795,7 @@
         <div class="page-head">
           <div>
             <h2>แพลนหน้าช่อง</h2>
-            <p>วางแผนลำดับคลิปที่จะลงแต่ละช่องทางล่วงหน้า เหมือนดูตารางกริดหน้าโปรไฟล์ TikTok — ดึงจากคลิปตัดคลิปที่มีรูปหน้าปกแล้วเท่านั้น</p>
+            <p>วางแผนลำดับคลิปที่จะลงแต่ละช่องทางล่วงหน้า เหมือนดูตารางกริดหน้าโปรไฟล์ TikTok — ดึงรูปหน้าปกจากคลิปตัดคลิปของแบรนด์นี้ทั้งหมดอัตโนมัติ (ไม่ว่าจะโพสต์ไปแล้วหรือยัง) หรืออัปโหลดรูปเองได้เลยโดยไม่ต้องรองานจากทีม</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:16px;">
@@ -792,9 +826,15 @@
         </div>
 
         <div class="card">
-          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">กริดหน้าช่อง (เดือนนี้)</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+            <div style="font-weight:700; font-size:13px;">กริดหน้าช่อง (เดือนนี้)</div>
+            <div>
+              <input type="file" accept="image/*" id="fpManualUploadFile" style="display:none;" onchange="handleFpManualUpload(this)">
+              <button class="btn btn-sm" type="button" id="fpManualUploadBtn" onclick="document.getElementById('fpManualUploadFile').click()">+ อัปโหลดรูปเอง</button>
+            </div>
+          </div>
           <div class="fp-grid" id="fpGrid"></div>
-          <div class="empty-mini" id="fpGridEmpty" style="display:none;">ยังไม่ได้จัดลำดับคลิปไหนในเดือนนี้ — คลิก "+ เพิ่มเข้าแผน" จากคลิปด้านบน</div>
+          <div class="empty-mini" id="fpGridEmpty" style="display:none;">ยังไม่ได้จัดลำดับคลิปไหนในเดือนนี้ — คลิก "+ เพิ่มเข้าแผน" จากคลิปด้านบน หรือ "+ อัปโหลดรูปเอง" เพื่อเพิ่มรูปโดยตรง</div>
         </div>
       </div>
 
@@ -882,7 +922,7 @@
           <div class="hr-info-grid" id="mdHrInfo" style="padding-top:12px; border-top:1px solid var(--border);"></div>
         </div>
         <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
-          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num accent" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ชิ้นงานสะสมทั้งหมด</div><div class="num" id="mdKpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">สคริปต์ที่เขียนทั้งหมด</div><div class="num" id="mdKpiScripts">0 <small>ชิ้น</small></div></div>
         </div>
@@ -942,7 +982,7 @@
           <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
             <div class="mini-stat">
               <div class="label">ยอดชิ้นงานเดือนนี้</div>
-              <div class="num" id="summaryKpiTotal">0 <small>ชิ้น</small></div>
+              <div class="num accent" id="summaryKpiTotal">0 <small>ชิ้น</small></div>
               <div style="font-size:11.5px; margin-top:2px;" id="summaryKpiTrend"></div>
             </div>
             <div class="mini-stat">
@@ -1596,6 +1636,11 @@
     if(!Array.isArray(parsed.workItems)) parsed.workItems = [];
     if(!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
     if(!Array.isArray(parsed.feedPlanItems)) parsed.feedPlanItems = [];
+    parsed.feedPlanItems.forEach(f => {
+      if(f.workItemId === undefined) f.workItemId = '';
+      if(f.coverImageDataUrl === undefined) f.coverImageDataUrl = '';
+      if(f.caption === undefined) f.caption = '';
+    });
     parsed.brands.forEach(b => {
       if(!Array.isArray(b.products)) b.products = [];
       if(!Array.isArray(b.channels)) b.channels = [];
@@ -1855,7 +1900,10 @@
         else { if(h > maxSize){ w = Math.round(w * maxSize / h); h = maxSize; } }
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
         callback(canvas.toDataURL('image/jpeg', 0.85));
       };
       img.onerror = () => onError && onError();
@@ -2915,6 +2963,7 @@
     }
     if(!confirm(`ลบแบรนด์ "${b.name}"?`)) return;
     data.brands = data.brands.filter(x => x.id !== brandId);
+    data.feedPlanItems = data.feedPlanItems.filter(f => f.brandId !== brandId);
     logActivity('แบรนด์', `ลบแบรนด์: ${b.name}`);
     saveData();
     renderBrandsList();
@@ -3741,7 +3790,7 @@
     if(idx === -1) return;
     const f = data.feedPlanItems[idx];
     const w = data.workItems.find(x => x.id === workItemId);
-    const stillValid = w && w.workType === 'ตัดคลิป' && w.coverImageDataUrl && w.brandId === f.brandId && w.channel === f.channel;
+    const stillValid = w && w.workType === 'ตัดคลิป' && w.coverImageDataUrl && w.brandId === f.brandId;
     if(!stillValid) data.feedPlanItems.splice(idx, 1);
   }
 
@@ -3753,6 +3802,9 @@
     const channel = channelSel.value;
     if(!feedPlanMonthStr) feedPlanMonthStr = currentMonthStr();
     const monthStr = feedPlanMonthStr;
+
+    const uploadBtn = document.getElementById('fpManualUploadBtn');
+    if(uploadBtn) uploadBtn.disabled = !brandId || !channel;
 
     const monthNamesFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     const [yy, mm] = monthStr.split('-').map(Number);
@@ -3774,18 +3826,21 @@
 
     const assignedWorkItemIds = new Set(data.feedPlanItems.map(f => f.workItemId));
     const unassigned = data.workItems.filter(w =>
-      w.workType === 'ตัดคลิป' && w.coverImageDataUrl && w.brandId === brandId && w.channel === channel && !assignedWorkItemIds.has(w.id)
+      w.workType === 'ตัดคลิป' && w.coverImageDataUrl && w.brandId === brandId && !assignedWorkItemIds.has(w.id)
     );
 
     if(unassigned.length === 0){
       unassignedGrid.innerHTML = '';
-      unassignedEmpty.textContent = 'ไม่มีคลิปที่ยังไม่จัดลำดับ (ต้องเป็นคลิปตัดคลิปที่มีรูปหน้าปก ตรงแบรนด์+ช่องทางที่เลือก)';
+      unassignedEmpty.textContent = 'ไม่มีคลิปที่ยังไม่จัดลำดับ (ต้องเป็นคลิปตัดคลิปที่มีรูปหน้าปก ตรงแบรนด์ที่เลือก)';
       unassignedEmpty.style.display = 'block';
     } else {
       unassignedEmpty.style.display = 'none';
       unassignedGrid.innerHTML = unassigned.map(w => `
         <div class="fp-unassigned-item" onclick="addToFeedPlan('${w.id}')" title="คลิกเพื่อเพิ่มเข้าแผนเดือนนี้">
-          <img src="${w.coverImageDataUrl}" alt="">
+          <div style="position:relative;">
+            <img src="${w.coverImageDataUrl}" alt="">
+            ${w.status === 'Post' ? `<span class="fp-grid-order" style="background:var(--success);">โพสต์แล้ว</span>` : ''}
+          </div>
           <div class="add-label">+ เพิ่มเข้าแผน</div>
         </div>
       `).join('');
@@ -3801,11 +3856,13 @@
     } else {
       gridEmpty.style.display = 'none';
       grid.innerHTML = gridItems.map((f, i) => {
-        const w = data.workItems.find(x => x.id === f.workItemId);
-        if(!w) return '';
+        const imgSrc = f.workItemId
+          ? (data.workItems.find(x => x.id === f.workItemId) || {}).coverImageDataUrl
+          : f.coverImageDataUrl;
+        if(!imgSrc) return '';
         return `
           <div class="fp-grid-item">
-            <img src="${w.coverImageDataUrl}" alt="" onclick="openFeedPlanItemModal('${f.id}')">
+            <img src="${imgSrc}" alt="" onclick="openFeedPlanItemModal('${f.id}')">
             <span class="fp-grid-order">${i + 1}</span>
             <div class="fp-grid-controls">
               ${i > 0 ? `<button type="button" onclick="moveFeedPlanItem('${f.id}', -1)" title="เลื่อนขึ้น">↑</button>` : ''}
@@ -3826,10 +3883,29 @@
     const monthStr = feedPlanMonthStr;
     const groupItems = data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel && f.plannedMonth === monthStr);
     const maxOrder = groupItems.reduce((m, f) => Math.max(m, f.order), 0);
-    data.feedPlanItems.push({ id: uid(), workItemId, brandId, channel, plannedMonth: monthStr, order: maxOrder + 1 });
+    data.feedPlanItems.push({ id: uid(), workItemId, brandId, channel, plannedMonth: monthStr, order: maxOrder + 1, coverImageDataUrl: '', caption: '' });
     logActivity('แพลนหน้าช่อง', 'เพิ่มคลิปเข้าแผน');
     saveData();
     renderFeedPlan();
+  }
+
+  function handleFpManualUpload(inputEl){
+    const file = inputEl.files && inputEl.files[0];
+    if(!file) return;
+    const brandId = document.getElementById('fpBrandSelect').value;
+    const channel = document.getElementById('fpChannelSelect').value;
+    if(!brandId || !channel){ inputEl.value = ''; return; }
+    compressImageFile(file, 480, (dataUrl) => {
+      if(!feedPlanMonthStr) feedPlanMonthStr = currentMonthStr();
+      const monthStr = feedPlanMonthStr;
+      const groupItems = data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel && f.plannedMonth === monthStr);
+      const maxOrder = groupItems.reduce((m, f) => Math.max(m, f.order), 0);
+      data.feedPlanItems.push({ id: uid(), workItemId: '', brandId, channel, plannedMonth: monthStr, order: maxOrder + 1, coverImageDataUrl: dataUrl, caption: '' });
+      logActivity('แพลนหน้าช่อง', 'อัปโหลดรูปเข้าแผนเอง');
+      saveData();
+      renderFeedPlan();
+    }, () => { alert('อัปโหลดรูปไม่สำเร็จ ลองไฟล์อื่น'); });
+    inputEl.value = '';
   }
 
   function moveFeedPlanItem(feedPlanItemId, direction){
@@ -3852,8 +3928,32 @@
   function openFeedPlanItemModal(feedPlanItemId){
     currentFeedPlanItemId = feedPlanItemId;
     const f = data.feedPlanItems.find(x => x.id === feedPlanItemId);
-    const w = f ? data.workItems.find(x => x.id === f.workItemId) : null;
     const body = document.getElementById('fpDetailBody');
+    if(!f){
+      body.innerHTML = '<div class="empty-mini">ไม่พบข้อมูลนี้แล้ว</div>';
+      document.getElementById('feedPlanItemModalOverlay').classList.add('open');
+      return;
+    }
+    if(!f.workItemId){
+      const brand = data.brands.find(b => b.id === f.brandId);
+      body.innerHTML = `
+        <div style="display:flex; gap:14px; margin-bottom:14px;">
+          <img src="${f.coverImageDataUrl}" alt="" style="width:80px; height:107px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex-shrink:0;">
+          <div>
+            <div class="li-title">รูปที่อัปโหลดเอง</div>
+            <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'} · ${escapeHtml(f.channel || '—')}</div>
+          </div>
+        </div>
+        <div class="field-row" style="margin-bottom:8px;">
+          <label>โน้ต/แคปชั่น (ไม่บังคับ)</label>
+          <textarea class="form-control" id="fpCaptionInput" rows="2" placeholder="เช่น ธีมสีที่ตั้งใจ, ไอเดียโพสต์">${escapeHtml(f.caption || '')}</textarea>
+        </div>
+        <button class="btn btn-outline btn-sm" type="button" onclick="saveFeedPlanCaption()">บันทึกโน้ต</button>
+      `;
+      document.getElementById('feedPlanItemModalOverlay').classList.add('open');
+      return;
+    }
+    const w = data.workItems.find(x => x.id === f.workItemId);
     if(!w){
       body.innerHTML = '<div class="empty-mini">ไม่พบข้อมูลงานนี้แล้ว</div>';
     } else {
@@ -3872,6 +3972,16 @@
       `;
     }
     document.getElementById('feedPlanItemModalOverlay').classList.add('open');
+  }
+
+  function saveFeedPlanCaption(){
+    const f = data.feedPlanItems.find(x => x.id === currentFeedPlanItemId);
+    if(!f) return;
+    const input = document.getElementById('fpCaptionInput');
+    if(!input) return;
+    f.caption = input.value.trim();
+    logActivity('แพลนหน้าช่อง', 'แก้โน้ตรูปที่อัปโหลดเอง');
+    saveData();
   }
 
   function closeFeedPlanItemModal(){
@@ -3915,6 +4025,44 @@
 
   function currentMonthStr(){ return todayISO().slice(0, 7); }
 
+  let dashPeriodType = 'month';
+  let dashPeriodValue = currentMonthStr();
+
+  function dateInDashPeriod(dateStr){
+    if(!dateStr) return false;
+    return dateStr.startsWith(dashPeriodValue);
+  }
+
+  function setDashPeriodType(type){
+    dashPeriodType = type;
+    ['day', 'month', 'year'].forEach(t => {
+      const btn = document.getElementById(`dashPeriod${t.charAt(0).toUpperCase()}${t.slice(1)}Btn`);
+      if(!btn) return;
+      if(t === type) btn.classList.remove('btn-outline'); else btn.classList.add('btn-outline');
+    });
+    document.getElementById('dashPeriodDayInput').style.display = type === 'day' ? '' : 'none';
+    document.getElementById('dashPeriodMonthInput').style.display = type === 'month' ? '' : 'none';
+    document.getElementById('dashPeriodYearInput').style.display = type === 'year' ? '' : 'none';
+    const today = todayISO();
+    if(type === 'day'){
+      const el = document.getElementById('dashPeriodDayInput');
+      if(!el.value) el.value = today;
+      dashPeriodValue = el.value;
+      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานวันที่เลือก';
+    } else if(type === 'month'){
+      const el = document.getElementById('dashPeriodMonthInput');
+      if(!el.value) el.value = currentMonthStr();
+      dashPeriodValue = el.value;
+      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานเดือนนี้';
+    } else {
+      const el = document.getElementById('dashPeriodYearInput');
+      if(!el.value) el.value = today.slice(0, 4);
+      dashPeriodValue = el.value;
+      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานปีนี้';
+    }
+    renderDashboard();
+  }
+
   function getWorkItemBucket(status){
     if(WORK_IN_PROGRESS_STATUSES.includes(status)) return 'inProgress';
     if(WORK_PENDING_REVIEW_STATUSES.includes(status)) return 'pendingReview';
@@ -3929,10 +4077,16 @@
   }
 
   function renderTeamWorkSummary(){
-    const totalCounts = countWorkItemBuckets(data.workItems);
+    const periodItems = data.workItems.filter(w => dateInDashPeriod(w.date));
+    const totalCounts = countWorkItemBuckets(periodItems);
     document.getElementById('teamWorkInProgress').innerHTML = `${totalCounts.inProgress} <small>งาน</small>`;
     document.getElementById('teamWorkPendingReview').innerHTML = `${totalCounts.pendingReview} <small>งาน</small>`;
     document.getElementById('teamWorkPosted').innerHTML = `${totalCounts.posted} <small>งาน</small>`;
+
+    const postedChannels = new Set(
+      periodItems.filter(w => w.status === 'Post' && w.channel).map(w => `${w.brandId}::${w.channel}`)
+    );
+    document.getElementById('dashChannelCount').innerHTML = `${postedChannels.size} <small>ช่อง</small>`;
 
     const listEl = document.getElementById('brandWorkSummaryList');
     const emptyEl = document.getElementById('brandWorkSummaryEmpty');
@@ -3943,7 +4097,7 @@
     }
     emptyEl.style.display = 'none';
     listEl.innerHTML = data.brands.map(b => {
-      const brandItems = data.workItems.filter(w => w.brandId === b.id);
+      const brandItems = periodItems.filter(w => w.brandId === b.id);
       const counts = countWorkItemBuckets(brandItems);
       return `
         <div class="brand-summary-card">
@@ -3955,9 +4109,9 @@
             </div>
           </div>
           <div class="bs-stats">
-            <div class="stat"><div class="stat-num">${counts.inProgress}</div><div class="stat-label">กำลังทำ</div></div>
-            <div class="stat"><div class="stat-num">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
-            <div class="stat"><div class="stat-num">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
+            <div class="stat"><div class="stat-num progress">${counts.inProgress}</div><div class="stat-label">กำลังทำ</div></div>
+            <div class="stat"><div class="stat-num warning">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
+            <div class="stat"><div class="stat-num success">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
           </div>
         </div>
       `;
@@ -3965,11 +4119,10 @@
   }
 
   function renderDashboard(){
-    const monthStr = currentMonthStr();
-    const monthReports = data.dailyReports.filter(r => r.date.startsWith(monthStr));
+    const monthReports = data.dailyReports.filter(r => dateInDashPeriod(r.date));
 
     const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
-    const publishedCount = data.contentPlans.filter(p => p.status === 'ลงแล้ว' && p.publishDate.startsWith(monthStr)).length;
+    const publishedCount = data.contentPlans.filter(p => p.status === 'ลงแล้ว' && dateInDashPeriod(p.publishDate)).length;
     const activeMembers = data.members.filter(m => isActiveStatus(m.status)).length;
     const reportedMemberIds = new Set(monthReports.map(r => r.memberId));
 
@@ -4487,6 +4640,10 @@
 
   document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal());
 
+  document.getElementById('dashPeriodDayInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
+  document.getElementById('dashPeriodMonthInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
+  document.getElementById('dashPeriodYearInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
+
   document.getElementById('fpBrandSelect').addEventListener('change', renderFeedPlanChannelOptions);
   document.getElementById('fpChannelSelect').addEventListener('change', renderFeedPlan);
   document.getElementById('fpPrevMonthBtn').addEventListener('click', () => shiftFeedPlanMonth(-1));
@@ -4618,6 +4775,10 @@
 
   async function boot(){
     document.getElementById('summaryMonthInput').value = currentMonthStr();
+    document.getElementById('dashPeriodMonthInput').value = currentMonthStr();
+    document.getElementById('dashPeriodDayInput').value = todayISO();
+    document.getElementById('dashPeriodYearInput').value = todayISO().slice(0, 4);
+    dashPeriodValue = currentMonthStr();
     try {
       const remote = await fetchRemoteData();
       data = migrateData(remote.payload);
