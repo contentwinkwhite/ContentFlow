@@ -498,7 +498,7 @@
   }
   .modal-overlay.open{display:flex;}
   #memberModalOverlay{z-index:650;}
-  .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:26px; max-width:420px; width:100%; box-shadow:var(--shadow);}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:16px; padding:26px; max-width:420px; width:100%; box-shadow:var(--shadow); max-height:85vh; overflow-y:auto;}
   .modal h3{margin:0 0 18px; font-size:18px;}
   .modal-actions{display:flex; gap:10px; justify-content:flex-end; margin-top:20px;}
   .form-msg{font-size:12.5px; color:var(--danger); margin-top:2px; display:none;}
@@ -3969,7 +3969,7 @@
     const byDate = {};
     groupItems.forEach(f => { if(f.plannedDate) byDate[f.plannedDate] = f; });
 
-    const days = getFeedPlanDaysInMonth(monthStr);
+    const days = getFeedPlanDaysInMonth(monthStr).reverse();
 
     let postedCount = 0;
     let filledCount = 0;
