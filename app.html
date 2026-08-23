@@ -611,6 +611,7 @@
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
       <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
+      <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
       <button class="sb-item" data-page="plan"><span class="ic">📋</span> สั่งงาน</button>
       <button class="sb-item" data-page="feedplan"><span class="ic">🖼️</span> แพลนหน้าช่อง</button>
       <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
@@ -778,6 +779,30 @@
         <div class="card">
           <div id="brandsList"></div>
           <div class="empty-mini" id="brandsEmptyMsg" style="display:none;">ยังไม่มีแบรนด์ในระบบ กด "เพิ่มแบรนด์" เพื่อเริ่มต้น</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="products">
+        <div class="page-head">
+          <div>
+            <h2>สินค้า</h2>
+            <p>คลังรายชื่อสินค้าทุกแบรนด์ในที่เดียว ใช้เป็นตัวเลือกตอนลงรีพอร์ต/แพลนงานรายวัน</p>
+          </div>
+          <button class="btn btn-sm" id="addProductBtn">➕ เพิ่มสินค้า</button>
+        </div>
+        <div class="card">
+          <div class="toolbar" style="margin-bottom:14px;">
+            <div class="field-row">
+              <label>แบรนด์</label>
+              <select class="form-control" id="productsFilterBrand"></select>
+            </div>
+            <button class="csv-btn" id="exportProductsCsvBtn">⬇ ออกรายงาน CSV</button>
+          </div>
+          <table class="responsive-collapse">
+            <thead><tr><th>แบรนด์</th><th>ชื่อสินค้า</th><th></th></tr></thead>
+            <tbody id="productsTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="productsEmptyMsg" style="display:none;">ยังไม่มีสินค้าในระบบ กด "เพิ่มสินค้า" เพื่อเริ่มต้น</div>
         </div>
       </div>
 
@@ -1198,14 +1223,6 @@
       <input type="text" class="form-control" id="brandFormNote" placeholder="รายละเอียดเพิ่มเติม">
     </div>
     <div class="field-row">
-      <label>สินค้าของแบรนด์นี้</label>
-      <div class="tag-list" id="brandProductsList"></div>
-      <div style="display:flex; gap:6px; margin-top:8px;">
-        <input type="text" class="form-control" id="brandProductInput" placeholder="เพิ่มชื่อสินค้า แล้วกด Enter">
-        <button type="button" class="btn btn-outline btn-sm" id="brandProductAddBtn">เพิ่ม</button>
-      </div>
-    </div>
-    <div class="field-row">
       <label>ช่องทางที่ลงคลิปของแบรนด์นี้ <span style="font-weight:400;color:var(--text-sub);">(เช่น "TikTok หลัก", "TikTok ปั่น 1", "Shopee")</span></label>
       <div class="tag-list" id="brandChannelsList"></div>
       <div style="display:flex; gap:6px; margin-top:8px;">
@@ -1217,6 +1234,30 @@
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="brandModalCancel">ยกเลิก</button>
       <button class="btn btn-sm" id="brandModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Product Modal ===== -->
+<div class="modal-overlay" id="productModalOverlay">
+  <div class="modal">
+    <h3 id="productModalTitle">เพิ่มสินค้า</h3>
+    <div class="field-row">
+      <label>แบรนด์</label>
+      <div class="ss-wrap">
+        <input type="text" class="form-control ss-input" id="productFormBrandSearch" placeholder="พิมพ์ค้นหาแบรนด์..." autocomplete="off">
+        <input type="hidden" id="productFormBrandId" value="">
+        <div class="ss-dropdown" id="productFormBrandDropdown"></div>
+      </div>
+    </div>
+    <div class="field-row">
+      <label>ชื่อสินค้า</label>
+      <input type="text" class="form-control" id="productFormName" placeholder="เช่น กลูต้า">
+    </div>
+    <div class="form-msg" id="productFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="productModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="productModalSave">บันทึก</button>
     </div>
   </div>
 </div>
@@ -1515,7 +1556,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'สั่งงาน',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     feedplan:'แพลนหน้าช่อง',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
@@ -1817,8 +1858,8 @@
   let editingBrandId = null;
   let editingWorkItemId = null;
   let calendarMonthStr = null;
-  let pendingBrandProducts = [];
   let pendingBrandChannels = [];
+  let editingProductRef = null;
   let pendingBrandLogoDataUrl = undefined;
   let pendingWiCoverDataUrl = undefined;
   let pendingPostWorkItemId = null;
@@ -2900,32 +2941,6 @@
     `).join('');
   }
 
-  function renderBrandProductsList(){
-    const list = document.getElementById('brandProductsList');
-    if(pendingBrandProducts.length === 0){
-      list.innerHTML = '<div class="empty-mini" style="padding:8px 0;">ยังไม่มีสินค้า</div>';
-      return;
-    }
-    list.innerHTML = pendingBrandProducts.map((p, i) => `
-      <span class="tag-chip">${escapeHtml(p)}<button type="button" onclick="removeBrandProduct(${i})">✕</button></span>
-    `).join('');
-  }
-
-  function addBrandProduct(){
-    const input = document.getElementById('brandProductInput');
-    const val = input.value.trim();
-    if(!val) return;
-    if(pendingBrandProducts.includes(val)){ input.value = ''; return; }
-    pendingBrandProducts.push(val);
-    input.value = '';
-    renderBrandProductsList();
-  }
-
-  function removeBrandProduct(index){
-    pendingBrandProducts.splice(index, 1);
-    renderBrandProductsList();
-  }
-
   function renderBrandChannelsList(){
     const list = document.getElementById('brandChannelsList');
     if(pendingBrandChannels.length === 0){
@@ -2972,7 +2987,6 @@
     editingBrandId = brandId || null;
     pendingBrandLogoDataUrl = undefined;
     document.getElementById('brandFormMsg').style.display = 'none';
-    document.getElementById('brandProductInput').value = '';
     document.getElementById('brandChannelInput').value = '';
     document.getElementById('brandFormLogoFile').value = '';
     if(brandId){
@@ -2981,7 +2995,6 @@
       document.getElementById('brandFormName').value = b.name;
       document.getElementById('brandFormChannel').value = b.tiktokChannel || '';
       document.getElementById('brandFormNote').value = b.note || '';
-      pendingBrandProducts = Array.isArray(b.products) ? [...b.products] : [];
       pendingBrandChannels = Array.isArray(b.channels) ? [...b.channels] : [];
       updateBrandLogoPreview(b.logoDataUrl || null, b.name);
     } else {
@@ -2989,11 +3002,9 @@
       document.getElementById('brandFormName').value = '';
       document.getElementById('brandFormChannel').value = '';
       document.getElementById('brandFormNote').value = '';
-      pendingBrandProducts = [];
       pendingBrandChannels = [];
       updateBrandLogoPreview(null, '');
     }
-    renderBrandProductsList();
     renderBrandChannelsList();
     document.getElementById('brandModalOverlay').classList.add('open');
   }
@@ -3014,16 +3025,15 @@
       return;
     }
     msgEl.style.display = 'none';
-    const products = [...pendingBrandProducts];
     const channels = [...pendingBrandChannels];
 
     if(editingBrandId){
       const b = data.brands.find(x => x.id === editingBrandId);
-      b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.products = products; b.channels = channels;
+      b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.channels = channels;
       if(pendingBrandLogoDataUrl !== undefined) b.logoDataUrl = pendingBrandLogoDataUrl;
       logActivity('แบรนด์', `แก้ไขแบรนด์: ${name}`);
     } else {
-      data.brands.push({ id: uid(), name, tiktokChannel, note, products, channels, logoDataUrl: pendingBrandLogoDataUrl || null });
+      data.brands.push({ id: uid(), name, tiktokChannel, note, products: [], channels, logoDataUrl: pendingBrandLogoDataUrl || null });
       logActivity('แบรนด์', `เพิ่มแบรนด์: ${name}`);
     }
     saveData();
@@ -3035,6 +3045,8 @@
     populateWorkFormOptions('wiForm');
     refreshAwBlockBrandOptions();
     renderFeedPlanBrandOptions();
+    renderProductsFilterOptions();
+    renderProductsTable();
     renderDashboard();
   }
 
@@ -3057,7 +3069,155 @@
     populateWorkFormOptions('wiForm');
     refreshAwBlockBrandOptions();
     renderFeedPlanBrandOptions();
+    renderProductsFilterOptions();
+    renderProductsTable();
     renderDashboard();
+  }
+
+  /* ===== Products (สินค้า) ===== */
+  function renderProductsFilterOptions(){
+    const sel = document.getElementById('productsFilterBrand');
+    if(!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">ทุกแบรนด์</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    if(data.brands.some(b => b.id === cur)) sel.value = cur;
+  }
+
+  function renderProductsTable(){
+    const tbody = document.getElementById('productsTableBody');
+    const emptyMsg = document.getElementById('productsEmptyMsg');
+    if(!tbody) return;
+    const filterBrandId = document.getElementById('productsFilterBrand').value;
+    let rows = [];
+    data.brands.forEach(b => {
+      (Array.isArray(b.products) ? b.products : []).forEach(p => {
+        if(!filterBrandId || b.id === filterBrandId) rows.push({ brandId: b.id, brandName: b.name, name: p });
+      });
+    });
+    rows.sort((a, b) => a.brandName.localeCompare(b.brandName) || a.name.localeCompare(b.name));
+
+    if(rows.length === 0){
+      tbody.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    tbody.innerHTML = rows.map(r => `
+      <tr>
+        <td data-label="แบรนด์"><span class="chip chip-outline">${escapeHtml(r.brandName)}</span></td>
+        <td data-label="ชื่อสินค้า">${escapeHtml(r.name)}</td>
+        <td data-label="">
+          <div class="action-btns">
+            <button class="icon-btn" data-act="edit" data-brand-id="${r.brandId}" data-name="${escapeHtml(r.name)}">แก้ไข</button>
+            <button class="icon-btn danger" data-act="delete" data-brand-id="${r.brandId}" data-name="${escapeHtml(r.name)}">ลบ</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    tbody.querySelectorAll('button[data-act]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const bId = btn.dataset.brandId;
+        const nm = btn.dataset.name;
+        if(btn.dataset.act === 'edit') openProductModal(bId, nm);
+        else deleteProductRow(bId, nm);
+      });
+    });
+  }
+
+  function openProductModal(brandId, productName){
+    editingProductRef = productName !== undefined ? { brandId, name: productName } : null;
+    document.getElementById('productFormMsg').style.display = 'none';
+    const brand = brandId ? data.brands.find(b => b.id === brandId) : null;
+    document.getElementById('productFormBrandId').value = brand ? brand.id : '';
+    document.getElementById('productFormBrandSearch').value = brand ? brand.name : '';
+    document.getElementById('productFormName').value = productName || '';
+    document.getElementById('productModalTitle').textContent = editingProductRef ? 'แก้ไขสินค้า' : 'เพิ่มสินค้า';
+    document.getElementById('productModalOverlay').classList.add('open');
+  }
+
+  function closeProductModal(){
+    document.getElementById('productModalOverlay').classList.remove('open');
+  }
+
+  function renderProductBrandDropdown(){
+    const searchInput = document.getElementById('productFormBrandSearch');
+    const dropdown = document.getElementById('productFormBrandDropdown');
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = q ? data.brands.filter(b => b.name.toLowerCase().includes(q)) : data.brands;
+    dropdown.innerHTML = filtered.map(b => `<div class="ss-option" data-id="${b.id}" data-name="${escapeHtml(b.name)}">${escapeHtml(b.name)}</div>`).join('')
+      || '<div class="ss-option-empty">ไม่พบแบรนด์</div>';
+    dropdown.classList.add('open');
+    dropdown.querySelectorAll('.ss-option').forEach(el => {
+      el.addEventListener('click', () => {
+        document.getElementById('productFormBrandId').value = el.dataset.id;
+        searchInput.value = el.dataset.name;
+        dropdown.classList.remove('open');
+      });
+    });
+  }
+
+  function hideProductBrandDropdown(){
+    document.getElementById('productFormBrandDropdown').classList.remove('open');
+    const brand = data.brands.find(b => b.id === document.getElementById('productFormBrandId').value);
+    document.getElementById('productFormBrandSearch').value = brand ? brand.name : '';
+  }
+
+  function saveProductModal(){
+    const brandId = document.getElementById('productFormBrandId').value;
+    const name = document.getElementById('productFormName').value.trim();
+    const msgEl = document.getElementById('productFormMsg');
+    if(!brandId){ msgEl.textContent = 'กรุณาเลือกแบรนด์ (พิมพ์ค้นหาแล้วคลิกเลือกจากรายการ)'; msgEl.style.display = 'block'; return; }
+    if(!name){ msgEl.textContent = 'กรอกชื่อสินค้า'; msgEl.style.display = 'block'; return; }
+    const brand = data.brands.find(b => b.id === brandId);
+    if(!brand){ msgEl.textContent = 'ไม่พบแบรนด์นี้แล้ว'; msgEl.style.display = 'block'; return; }
+    if(!Array.isArray(brand.products)) brand.products = [];
+
+    if(editingProductRef){
+      const oldBrand = data.brands.find(b => b.id === editingProductRef.brandId);
+      const sameSpot = oldBrand && oldBrand.id === brandId && editingProductRef.name === name;
+      if(!sameSpot && brand.products.includes(name)){
+        msgEl.textContent = 'แบรนด์นี้มีสินค้าชื่อนี้อยู่แล้ว'; msgEl.style.display = 'block'; return;
+      }
+      if(oldBrand){
+        const idx = oldBrand.products.indexOf(editingProductRef.name);
+        if(idx !== -1) oldBrand.products.splice(idx, 1);
+      }
+      brand.products.push(name);
+      logActivity('สินค้า', `แก้ไขสินค้า: ${editingProductRef.name} → ${name} (${brand.name})`);
+    } else {
+      if(brand.products.includes(name)){ msgEl.textContent = 'แบรนด์นี้มีสินค้าชื่อนี้อยู่แล้ว'; msgEl.style.display = 'block'; return; }
+      brand.products.push(name);
+      logActivity('สินค้า', `เพิ่มสินค้า: ${name} (${brand.name})`);
+    }
+    msgEl.style.display = 'none';
+    saveData();
+    closeProductModal();
+    renderProductsFilterOptions();
+    renderProductsTable();
+  }
+
+  function deleteProductRow(brandId, name){
+    const brand = data.brands.find(b => b.id === brandId);
+    if(!brand || !Array.isArray(brand.products)) return;
+    if(!confirm(`ลบสินค้า "${name}" ออกจากแบรนด์ "${brand.name}"?`)) return;
+    const idx = brand.products.indexOf(name);
+    if(idx !== -1) brand.products.splice(idx, 1);
+    logActivity('สินค้า', `ลบสินค้า: ${name} (${brand.name})`);
+    saveData();
+    renderProductsTable();
+  }
+
+  function exportProductsCsv(){
+    const rows = [];
+    data.brands.forEach(b => {
+      (Array.isArray(b.products) ? b.products : []).forEach(p => rows.push({ brandName: b.name, name: p }));
+    });
+    rows.sort((a, b) => a.brandName.localeCompare(b.brandName) || a.name.localeCompare(b.name));
+    const lines = [['แบรนด์', 'ชื่อสินค้า'].map(csvEscape).join(',')];
+    rows.forEach(r => lines.push([csvEscape(r.brandName), csvEscape(r.name)].join(',')));
+    downloadCsv(lines.join('\r\n'), `contentflow-สินค้า-${todayISO()}.csv`);
   }
 
   /* ===== Work items (รายงานการทำงาน) ===== */
@@ -4676,13 +4836,23 @@
   document.getElementById('brandModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'brandModalOverlay') closeBrandModal();
   });
-  document.getElementById('brandProductAddBtn').addEventListener('click', addBrandProduct);
-  document.getElementById('brandProductInput').addEventListener('keydown', (e) => {
-    if(e.key === 'Enter'){ e.preventDefault(); addBrandProduct(); }
-  });
   document.getElementById('brandChannelAddBtn').addEventListener('click', addBrandChannel);
   document.getElementById('brandChannelInput').addEventListener('keydown', (e) => {
     if(e.key === 'Enter'){ e.preventDefault(); addBrandChannel(); }
+  });
+
+  document.getElementById('addProductBtn').addEventListener('click', () => openProductModal());
+  document.getElementById('productModalCancel').addEventListener('click', closeProductModal);
+  guardClick(document.getElementById('productModalSave'), saveProductModal);
+  document.getElementById('productModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'productModalOverlay') closeProductModal();
+  });
+  document.getElementById('productsFilterBrand').addEventListener('change', renderProductsTable);
+  document.getElementById('exportProductsCsvBtn').addEventListener('click', exportProductsCsv);
+  document.getElementById('productFormBrandSearch').addEventListener('input', renderProductBrandDropdown);
+  document.getElementById('productFormBrandSearch').addEventListener('focus', renderProductBrandDropdown);
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('#productFormBrandSearch') && !e.target.closest('#productFormBrandDropdown')) hideProductBrandDropdown();
   });
 
   document.getElementById('workItemModalCancel').addEventListener('click', closeWorkItemModal);
@@ -4946,6 +5116,8 @@
     renderSessionsTable();
     renderActivityTable();
     renderBrandsList();
+    renderProductsFilterOptions();
+    renderProductsTable();
     renderWorkItemFilterOptions();
     renderWorkItemsTable();
     renderCalendar();
