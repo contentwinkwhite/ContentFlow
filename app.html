@@ -2902,6 +2902,12 @@
   }
 
   function removeBrandChannel(index){
+    const channel = pendingBrandChannels[index];
+    if(editingBrandId && channel){
+      const inUse = data.workItems.some(w => w.brandId === editingBrandId && w.channel === channel)
+        || data.feedPlanItems.some(f => f.brandId === editingBrandId && f.channel === channel);
+      if(inUse && !confirm(`ช่องทาง "${channel}" มีงาน/แผนที่ผูกอยู่แล้ว ถ้าลบออกจากรายชื่อ งานเก่าจะยังเก็บชื่อช่องทางนี้ไว้ แต่จะเลือกช่องทางนี้ใหม่ในฟอร์มไม่ได้อีก ต้องการลบไหม?`)) return;
+    }
     pendingBrandChannels.splice(index, 1);
     renderBrandChannelsList();
   }
@@ -3116,7 +3122,7 @@
       document.getElementById('wiFormProduct').value = w.product || '';
       syncProductSearchDisplay('wiForm');
       document.getElementById('wiFormLocation').value = w.location || '';
-      populateWorkFormChannelOptions('wiForm');
+      populateWorkFormChannelOptions('wiForm', w.channel || '');
       document.getElementById('wiFormChannel').value = w.channel || '';
       document.getElementById('wiFormDescription').value = w.description || '';
       document.getElementById('wiFormStatus').value = w.status;
@@ -3356,13 +3362,14 @@
     }
   }
 
-  function populateWorkFormChannelOptions(prefix){
+  function populateWorkFormChannelOptions(prefix, forceValue){
     const sel = document.getElementById(prefix + 'Channel');
     if(!sel) return;
     const brandSel = document.getElementById(prefix + 'Brand');
     const brand = data.brands.find(b => b.id === (brandSel ? brandSel.value : ''));
-    const channels = brand && Array.isArray(brand.channels) ? brand.channels : [];
-    const cur = sel.value;
+    let channels = brand && Array.isArray(brand.channels) ? brand.channels.slice() : [];
+    const cur = forceValue !== undefined ? forceValue : sel.value;
+    if(cur && !channels.includes(cur)) channels = channels.concat(cur);
     sel.innerHTML = '<option value="">— ไม่ระบุช่องทาง —</option>' + channels.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
     if(channels.includes(cur)) sel.value = cur;
   }
@@ -4064,7 +4071,12 @@
     const dateInput = document.getElementById('fpPlannedDateInput');
     if(dateInput){
       const newDate = dateInput.value;
-      if(newDate && newDate !== f.plannedDate){
+      if(!newDate){
+        alert('ต้องเลือกวันที่เสมอ ถ้าต้องการเอาคลิปนี้ออกจากแผนให้กดปุ่ม "เอาคลิปออกจากแผน" แทน');
+        dateInput.value = f.plannedDate || '';
+        return;
+      }
+      if(newDate !== f.plannedDate){
         const conflict = data.feedPlanItems.some(x => x.id !== f.id && x.brandId === f.brandId && x.channel === f.channel && x.plannedDate === newDate);
         if(conflict){
           alert('วันที่นี้มีคลิปอยู่แล้วในช่องทางนี้ เลือกวันอื่นหรือเอาคลิปเดิมออกก่อน');
