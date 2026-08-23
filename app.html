@@ -608,10 +608,10 @@
     </div>
     <nav class="sb-menu" id="sbMenu">
       <button class="sb-item" data-page="dashboard"><span class="ic">📊</span> แดชบอร์ด</button>
-      <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงานประจำวัน</button>
+      <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
       <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
-      <button class="sb-item" data-page="plan"><span class="ic">📋</span> งานสั่งเข้ามา</button>
+      <button class="sb-item" data-page="plan"><span class="ic">📋</span> สั่งงาน</button>
       <button class="sb-item" data-page="feedplan"><span class="ic">🖼️</span> แพลนหน้าช่อง</button>
       <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
       <button class="sb-item" data-page="ideas"><span class="ic">💡</span> ไอเดีย & เทรนด์</button>
@@ -691,7 +691,7 @@
           </div>
         </div>
         <div class="card">
-          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">งานสั่งเข้ามาใกล้ถึงกำหนดส่ง (7 วัน)</div>
+          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">สั่งงานใกล้ถึงกำหนดส่ง (7 วัน)</div>
           <div id="upcomingList"></div>
         </div>
       </div>
@@ -699,7 +699,7 @@
       <div class="page" data-page="workplan">
         <div class="page-head">
           <div>
-            <h2>รายงานการทำงานประจำวัน</h2>
+            <h2>รายงานการทำงาน</h2>
             <p>บันทึกงานที่ทำวันนี้ ฟอร์มเดียวได้ทั้งยอดรีพอร์ตนับจำนวนชิ้นรายเดือนและรายละเอียดงานผูกกับแบรนด์ (ดูสรุปรีพอร์ตย้อนหลังได้ที่เมนู "สรุป KPI")</p>
           </div>
         </div>
@@ -750,7 +750,7 @@
         <div class="page-head">
           <div>
             <h2>ปฏิทิน</h2>
-            <p>ปฏิทินบอกเหตุการณ์ — แสดงคอนเทนต์ที่วางแผนลง วันสำคัญ/วันนักขัตฤกษ์ และเหตุการณ์ที่เพิ่มเอง คลิกวันที่เพื่อเพิ่มเหตุการณ์ลงวันนั้นได้เลย (ไม่รวมงานที่ทีมงานบันทึกรายวัน ดูงานเหล่านั้นได้ที่เมนู "รายงานการทำงานประจำวัน")</p>
+            <p>ปฏิทินบอกเหตุการณ์ — แสดงคอนเทนต์ที่วางแผนลง วันสำคัญ/วันนักขัตฤกษ์ และเหตุการณ์ที่เพิ่มเอง คลิกวันที่เพื่อเพิ่มเหตุการณ์ลงวันนั้นได้เลย (ไม่รวมงานที่ทีมงานบันทึกรายวัน ดูงานเหล่านั้นได้ที่เมนู "รายงานการทำงาน")</p>
           </div>
           <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
             <button class="icon-btn" id="calendarPrevBtn">← เดือนก่อน</button>
@@ -784,7 +784,7 @@
       <div class="page" data-page="plan">
         <div class="page-head">
           <div>
-            <h2>งานสั่งเข้ามา</h2>
+            <h2>สั่งงาน</h2>
             <p>บันทึกงานที่สั่งเข้ามานอกเหนือจากงานประจำ เช่น งานอีเว้นท์ หรืองานเพิ่มที่เจ้านายสั่ง ไล่สถานะรับทราบ-กำลังทำ-เสร็จ</p>
           </div>
           <button class="btn btn-sm" id="addPlanBtn">➕ เพิ่มงาน</button>
@@ -794,7 +794,7 @@
             <thead><tr><th>หัวข้อ/รายละเอียดงาน</th><th>ใครสั่ง</th><th>แบรนด์</th><th>ประเภทงาน</th><th>กำหนดส่ง</th><th>สถานะ</th><th>สคริปต์</th><th></th></tr></thead>
             <tbody id="planTableBody"></tbody>
           </table>
-          <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีงานสั่งเข้ามา กด "เพิ่มงาน" เพื่อบันทึกงานแรก</div>
+          <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีสั่งงาน กด "เพิ่มงาน" เพื่อบันทึกงานแรก</div>
         </div>
       </div>
 
@@ -853,7 +853,7 @@
         <div class="page-head">
           <div>
             <h2>คลังสคริปต์</h2>
-            <p>เขียนสคริปต์ตามเทมเพลตมาตรฐาน Hook / เนื้อหา / CTA ทุกชิ้นต้องผูกกับงานสั่งเข้ามาที่มีอยู่แล้ว</p>
+            <p>เขียนสคริปต์ตามเทมเพลตมาตรฐาน Hook / เนื้อหา / CTA ทุกชิ้นต้องผูกกับสั่งงานที่มีอยู่แล้ว</p>
           </div>
           <button class="btn btn-sm" id="addScriptBtn">➕ เพิ่มสคริปต์</button>
         </div>
@@ -1408,7 +1408,7 @@
   <div class="modal" style="max-width:520px;">
     <h3 id="scriptModalTitle">เพิ่มสคริปต์</h3>
     <div class="field-row">
-      <label>ผูกกับงาน (งานสั่งเข้ามา)</label>
+      <label>ผูกกับงาน (สั่งงาน)</label>
       <select class="form-control" id="scriptFormPlan"></select>
     </div>
     <div class="field-row">
@@ -1515,7 +1515,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงานประจำวัน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'งานสั่งเข้ามา',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'สั่งงาน',
     feedplan:'แพลนหน้าช่อง',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
@@ -2509,10 +2509,10 @@
       const p = data.workOrders.find(x => x.id === editingPlanId);
       p.title = title; p.requestedBy = requestedBy; p.brandId = brandId;
       p.jobType = jobType; p.deadline = deadline; p.status = status; p.note = note;
-      logActivity('งานสั่งเข้ามา', `แก้ไขงาน: ${title}`);
+      logActivity('สั่งงาน', `แก้ไขงาน: ${title}`);
     } else {
       data.workOrders.push({ id: uid(), title, requestedBy, brandId, jobType, deadline, status, note });
-      logActivity('งานสั่งเข้ามา', `เพิ่มงาน: ${title}`);
+      logActivity('สั่งงาน', `เพิ่มงาน: ${title}`);
     }
     saveData();
     closePlanModal();
@@ -2532,7 +2532,7 @@
     }
     if(!confirm('ลบงานนี้ออก?')) return;
     data.workOrders = data.workOrders.filter(p => p.id !== planId);
-    logActivity('งานสั่งเข้ามา', `ลบงาน: ${target.title}`);
+    logActivity('สั่งงาน', `ลบงาน: ${target.title}`);
     saveData();
     renderPlanTable();
     renderDashboard();
@@ -2543,7 +2543,7 @@
   function updatePlanStatus(planId, newStatus){
     const p = data.workOrders.find(x => x.id === planId);
     p.status = newStatus;
-    logActivity('งานสั่งเข้ามา', `เปลี่ยนสถานะ "${p.title}" เป็น ${newStatus}`);
+    logActivity('สั่งงาน', `เปลี่ยนสถานะ "${p.title}" เป็น ${newStatus}`);
     saveData();
     renderDashboard();
     renderTopbarBadge();
@@ -2603,7 +2603,7 @@
   function renderScriptFormSelectOptions(){
     const planSel = document.getElementById('scriptFormPlan');
     planSel.innerHTML = data.workOrders.map(p => `<option value="${p.id}">${escapeHtml(p.title)} (${escapeHtml(p.jobType)} · กำหนดส่ง ${formatThaiDate(p.deadline)})</option>`).join('')
-      || '<option value="">— ยังไม่มีงานสั่งเข้ามา ไปสร้างที่หน้างานสั่งเข้ามาก่อน —</option>';
+      || '<option value="">— ยังไม่มีสั่งงาน ไปสร้างที่หน้าสั่งงานก่อน —</option>';
 
     const authorSel = document.getElementById('scriptFormAuthor');
     const activeMembers = data.members.filter(m => isActiveStatus(m.status));
@@ -2656,7 +2656,7 @@
     const writtenDate = document.getElementById('scriptFormDate').value;
     const msgEl = document.getElementById('scriptFormMsg');
 
-    if(!contentPlanId){ msgEl.textContent = 'ต้องเลือกงานที่จะผูกก่อน (ไปสร้างที่หน้างานสั่งเข้ามาถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
+    if(!contentPlanId){ msgEl.textContent = 'ต้องเลือกงานที่จะผูกก่อน (ไปสร้างที่หน้าสั่งงานถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
     if(!topic){ msgEl.textContent = 'กรอกหัวข้อ'; msgEl.style.display = 'block'; return; }
     if(!hook){ msgEl.textContent = 'กรอก Hook (3 วิแรก)'; msgEl.style.display = 'block'; return; }
     if(!content){ msgEl.textContent = 'กรอกเนื้อหา'; msgEl.style.display = 'block'; return; }
@@ -3059,7 +3059,7 @@
     renderDashboard();
   }
 
-  /* ===== Work items (รายงานการทำงานประจำวัน) ===== */
+  /* ===== Work items (รายงานการทำงาน) ===== */
   function populateWorkFormProductOptions(prefix){
     const brandId = document.getElementById(prefix + 'Brand').value;
     const brand = data.brands.find(b => b.id === brandId);
@@ -3245,7 +3245,7 @@
       }
       syncLinkedReport(w);
       syncFeedPlanItemForWorkItem(w.id);
-      logActivity('รายงานการทำงานประจำวัน', `แก้ไขงาน: ${title || product}`);
+      logActivity('รายงานการทำงาน', `แก้ไขงาน: ${title || product}`);
       saveData();
       closeWorkItemModal();
       renderWorkItemsTable();
@@ -3262,7 +3262,7 @@
       data.dailyReports.push(report);
       const w = { id: uid(), title, date, ownerId, brandId, workType, quantity, product, location, channel, coverImageDataUrl: pendingWiCoverDataUrl || '', description, status: initialStatus, imageNote, driveLink, postDate: '', linkPost: '', reportId: report.id };
       data.workItems.push(w);
-      logActivity('รายงานการทำงานประจำวัน', `เพิ่มงาน: ${title || product} (${workType} ${quantity} ชิ้น)`);
+      logActivity('รายงานการทำงาน', `เพิ่มงาน: ${title || product} (${workType} ${quantity} ชิ้น)`);
       saveData();
       closeWorkItemModal();
       renderWorkItemsTable();
@@ -3281,7 +3281,7 @@
     const target = data.workItems.find(w => w.id === workItemId);
     data.workItems = data.workItems.filter(w => w.id !== workItemId);
     if(target){
-      logActivity('รายงานการทำงานประจำวัน', `ลบงาน: ${target.title || target.product}`);
+      logActivity('รายงานการทำงาน', `ลบงาน: ${target.title || target.product}`);
       if(target.reportId){
         data.dailyReports = data.dailyReports.filter(r => r.id !== target.reportId);
       }
@@ -3594,7 +3594,7 @@
         postDate: entry.postDate, linkPost: entry.linkPost, reportId: report.id
       };
       data.workItems.push(w);
-      logActivity('รายงานการทำงานประจำวัน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น`);
+      logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น`);
     });
 
     saveData();
@@ -3618,7 +3618,7 @@
     }
     w.status = newStatus;
     if(newStatus !== 'Post'){ w.postDate = ''; w.linkPost = ''; }
-    logActivity('รายงานการทำงานประจำวัน', `เปลี่ยนสถานะงาน "${w.title || w.product}" เป็น ${newStatus}`);
+    logActivity('รายงานการทำงาน', `เปลี่ยนสถานะงาน "${w.title || w.product}" เป็น ${newStatus}`);
     saveData();
     renderWorkItemsTable();
     renderDashboard();
@@ -3651,7 +3651,7 @@
     w.status = 'Post';
     w.postDate = postDate;
     w.linkPost = linkPost;
-    logActivity('รายงานการทำงานประจำวัน', `บันทึกข้อมูลการโพสต์: ${w.title || w.product}`);
+    logActivity('รายงานการทำงาน', `บันทึกข้อมูลการโพสต์: ${w.title || w.product}`);
     saveData();
     document.getElementById('postDetailsModalOverlay').classList.remove('open');
     pendingPostWorkItemId = null;
@@ -4166,7 +4166,7 @@
     const container = document.getElementById('upcomingList');
     const upcoming = getUpcomingContentPlans();
     if(upcoming.length === 0){
-      container.innerHTML = '<div class="empty-mini">ไม่มีงานสั่งเข้ามาที่ใกล้ถึงกำหนดส่งใน 7 วันข้างหน้า</div>';
+      container.innerHTML = '<div class="empty-mini">ไม่มีสั่งงานที่ใกล้ถึงกำหนดส่งใน 7 วันข้างหน้า</div>';
       return;
     }
     container.innerHTML = upcoming.map(p => `
