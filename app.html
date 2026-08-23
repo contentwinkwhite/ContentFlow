@@ -374,21 +374,28 @@
   .fp-unassigned-item{width:76px; cursor:pointer; text-align:center; transition:transform .1s ease;}
   .fp-unassigned-item:hover{transform:translateY(-2px);}
   .fp-unassigned-item img{width:76px; height:101px; object-fit:cover; border-radius:8px; border:1px solid var(--border); display:block;}
+  .fp-unassigned-item.armed img{outline:3px solid var(--accent); outline-offset:2px;}
   .fp-unassigned-item .add-label{font-size:11px; color:var(--accent); font-weight:600; margin-top:4px;}
 
-  .fp-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
-  .fp-grid-item{position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--border); aspect-ratio:3/4; background:var(--bg);}
-  .fp-grid-item img{width:100%; height:100%; object-fit:cover; cursor:pointer; display:block;}
+  .fp-layout{display:grid; grid-template-columns:300px 1fr; gap:16px; align-items:start;}
+  @media (max-width:860px){ .fp-layout{grid-template-columns:1fr;} }
+
+  .fp-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+  .fp-grid-item{position:relative; border-radius:8px; overflow:hidden; border:1px solid var(--border); aspect-ratio:3/4; background:var(--bg); cursor:pointer;}
+  .fp-grid-item img{width:100%; height:100%; object-fit:cover; display:block;}
+  .fp-grid-item.empty{display:flex; align-items:center; justify-content:center; border:1.5px dashed var(--border);}
+  .fp-grid-item.empty .fp-plus{font-size:20px; color:var(--text-sub); font-weight:600;}
+  .fp-grid-item.selected{outline:3px solid var(--accent); outline-offset:-3px;}
   .fp-grid-order{
-    position:absolute; top:4px; left:4px; background:rgba(26,32,50,.75); color:#fff;
+    position:absolute; bottom:4px; left:4px; background:rgba(26,32,50,.75); color:#fff;
     font-size:11px; font-weight:700; padding:1px 7px; border-radius:999px;
   }
-  .fp-grid-controls{position:absolute; bottom:4px; right:4px; display:flex; gap:3px;}
-  .fp-grid-controls button{
-    width:24px; height:24px; border-radius:6px; border:none; background:rgba(26,32,50,.75); color:#fff;
-    font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0;
+  .fp-grid-item.empty .fp-grid-order{background:var(--card); color:var(--text-sub); border:1px solid var(--border);}
+  .fp-grid-check{
+    position:absolute; top:4px; right:4px; background:var(--success); color:#fff;
+    width:20px; height:20px; border-radius:50%; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; line-height:1;
   }
-  .fp-grid-controls button:hover{background:var(--accent);}
   @media (max-width:640px){ .fp-grid{grid-template-columns:repeat(3,1fr);} }
 
   .empty-state{
@@ -514,25 +521,12 @@
     .btn-label{display:none;}
     .badge-dot{padding:7px 10px;}
 
-    table.responsive-collapse thead{display:none;}
-    table.responsive-collapse, table.responsive-collapse tbody{display:block; width:100%;}
-    table.responsive-collapse tr{
-      display:block; margin-bottom:12px; border:1px solid var(--border); border-radius:12px;
-      padding:4px 12px; background:var(--card);
+    table.responsive-collapse{display:block; overflow-x:auto; -webkit-overflow-scrolling:touch;}
+    table.responsive-collapse th, table.responsive-collapse td{white-space:nowrap;}
+    table.responsive-collapse td .action-btns{flex-wrap:nowrap;}
+    table.responsive-collapse td .li-title, table.responsive-collapse td .li-sub{
+      max-width:200px; overflow:hidden; text-overflow:ellipsis;
     }
-    table.responsive-collapse tr:last-child{margin-bottom:0;}
-    table.responsive-collapse td{
-      display:flex; align-items:center; justify-content:space-between; gap:12px;
-      padding:9px 0; border-bottom:1px solid var(--border); text-align:right;
-    }
-    table.responsive-collapse td:last-child{border-bottom:none;}
-    table.responsive-collapse td::before{
-      content:attr(data-label); font-weight:600; color:var(--text-sub); text-align:left;
-      font-size:12px; flex-shrink:0;
-    }
-    table.responsive-collapse td:empty::before,
-    table.responsive-collapse td[data-label=""]::before{content:none;}
-    table.responsive-collapse td .action-btns{justify-content:flex-end; width:100%;}
 
     .mini-stat-grid{grid-template-columns:repeat(3,1fr) !important;}
     .mini-stat{padding:8px 10px;}
@@ -795,7 +789,7 @@
         <div class="page-head">
           <div>
             <h2>แพลนหน้าช่อง</h2>
-            <p>วางแผนลำดับคลิปที่จะลงแต่ละช่องทางล่วงหน้า เหมือนดูตารางกริดหน้าโปรไฟล์ TikTok — ดึงรูปหน้าปกจากคลิปตัดคลิปของแบรนด์นี้ทั้งหมดอัตโนมัติ (ไม่ว่าจะโพสต์ไปแล้วหรือยัง) หรืออัปโหลดรูปเองได้เลยโดยไม่ต้องรองานจากทีม</p>
+            <p>วางแผนว่าแต่ละวันในเดือนจะลงคลิปไหน เหมือนดูตารางกริดหน้าโปรไฟล์ TikTok — เลือกรูปทางซ้ายแล้ววางลงวันที่ต้องการทางขวา ดึงรูปจากคลิปตัดคลิปของแบรนด์นี้อัตโนมัติ หรืออัปโหลดรูปเองก็ได้</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:16px;">
@@ -819,22 +813,26 @@
           </div>
         </div>
 
-        <div class="card" style="margin-bottom:16px;">
-          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">คลิปที่ยังไม่จัดลำดับ <span style="font-weight:400;color:var(--text-sub);">(คลิกรูปเพื่อเพิ่มเข้าแผนเดือนนี้)</span></div>
-          <div class="fp-unassigned-grid" id="fpUnassignedGrid"></div>
-          <div class="empty-mini" id="fpUnassignedEmpty" style="display:none;"></div>
-        </div>
-
-        <div class="card">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-            <div style="font-weight:700; font-size:13px;">กริดหน้าช่อง (เดือนนี้)</div>
-            <div>
+        <div class="fp-layout">
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:4px;">คลิปที่ยังไม่จัดลำดับ</div>
+            <p style="font-size:12px; color:var(--text-sub); margin:0 0 10px;" id="fpPickHint">คลิกรูปเพื่อใส่ในวันว่างแรกสุด (หรือคลิกช่องว่างในกริดก่อนเพื่อเลือกวันที่ต้องการ)</p>
+            <div class="fp-unassigned-grid" id="fpUnassignedGrid"></div>
+            <div class="empty-mini" id="fpUnassignedEmpty" style="display:none;"></div>
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
               <input type="file" accept="image/*" id="fpManualUploadFile" style="display:none;" onchange="handleFpManualUpload(this)">
-              <button class="btn btn-sm" type="button" id="fpManualUploadBtn" onclick="document.getElementById('fpManualUploadFile').click()">+ อัปโหลดรูปเอง</button>
+              <button class="btn btn-outline btn-sm" type="button" id="fpManualUploadBtn" onclick="document.getElementById('fpManualUploadFile').click()" style="width:100%; justify-content:center;">+ อัปโหลดรูปเอง</button>
             </div>
           </div>
-          <div class="fp-grid" id="fpGrid"></div>
-          <div class="empty-mini" id="fpGridEmpty" style="display:none;">ยังไม่ได้จัดลำดับคลิปไหนในเดือนนี้ — คลิก "+ เพิ่มเข้าแผน" จากคลิปด้านบน หรือ "+ อัปโหลดรูปเอง" เพื่อเพิ่มรูปโดยตรง</div>
+
+          <div class="card">
+            <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+              <div style="font-weight:700; font-size:13px;">กริดหน้าช่อง</div>
+              <div style="font-size:12px; color:var(--text-sub);" id="fpGridCountLabel"></div>
+            </div>
+            <div class="fp-grid" id="fpGrid"></div>
+            <div class="empty-mini" id="fpGridEmpty" style="display:none;">เลือกแบรนด์และช่องทางก่อนถึงจะเห็นตารางวัน</div>
+          </div>
         </div>
       </div>
 
@@ -1267,7 +1265,7 @@
     </div>
     <div class="field-row">
       <label>ช่องทางที่ลง (ไม่บังคับ)</label>
-      <input type="text" class="form-control" id="wiFormChannel" placeholder="เช่น TikTok หลัก, Shopee (สำหรับงานตัดคลิป)">
+      <select class="form-control" id="wiFormChannel"></select>
     </div>
     <div class="field-row">
       <label>Description</label>
@@ -1640,7 +1638,34 @@
       if(f.workItemId === undefined) f.workItemId = '';
       if(f.coverImageDataUrl === undefined) f.coverImageDataUrl = '';
       if(f.caption === undefined) f.caption = '';
+      if(f.plannedDate === undefined) f.plannedDate = '';
     });
+    (function backfillFeedPlanDates(){
+      const usedDates = new Set();
+      parsed.feedPlanItems.forEach(f => {
+        if(!f.plannedDate && f.workItemId){
+          const w = parsed.workItems.find(x => x.id === f.workItemId);
+          if(w) f.plannedDate = w.postDate || w.date || '';
+        }
+        const key = `${f.brandId}::${f.channel}::${f.plannedDate}`;
+        if(f.plannedDate){
+          if(usedDates.has(key)) f.plannedDate = '';
+          else usedDates.add(key);
+        }
+      });
+      // ตัวไหนยังไม่มีวันที่เลย (หา postDate/date ไม่เจอ หรือชนวันซ้ำ) หาวันว่างแรกสุดในเดือนที่วางแผนไว้ให้
+      parsed.feedPlanItems.forEach(f => {
+        if(f.plannedDate) return;
+        const monthStr = f.plannedMonth || todayISO().slice(0, 7);
+        const [y, m] = monthStr.split('-').map(Number);
+        const daysInMonth = new Date(y, m, 0).getDate();
+        for(let d = 1; d <= daysInMonth; d++){
+          const candidate = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+          const key = `${f.brandId}::${f.channel}::${candidate}`;
+          if(!usedDates.has(key)){ f.plannedDate = candidate; f.plannedMonth = monthStr; usedDates.add(key); break; }
+        }
+      });
+    })();
     parsed.brands.forEach(b => {
       if(!Array.isArray(b.products)) b.products = [];
       if(!Array.isArray(b.channels)) b.channels = [];
@@ -1764,6 +1789,13 @@
     const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
     const d = new Date(iso + 'T00:00:00');
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()+543}`;
+  }
+
+  function formatShortDate(iso){
+    if(!iso) return '';
+    const d = new Date(iso + 'T00:00:00');
+    if(isNaN(d.getTime())) return '';
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
   function formatThaiDateTime(iso){
@@ -3084,6 +3116,7 @@
       document.getElementById('wiFormProduct').value = w.product || '';
       syncProductSearchDisplay('wiForm');
       document.getElementById('wiFormLocation').value = w.location || '';
+      populateWorkFormChannelOptions('wiForm');
       document.getElementById('wiFormChannel').value = w.channel || '';
       document.getElementById('wiFormDescription').value = w.description || '';
       document.getElementById('wiFormStatus').value = w.status;
@@ -3101,6 +3134,7 @@
       populateWorkFormProductOptions('wiForm');
       document.getElementById('wiFormQty').value = 1;
       document.getElementById('wiFormLocation').value = '';
+      populateWorkFormChannelOptions('wiForm');
       document.getElementById('wiFormChannel').value = '';
       document.getElementById('wiFormDescription').value = '';
       document.getElementById('wiFormStatus').value = WORKITEM_STATUS_LIST[0];
@@ -3320,6 +3354,17 @@
       channelRow.style.display = status === 'Post' ? '' : 'none';
       if(status === 'Post') populateAwBlockChannel(id);
     }
+  }
+
+  function populateWorkFormChannelOptions(prefix){
+    const sel = document.getElementById(prefix + 'Channel');
+    if(!sel) return;
+    const brandSel = document.getElementById(prefix + 'Brand');
+    const brand = data.brands.find(b => b.id === (brandSel ? brandSel.value : ''));
+    const channels = brand && Array.isArray(brand.channels) ? brand.channels : [];
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— ไม่ระบุช่องทาง —</option>' + channels.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    if(channels.includes(cur)) sel.value = cur;
   }
 
   function populateAwBlockChannel(id){
@@ -3751,6 +3796,15 @@
   /* ===== แพลนหน้าช่อง (feedPlanItems) ===== */
   let feedPlanMonthStr = null;
   let currentFeedPlanItemId = null;
+  let fpSelectedDate = null;
+
+  function getFeedPlanDaysInMonth(monthStr){
+    const [y, m] = monthStr.split('-').map(Number);
+    const days = new Date(y, m, 0).getDate();
+    const list = [];
+    for(let d = 1; d <= days; d++) list.push(`${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`);
+    return list;
+  }
 
   function renderFeedPlanBrandOptions(){
     const sel = document.getElementById('fpBrandSelect');
@@ -3782,6 +3836,7 @@
     const [y, m] = feedPlanMonthStr.split('-').map(Number);
     const d = new Date(y, m - 1 + delta, 1);
     feedPlanMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    fpSelectedDate = null;
     renderFeedPlan();
   }
 
@@ -3814,20 +3869,27 @@
     const unassignedEmpty = document.getElementById('fpUnassignedEmpty');
     const grid = document.getElementById('fpGrid');
     const gridEmpty = document.getElementById('fpGridEmpty');
+    const pickHint = document.getElementById('fpPickHint');
 
     if(!brandId || !channel){
       unassignedGrid.innerHTML = '';
       unassignedEmpty.textContent = 'เลือกแบรนด์และช่องทางก่อน';
       unassignedEmpty.style.display = 'block';
       grid.innerHTML = '';
-      gridEmpty.style.display = 'none';
+      gridEmpty.style.display = 'block';
+      gridEmpty.textContent = 'เลือกแบรนด์และช่องทางก่อนถึงจะเห็นตารางวัน';
       return;
     }
+    gridEmpty.style.display = 'none';
 
     const assignedWorkItemIds = new Set(data.feedPlanItems.map(f => f.workItemId));
     const unassigned = data.workItems.filter(w =>
       w.workType === 'ตัดคลิป' && w.coverImageDataUrl && w.brandId === brandId && !assignedWorkItemIds.has(w.id)
     );
+
+    if(pickHint) pickHint.textContent = fpSelectedDate
+      ? `กำลังเลือกวันที่ ${formatShortDate(fpSelectedDate)} — คลิกรูปด้านล่างเพื่อใส่ในวันนี้`
+      : 'คลิกรูปเพื่อใส่ในวันว่างแรกสุด (หรือคลิกช่องว่างในกริดก่อนเพื่อเลือกวันที่ต้องการ)';
 
     if(unassigned.length === 0){
       unassignedGrid.innerHTML = '';
@@ -3836,54 +3898,87 @@
     } else {
       unassignedEmpty.style.display = 'none';
       unassignedGrid.innerHTML = unassigned.map(w => `
-        <div class="fp-unassigned-item" onclick="addToFeedPlan('${w.id}')" title="คลิกเพื่อเพิ่มเข้าแผนเดือนนี้">
+        <div class="fp-unassigned-item" onclick="pickUnassignedForFeedPlan('${w.id}')" title="คลิกเพื่อใส่ในแผน">
           <div style="position:relative;">
             <img src="${w.coverImageDataUrl}" alt="">
-            ${w.status === 'Post' ? `<span class="fp-grid-order" style="background:var(--success);">โพสต์แล้ว</span>` : ''}
+            ${w.status === 'Post' ? `<span class="fp-grid-order" style="bottom:auto; top:4px; background:var(--success);">โพสต์แล้ว</span>` : ''}
           </div>
           <div class="add-label">+ เพิ่มเข้าแผน</div>
         </div>
       `).join('');
     }
 
-    const gridItems = data.feedPlanItems
-      .filter(f => f.brandId === brandId && f.channel === channel && f.plannedMonth === monthStr)
-      .sort((a, b) => a.order - b.order);
+    const groupItems = data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel);
+    const byDate = {};
+    groupItems.forEach(f => { if(f.plannedDate) byDate[f.plannedDate] = f; });
 
-    if(gridItems.length === 0){
-      grid.innerHTML = '';
-      gridEmpty.style.display = 'block';
-    } else {
-      gridEmpty.style.display = 'none';
-      grid.innerHTML = gridItems.map((f, i) => {
-        const imgSrc = f.workItemId
-          ? (data.workItems.find(x => x.id === f.workItemId) || {}).coverImageDataUrl
-          : f.coverImageDataUrl;
-        if(!imgSrc) return '';
+    const days = getFeedPlanDaysInMonth(monthStr);
+
+    let postedCount = 0;
+    let filledCount = 0;
+    grid.innerHTML = days.map(dateStr => {
+      const f = byDate[dateStr];
+      const badgeDate = formatShortDate(dateStr);
+      if(!f){
+        const isSelected = fpSelectedDate === dateStr;
         return `
-          <div class="fp-grid-item">
-            <img src="${imgSrc}" alt="" onclick="openFeedPlanItemModal('${f.id}')">
-            <span class="fp-grid-order">${i + 1}</span>
-            <div class="fp-grid-controls">
-              ${i > 0 ? `<button type="button" onclick="moveFeedPlanItem('${f.id}', -1)" title="เลื่อนขึ้น">↑</button>` : ''}
-              ${i < gridItems.length - 1 ? `<button type="button" onclick="moveFeedPlanItem('${f.id}', 1)" title="เลื่อนลง">↓</button>` : ''}
-            </div>
+          <div class="fp-grid-item empty${isSelected ? ' selected' : ''}" onclick="armFeedPlanSlot('${dateStr}')" title="คลิกเพื่อเลือกวันนี้ แล้วเลือกรูปจากด้านซ้าย">
+            <span class="fp-plus">+</span>
+            <span class="fp-grid-order">${badgeDate}</span>
           </div>
         `;
-      }).join('');
-    }
+      }
+      filledCount++;
+      const linkedWorkItem = f.workItemId ? data.workItems.find(x => x.id === f.workItemId) : null;
+      const imgSrc = f.workItemId ? (linkedWorkItem || {}).coverImageDataUrl : f.coverImageDataUrl;
+      const isPosted = !!(linkedWorkItem && linkedWorkItem.status === 'Post');
+      if(isPosted) postedCount++;
+      if(!imgSrc){
+        return `<div class="fp-grid-item empty" onclick="armFeedPlanSlot('${dateStr}')"><span class="fp-plus">+</span><span class="fp-grid-order">${badgeDate}</span></div>`;
+      }
+      return `
+        <div class="fp-grid-item">
+          <img src="${imgSrc}" alt="" onclick="openFeedPlanItemModal('${f.id}')">
+          <span class="fp-grid-order">${badgeDate}</span>
+          ${isPosted ? `<span class="fp-grid-check">✓</span>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    const countLabelEl = document.getElementById('fpGridCountLabel');
+    if(countLabelEl) countLabelEl.textContent = `วางแผนแล้ว ${filledCount}/${days.length} วัน · โพสต์จริงแล้ว ${postedCount} ชิ้น`;
   }
 
-  function addToFeedPlan(workItemId){
+  function armFeedPlanSlot(dateStr){
+    fpSelectedDate = (fpSelectedDate === dateStr) ? null : dateStr;
+    renderFeedPlan();
+  }
+
+  function placeFeedPlanItem(brandId, channel, coverImageDataUrl, workItemId){
+    const monthStr = feedPlanMonthStr || currentMonthStr();
+    const days = getFeedPlanDaysInMonth(monthStr);
+    const taken = new Set(
+      data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel && f.plannedDate).map(f => f.plannedDate)
+    );
+    const targetDate = (fpSelectedDate && !taken.has(fpSelectedDate)) ? fpSelectedDate : days.find(d => !taken.has(d));
+    if(!targetDate){
+      alert('เดือนนี้จัดเต็มทุกวันแล้ว เลือกเดือนอื่นหรือเอาคลิปเก่าออกก่อน');
+      return false;
+    }
+    data.feedPlanItems.push({
+      id: uid(), workItemId: workItemId || '', brandId, channel, plannedMonth: monthStr,
+      order: 0, coverImageDataUrl: coverImageDataUrl || '', caption: '', plannedDate: targetDate
+    });
+    fpSelectedDate = null;
+    return true;
+  }
+
+  function pickUnassignedForFeedPlan(workItemId){
     if(data.feedPlanItems.some(f => f.workItemId === workItemId)) return;
     const brandId = document.getElementById('fpBrandSelect').value;
     const channel = document.getElementById('fpChannelSelect').value;
     if(!brandId || !channel) return;
-    if(!feedPlanMonthStr) feedPlanMonthStr = currentMonthStr();
-    const monthStr = feedPlanMonthStr;
-    const groupItems = data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel && f.plannedMonth === monthStr);
-    const maxOrder = groupItems.reduce((m, f) => Math.max(m, f.order), 0);
-    data.feedPlanItems.push({ id: uid(), workItemId, brandId, channel, plannedMonth: monthStr, order: maxOrder + 1, coverImageDataUrl: '', caption: '' });
+    if(!placeFeedPlanItem(brandId, channel, '', workItemId)) return;
     logActivity('แพลนหน้าช่อง', 'เพิ่มคลิปเข้าแผน');
     saveData();
     renderFeedPlan();
@@ -3896,33 +3991,12 @@
     const channel = document.getElementById('fpChannelSelect').value;
     if(!brandId || !channel){ inputEl.value = ''; return; }
     compressImageFile(file, 480, (dataUrl) => {
-      if(!feedPlanMonthStr) feedPlanMonthStr = currentMonthStr();
-      const monthStr = feedPlanMonthStr;
-      const groupItems = data.feedPlanItems.filter(f => f.brandId === brandId && f.channel === channel && f.plannedMonth === monthStr);
-      const maxOrder = groupItems.reduce((m, f) => Math.max(m, f.order), 0);
-      data.feedPlanItems.push({ id: uid(), workItemId: '', brandId, channel, plannedMonth: monthStr, order: maxOrder + 1, coverImageDataUrl: dataUrl, caption: '' });
+      if(!placeFeedPlanItem(brandId, channel, dataUrl, '')) return;
       logActivity('แพลนหน้าช่อง', 'อัปโหลดรูปเข้าแผนเอง');
       saveData();
       renderFeedPlan();
     }, () => { alert('อัปโหลดรูปไม่สำเร็จ ลองไฟล์อื่น'); });
     inputEl.value = '';
-  }
-
-  function moveFeedPlanItem(feedPlanItemId, direction){
-    const item = data.feedPlanItems.find(f => f.id === feedPlanItemId);
-    if(!item) return;
-    const groupItems = data.feedPlanItems
-      .filter(f => f.brandId === item.brandId && f.channel === item.channel && f.plannedMonth === item.plannedMonth)
-      .sort((a, b) => a.order - b.order);
-    const idx = groupItems.findIndex(f => f.id === feedPlanItemId);
-    const swapIdx = idx + direction;
-    if(swapIdx < 0 || swapIdx >= groupItems.length) return;
-    const other = groupItems[swapIdx];
-    const tmp = item.order;
-    item.order = other.order;
-    other.order = tmp;
-    saveData();
-    renderFeedPlan();
   }
 
   function openFeedPlanItemModal(feedPlanItemId){
@@ -3934,6 +4008,12 @@
       document.getElementById('feedPlanItemModalOverlay').classList.add('open');
       return;
     }
+    const dateFieldHtml = `
+      <div class="field-row" style="margin-bottom:8px;">
+        <label>วันที่วางแผนจะลง</label>
+        <input type="date" class="form-control" id="fpPlannedDateInput" value="${escapeHtml(f.plannedDate || '')}">
+      </div>
+    `;
     if(!f.workItemId){
       const brand = data.brands.find(b => b.id === f.brandId);
       body.innerHTML = `
@@ -3944,11 +4024,12 @@
             <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'} · ${escapeHtml(f.channel || '—')}</div>
           </div>
         </div>
+        ${dateFieldHtml}
         <div class="field-row" style="margin-bottom:8px;">
           <label>โน้ต/แคปชั่น (ไม่บังคับ)</label>
           <textarea class="form-control" id="fpCaptionInput" rows="2" placeholder="เช่น ธีมสีที่ตั้งใจ, ไอเดียโพสต์">${escapeHtml(f.caption || '')}</textarea>
         </div>
-        <button class="btn btn-outline btn-sm" type="button" onclick="saveFeedPlanCaption()">บันทึกโน้ต</button>
+        <button class="btn btn-outline btn-sm" type="button" onclick="saveFeedPlanCaption()">บันทึก</button>
       `;
       document.getElementById('feedPlanItemModalOverlay').classList.add('open');
       return;
@@ -3968,7 +4049,9 @@
           </div>
         </div>
         ${w.description ? `<div style="font-size:13.5px; margin-bottom:8px;">${escapeHtml(w.description)}</div>` : ''}
-        ${w.linkPost ? `<div style="font-size:13px;"><a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a></div>` : ''}
+        ${w.linkPost ? `<div style="font-size:13px; margin-bottom:8px;"><a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a></div>` : ''}
+        ${dateFieldHtml}
+        <button class="btn btn-outline btn-sm" type="button" onclick="saveFeedPlanCaption()">บันทึกวันที่</button>
       `;
     }
     document.getElementById('feedPlanItemModalOverlay').classList.add('open');
@@ -3977,11 +4060,25 @@
   function saveFeedPlanCaption(){
     const f = data.feedPlanItems.find(x => x.id === currentFeedPlanItemId);
     if(!f) return;
-    const input = document.getElementById('fpCaptionInput');
-    if(!input) return;
-    f.caption = input.value.trim();
-    logActivity('แพลนหน้าช่อง', 'แก้โน้ตรูปที่อัปโหลดเอง');
+    const captionInput = document.getElementById('fpCaptionInput');
+    const dateInput = document.getElementById('fpPlannedDateInput');
+    if(dateInput){
+      const newDate = dateInput.value;
+      if(newDate && newDate !== f.plannedDate){
+        const conflict = data.feedPlanItems.some(x => x.id !== f.id && x.brandId === f.brandId && x.channel === f.channel && x.plannedDate === newDate);
+        if(conflict){
+          alert('วันที่นี้มีคลิปอยู่แล้วในช่องทางนี้ เลือกวันอื่นหรือเอาคลิปเดิมออกก่อน');
+          dateInput.value = f.plannedDate || '';
+          return;
+        }
+      }
+      f.plannedDate = newDate;
+    }
+    if(captionInput) f.caption = captionInput.value.trim();
+    logActivity('แพลนหน้าช่อง', 'แก้ไขรายการในแผน');
     saveData();
+    closeFeedPlanItemModal();
+    renderFeedPlan();
   }
 
   function closeFeedPlanItemModal(){
@@ -4498,7 +4595,7 @@
   document.getElementById('workItemModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'workItemModalOverlay') closeWorkItemModal();
   });
-  document.getElementById('wiFormBrand').addEventListener('change', () => populateWorkFormProductOptions('wiForm'));
+  document.getElementById('wiFormBrand').addEventListener('change', () => { populateWorkFormProductOptions('wiForm'); populateWorkFormChannelOptions('wiForm'); });
 
   document.getElementById('wiFormProductSearch').addEventListener('input', () => renderProductDropdown('wiForm'));
   document.getElementById('wiFormProductSearch').addEventListener('focus', () => renderProductDropdown('wiForm'));
