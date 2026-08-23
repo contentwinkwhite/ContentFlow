@@ -1674,6 +1674,7 @@
     parsed.feedPlanItems.forEach(f => {
       if(f.workItemId === undefined) f.workItemId = '';
       if(f.coverImageDataUrl === undefined) f.coverImageDataUrl = '';
+      if(f.coverOverrideDataUrl === undefined) f.coverOverrideDataUrl = '';
       if(f.caption === undefined) f.caption = '';
       if(f.plannedDate === undefined) f.plannedDate = '';
     });
@@ -3685,6 +3686,7 @@
     tbody.innerHTML = rows.map(w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const owner = data.members.find(m => m.id === w.ownerId);
+      const hasNewCover = data.feedPlanItems.some(f => f.workItemId === w.id && f.coverOverrideDataUrl);
       return `
         <tr>
           <td data-label="วันที่">${w.date ? formatThaiDate(w.date) : '—'}</td>
@@ -3692,7 +3694,7 @@
             <div style="display:flex; align-items:center; gap:8px;">
               ${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : ''}
               <div>
-                <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}</div>
+                <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}</div>
                 <div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
               </div>
             </div>
@@ -3982,7 +3984,7 @@
       }
       filledCount++;
       const linkedWorkItem = f.workItemId ? data.workItems.find(x => x.id === f.workItemId) : null;
-      const imgSrc = f.workItemId ? (linkedWorkItem || {}).coverImageDataUrl : f.coverImageDataUrl;
+      const imgSrc = f.coverOverrideDataUrl || (f.workItemId ? (linkedWorkItem || {}).coverImageDataUrl : f.coverImageDataUrl);
       const isPosted = !!(linkedWorkItem && linkedWorkItem.status === 'Post');
       if(isPosted) postedCount++;
       if(!imgSrc){
@@ -4066,6 +4068,7 @@
         <input type="date" class="form-control" id="fpPlannedDateInput" value="${escapeHtml(f.plannedDate || '')}">
       </div>
     `;
+    const coverFileInputHtml = `<input type="file" accept="image/*" id="fpCoverOverrideFile" style="display:none;" onchange="handleFpCoverOverrideChange(this)">`;
     if(!f.workItemId){
       const brand = data.brands.find(b => b.id === f.brandId);
       body.innerHTML = `
@@ -4076,6 +4079,8 @@
             <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'} · ${escapeHtml(f.channel || '—')}</div>
           </div>
         </div>
+        ${coverFileInputHtml}
+        <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('fpCoverOverrideFile').click()" style="margin-bottom:14px;">🖼️ เปลี่ยนหน้าปก</button>
         ${dateFieldHtml}
         <div class="field-row" style="margin-bottom:8px;">
           <label>โน้ต/แคปชั่น (ไม่บังคับ)</label>
@@ -4091,22 +4096,55 @@
       body.innerHTML = '<div class="empty-mini">ไม่พบข้อมูลงานนี้แล้ว</div>';
     } else {
       const brand = data.brands.find(b => b.id === w.brandId);
+      const effectiveCover = f.coverOverrideDataUrl || w.coverImageDataUrl;
       body.innerHTML = `
         <div style="display:flex; gap:14px; margin-bottom:14px;">
-          <img src="${w.coverImageDataUrl}" alt="" style="width:80px; height:107px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex-shrink:0;">
+          <img src="${effectiveCover}" alt="" style="width:80px; height:107px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex-shrink:0;">
           <div>
-            <div class="li-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</div>
+            <div class="li-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}${f.coverOverrideDataUrl ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}</div>
             <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'} · ${escapeHtml(w.channel || '—')}</div>
             <div class="li-sub" style="margin-top:4px;">สถานะ: ${escapeHtml(w.status)}</div>
           </div>
         </div>
         ${w.description ? `<div style="font-size:13.5px; margin-bottom:8px;">${escapeHtml(w.description)}</div>` : ''}
         ${w.linkPost ? `<div style="font-size:13px; margin-bottom:8px;"><a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a></div>` : ''}
+        ${coverFileInputHtml}
+        <div style="margin-bottom:8px;">
+          <button class="btn btn-outline btn-sm" type="button" onclick="document.getElementById('fpCoverOverrideFile').click()">🖼️ เปลี่ยนหน้าปก</button>
+          ${f.coverOverrideDataUrl ? `<button class="btn btn-outline btn-sm" type="button" onclick="revertFpCoverOverride()">↺ ใช้หน้าปกเดิม</button>` : ''}
+        </div>
+        ${f.coverOverrideDataUrl ? `<div style="font-size:11.5px; color:var(--text-sub); margin-bottom:8px;">แก้ไขหน้าปกเฉพาะในแผนนี้ ไม่กระทบรูปต้นฉบับของงานจริง</div>` : ''}
         ${dateFieldHtml}
         <button class="btn btn-outline btn-sm" type="button" onclick="saveFeedPlanCaption()">บันทึกวันที่</button>
       `;
     }
     document.getElementById('feedPlanItemModalOverlay').classList.add('open');
+  }
+
+  function handleFpCoverOverrideChange(inputEl){
+    const file = inputEl.files && inputEl.files[0];
+    if(!file) return;
+    const f = data.feedPlanItems.find(x => x.id === currentFeedPlanItemId);
+    if(!f){ inputEl.value = ''; return; }
+    compressImageFile(file, 480, (dataUrl) => {
+      if(f.workItemId){ f.coverOverrideDataUrl = dataUrl; }
+      else { f.coverImageDataUrl = dataUrl; }
+      logActivity('แพลนหน้าช่อง', 'เปลี่ยนหน้าปกในแผน');
+      saveData();
+      openFeedPlanItemModal(f.id);
+      renderFeedPlan();
+    }, () => { alert('เปลี่ยนหน้าปกไม่สำเร็จ ลองไฟล์อื่น'); });
+    inputEl.value = '';
+  }
+
+  function revertFpCoverOverride(){
+    const f = data.feedPlanItems.find(x => x.id === currentFeedPlanItemId);
+    if(!f || !f.coverOverrideDataUrl) return;
+    f.coverOverrideDataUrl = '';
+    logActivity('แพลนหน้าช่อง', 'ใช้หน้าปกเดิมของงาน');
+    saveData();
+    openFeedPlanItemModal(f.id);
+    renderFeedPlan();
   }
 
   function saveFeedPlanCaption(){
