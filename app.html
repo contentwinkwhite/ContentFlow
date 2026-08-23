@@ -571,6 +571,19 @@
   </div>
 </div>
 
+<!-- ===== Password Gate (ล็อกทั้งระบบด้วยรหัสผ่านทีม) ===== -->
+<div class="login-gate hidden" id="pwGate">
+  <div class="login-card">
+    <div class="login-logo"><span class="mark" id="pwGateLogoMark">CF</span> <span id="pwGateLogoName">ContentFlow</span></div>
+    <div class="login-sub">ระบบนี้ใช้ภายในทีมเท่านั้น กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน</div>
+    <div class="field-row" style="text-align:left; margin-bottom:10px;">
+      <input type="password" class="form-control" id="pwGateInput" placeholder="รหัสผ่าน" autocomplete="off">
+    </div>
+    <div class="form-msg" id="pwGateMsg" style="display:none; margin-bottom:10px;"></div>
+    <button class="btn btn-sm" id="pwGateSubmit" style="width:100%; justify-content:center;">เข้าใช้งาน</button>
+  </div>
+</div>
+
 <!-- ===== Login Gate ===== -->
 <div class="login-gate" id="loginGate">
   <div class="login-card">
@@ -1484,6 +1497,12 @@
       <input type="file" accept="image/*" class="form-control" id="brandingFormFile">
     </div>
     <button class="btn btn-outline btn-sm" id="brandingResetBtn" style="width:100%; justify-content:center; margin-bottom:6px;">↺ ใช้ตัวอักษรย่อแทน</button>
+    <div class="field-row">
+      <label>รหัสผ่านเข้าแอป (ทั้งทีมใช้ร่วมกัน — เว้นว่างไว้ถ้าไม่ต้องการเปลี่ยน)</label>
+      <input type="password" class="form-control" id="brandingFormPassword" placeholder="พิมพ์รหัสผ่านใหม่" autocomplete="off">
+    </div>
+    <div style="font-size:12.5px; color:var(--text-sub); margin:-6px 0 10px;" id="brandingPwStatus"></div>
+    <button type="button" class="btn btn-outline btn-sm" id="brandingRemovePwBtn" style="width:100%; justify-content:center; margin-bottom:6px;">🔓 ปิดการล็อกรหัสผ่าน</button>
     <div class="form-msg" id="brandingFormMsg"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="brandingModalCancel">ยกเลิก</button>
@@ -1579,6 +1598,11 @@
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  async function sha256Hex(text){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   function avatarHtml(member){
     if(!member) return `<span class="avatar">?</span>`;
     if(member.photoDataUrl) return `<span class="avatar"><img src="${member.photoDataUrl}" alt=""></span>`;
@@ -1630,6 +1654,7 @@
     if(!parsed.settings || typeof parsed.settings !== 'object'){
       parsed.settings = { appName:'ContentFlow', logoDataUrl:null };
     }
+    if(parsed.settings.appPasswordHash === undefined) parsed.settings.appPasswordHash = '';
     if(!Array.isArray(parsed.brands)) parsed.brands = [];
     if(!Array.isArray(parsed.workItems)) parsed.workItems = [];
     if(!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
@@ -1899,17 +1924,21 @@
     const name = data.settings.appName || 'ContentFlow';
     document.getElementById('sbLogoName').textContent = name;
     document.getElementById('loginLogoName').textContent = name;
+    document.getElementById('pwGateLogoName').textContent = name;
     document.title = `${name} — แอป`;
 
     const sbMark = document.getElementById('sbLogoMark');
     const loginMark = document.getElementById('loginLogoMark');
+    const pwMark = document.getElementById('pwGateLogoMark');
     if(data.settings.logoDataUrl){
       sbMark.innerHTML = `<img src="${data.settings.logoDataUrl}" alt="โลโก้">`;
       loginMark.innerHTML = `<img src="${data.settings.logoDataUrl}" alt="โลโก้">`;
+      pwMark.innerHTML = `<img src="${data.settings.logoDataUrl}" alt="โลโก้">`;
     } else {
       const initials = brandInitials(name);
       sbMark.textContent = initials;
       loginMark.textContent = initials;
+      pwMark.textContent = initials;
     }
   }
 
@@ -1950,6 +1979,10 @@
     document.getElementById('brandingFormMsg').style.display = 'none';
     document.getElementById('brandingFormName').value = data.settings.appName || 'ContentFlow';
     document.getElementById('brandingFormFile').value = '';
+    document.getElementById('brandingFormPassword').value = '';
+    document.getElementById('brandingPwStatus').textContent = data.settings.appPasswordHash
+      ? 'ตอนนี้ระบบล็อกด้วยรหัสผ่านอยู่'
+      : 'ตอนนี้ยังไม่ได้ล็อกรหัสผ่าน ใครมีลิงก์ก็เข้าได้เลย';
     updateBrandingPreview(data.settings.logoDataUrl, data.settings.appName);
     document.getElementById('brandingModalOverlay').classList.add('open');
   }
@@ -1958,8 +1991,9 @@
     document.getElementById('brandingModalOverlay').classList.remove('open');
   }
 
-  function saveBranding(){
+  async function saveBranding(){
     const appName = document.getElementById('brandingFormName').value.trim();
+    const newPassword = document.getElementById('brandingFormPassword').value;
     const msgEl = document.getElementById('brandingFormMsg');
     if(!appName){ msgEl.textContent = 'กรอกชื่อแอป'; msgEl.style.display = 'block'; return; }
     msgEl.style.display = 'none';
@@ -1968,7 +2002,23 @@
     if(pendingLogoDataUrl !== undefined){
       data.settings.logoDataUrl = pendingLogoDataUrl;
     }
+    if(newPassword){
+      const hash = await sha256Hex(newPassword);
+      data.settings.appPasswordHash = hash;
+      localStorage.setItem('cfPwUnlock', hash);
+    }
     logActivity('ตั้งค่า', `แก้ไขชื่อแอป/โลโก้เป็น "${appName}"`);
+    saveData();
+    closeBrandingModal();
+    renderBranding();
+  }
+
+  function removeBrandingPassword(){
+    if(!data.settings.appPasswordHash){ closeBrandingModal(); return; }
+    if(!confirm('ปิดการล็อกรหัสผ่าน? หลังจากนี้ใครก็ตามที่มีลิงก์จะเข้าแอปได้เลยโดยไม่ต้องใส่รหัสผ่าน')) return;
+    data.settings.appPasswordHash = '';
+    localStorage.removeItem('cfPwUnlock');
+    logActivity('ตั้งค่า', 'ปิดการล็อกรหัสผ่านเข้าแอป');
     saveData();
     closeBrandingModal();
     renderBranding();
@@ -4813,6 +4863,7 @@
   document.getElementById('openBrandingBtn').addEventListener('click', openBrandingModal);
   document.getElementById('brandingModalCancel').addEventListener('click', closeBrandingModal);
   guardClick(document.getElementById('brandingModalSave'), saveBranding);
+  document.getElementById('brandingRemovePwBtn').addEventListener('click', removeBrandingPassword);
   document.getElementById('brandingModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'brandingModalOverlay') closeBrandingModal();
   });
@@ -4898,10 +4949,36 @@
       document.getElementById('bootErrorOverlay').style.display = 'flex';
       return;
     }
+    document.getElementById('bootLoadingOverlay').style.display = 'none';
+    renderBranding();
+    if(data.settings.appPasswordHash && localStorage.getItem('cfPwUnlock') !== data.settings.appPasswordHash){
+      document.getElementById('pwGate').classList.remove('hidden');
+      document.getElementById('pwGateInput').focus();
+      return;
+    }
     renderEverything();
     showPage('dashboard');
-    document.getElementById('bootLoadingOverlay').style.display = 'none';
   }
+
+  async function checkPwGate(){
+    const input = document.getElementById('pwGateInput');
+    const msgEl = document.getElementById('pwGateMsg');
+    const hash = await sha256Hex(input.value);
+    if(hash === data.settings.appPasswordHash){
+      localStorage.setItem('cfPwUnlock', hash);
+      document.getElementById('pwGate').classList.add('hidden');
+      msgEl.style.display = 'none';
+      renderEverything();
+      showPage('dashboard');
+    } else {
+      msgEl.textContent = 'รหัสผ่านไม่ถูกต้อง';
+      msgEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  }
+  document.getElementById('pwGateSubmit').addEventListener('click', checkPwGate);
+  document.getElementById('pwGateInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') checkPwGate(); });
 
   boot();
 </script>
