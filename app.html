@@ -611,7 +611,7 @@
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงานประจำวัน</button>
       <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
-      <button class="sb-item" data-page="plan"><span class="ic">🗓️</span> แพลนคอนเทนต์</button>
+      <button class="sb-item" data-page="plan"><span class="ic">📋</span> งานสั่งเข้ามา</button>
       <button class="sb-item" data-page="feedplan"><span class="ic">🖼️</span> แพลนหน้าช่อง</button>
       <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
       <button class="sb-item" data-page="ideas"><span class="ic">💡</span> ไอเดีย & เทรนด์</button>
@@ -636,7 +636,7 @@
       </div>
       <div style="display:flex; align-items:center; gap:10px;">
         <button class="icon-btn" id="refreshDataBtn" title="ดึงข้อมูลล่าสุดจากเซิร์ฟเวอร์">🔄 <span class="btn-label">รีเฟรชข้อมูล</span></button>
-        <span class="badge-dot" id="topbarBadge">🔔 0 คอนเทนต์ใกล้ถึงวันลง</span>
+        <span class="badge-dot" id="topbarBadge">🔔 0 งานใกล้ถึงกำหนดส่ง</span>
       </div>
     </div>
     <div class="sync-banner" id="syncBanner" style="display:none;"></div>
@@ -661,7 +661,7 @@
         </div>
         <div class="mini-stat-grid">
           <div class="mini-stat"><div class="label" id="kpiTotalLabel">ชิ้นงานเดือนนี้</div><div class="num accent" id="kpiTotal">0 <small>ชิ้น</small></div></div>
-          <div class="mini-stat"><div class="label">ลงแล้ว</div><div class="num success" id="kpiPublished">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">งานสั่งเสร็จ</div><div class="num success" id="kpiPublished">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ส่งรีพอร์ต</div><div class="num" id="kpiMembers">0 <small>/0 คน</small></div></div>
           <div class="mini-stat"><div class="label">กำลังทำ</div><div class="num progress" id="teamWorkInProgress">0 <small>งาน</small></div></div>
           <div class="mini-stat"><div class="label">รอตรวจ</div><div class="num warning" id="teamWorkPendingReview">0 <small>งาน</small></div></div>
@@ -691,7 +691,7 @@
           </div>
         </div>
         <div class="card">
-          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">คอนเทนต์ใกล้ถึงวันลง (7 วัน)</div>
+          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">งานสั่งเข้ามาใกล้ถึงกำหนดส่ง (7 วัน)</div>
           <div id="upcomingList"></div>
         </div>
       </div>
@@ -784,17 +784,17 @@
       <div class="page" data-page="plan">
         <div class="page-head">
           <div>
-            <h2>แพลนคอนเทนต์</h2>
-            <p>ตารางคอนเทนต์รายวัน-รายเดือน ไล่สถานะตั้งแต่ไอเดียจนถึงลงแล้ว พร้อมกำหนดผู้รับผิดชอบและแพลตฟอร์ม</p>
+            <h2>งานสั่งเข้ามา</h2>
+            <p>บันทึกงานที่สั่งเข้ามานอกเหนือจากงานประจำ เช่น งานอีเว้นท์ หรืองานเพิ่มที่เจ้านายสั่ง ไล่สถานะรับทราบ-กำลังทำ-เสร็จ</p>
           </div>
-          <button class="btn btn-sm" id="addPlanBtn">➕ เพิ่มคอนเทนต์</button>
+          <button class="btn btn-sm" id="addPlanBtn">➕ เพิ่มงาน</button>
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>หัวข้อคอนเทนต์</th><th>แพลตฟอร์ม</th><th>วันที่ลง</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>สคริปต์</th><th></th></tr></thead>
+            <thead><tr><th>หัวข้อ/รายละเอียดงาน</th><th>ใครสั่ง</th><th>แบรนด์</th><th>ประเภทงาน</th><th>กำหนดส่ง</th><th>สถานะ</th><th>สคริปต์</th><th></th></tr></thead>
             <tbody id="planTableBody"></tbody>
           </table>
-          <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีคอนเทนต์ในแพลน กด "เพิ่มคอนเทนต์" เพื่อเริ่มวางแผน</div>
+          <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีงานสั่งเข้ามา กด "เพิ่มงาน" เพื่อบันทึกงานแรก</div>
         </div>
       </div>
 
@@ -853,7 +853,7 @@
         <div class="page-head">
           <div>
             <h2>คลังสคริปต์</h2>
-            <p>เขียนสคริปต์ตามเทมเพลตมาตรฐาน Hook / เนื้อหา / CTA ทุกชิ้นต้องผูกกับแพลนคอนเทนต์ที่มีอยู่แล้ว</p>
+            <p>เขียนสคริปต์ตามเทมเพลตมาตรฐาน Hook / เนื้อหา / CTA ทุกชิ้นต้องผูกกับงานสั่งเข้ามาที่มีอยู่แล้ว</p>
           </div>
           <button class="btn btn-sm" id="addScriptBtn">➕ เพิ่มสคริปต์</button>
         </div>
@@ -955,17 +955,10 @@
           </table>
           <div class="empty-mini" id="mdReportsEmpty" style="display:none;">ยังไม่มีรีพอร์ต</div>
         </div>
-        <div class="grid-2">
-          <div class="card">
-            <div style="font-weight:700; font-size:13px; margin-bottom:6px;">คอนเทนต์ที่รับผิดชอบ</div>
-            <div id="mdPlansList"></div>
-            <div class="empty-mini" id="mdPlansEmpty" style="display:none;">ยังไม่มีคอนเทนต์ที่รับผิดชอบ</div>
-          </div>
-          <div class="card">
-            <div style="font-weight:700; font-size:13px; margin-bottom:6px;">สคริปต์ที่เขียน</div>
-            <div id="mdScriptsList"></div>
-            <div class="empty-mini" id="mdScriptsEmpty" style="display:none;">ยังไม่มีสคริปต์</div>
-          </div>
+        <div class="card">
+          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">สคริปต์ที่เขียน</div>
+          <div id="mdScriptsList"></div>
+          <div class="empty-mini" id="mdScriptsEmpty" style="display:none;">ยังไม่มีสคริปต์</div>
         </div>
       </div>
 
@@ -1373,27 +1366,26 @@
 <!-- ===== Content Plan Modal ===== -->
 <div class="modal-overlay" id="planModalOverlay">
   <div class="modal">
-    <h3 id="planModalTitle">เพิ่มคอนเทนต์</h3>
+    <h3 id="planModalTitle">เพิ่มงาน</h3>
     <div class="field-row">
-      <label>หัวข้อคอนเทนต์</label>
-      <input type="text" class="form-control" id="planFormTopic" placeholder="เช่น รีวิวของกิน EP1">
+      <label>หัวข้อ/รายละเอียดงาน</label>
+      <input type="text" class="form-control" id="planFormTopic" placeholder="เช่น ถ่ายคอนเทนต์งานเปิดตัวสาขาใหม่">
     </div>
     <div class="field-row">
-      <label>แพลตฟอร์ม</label>
-      <select class="form-control" id="planFormPlatform">
-        <option>TikTok</option>
-        <option>Reels</option>
-        <option>Shorts</option>
-        <option>อื่นๆ</option>
-      </select>
+      <label>ใครสั่ง (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="planFormRequestedBy" placeholder="เช่น เจ้านาย, ฝ่ายการตลาด">
     </div>
     <div class="field-row">
-      <label>วันที่วางแผนลง</label>
+      <label>แบรนด์ (ไม่บังคับ)</label>
+      <select class="form-control" id="planFormBrand"></select>
+    </div>
+    <div class="field-row">
+      <label>ประเภทงาน</label>
+      <select class="form-control" id="planFormPlatform"></select>
+    </div>
+    <div class="field-row">
+      <label>กำหนดส่ง</label>
       <input type="date" class="form-control" id="planFormDate">
-    </div>
-    <div class="field-row">
-      <label>ผู้รับผิดชอบ</label>
-      <select class="form-control" id="planFormOwner"></select>
     </div>
     <div class="field-row">
       <label>สถานะ</label>
@@ -1416,7 +1408,7 @@
   <div class="modal" style="max-width:520px;">
     <h3 id="scriptModalTitle">เพิ่มสคริปต์</h3>
     <div class="field-row">
-      <label>ผูกกับคอนเทนต์ (แพลนคอนเทนต์)</label>
+      <label>ผูกกับงาน (งานสั่งเข้ามา)</label>
       <select class="form-control" id="scriptFormPlan"></select>
     </div>
     <div class="field-row">
@@ -1523,17 +1515,16 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงานประจำวัน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'แพลนคอนเทนต์',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงานประจำวัน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', plan:'งานสั่งเข้ามา',
     feedplan:'แพลนหน้าช่อง',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
 
-  const STATUS_LIST = ['ไอเดีย','เขียนสคริปต์','ถ่ายทำ','ตัดต่อ','พร้อมลง','ลงแล้ว'];
-  const PLATFORM_LIST = ['TikTok','Reels','Shorts','อื่นๆ'];
-  const STATUS_CHIP_CLASS = {
-    'ไอเดีย':'chip-idea', 'เขียนสคริปต์':'chip-script', 'ถ่ายทำ':'chip-shoot',
-    'ตัดต่อ':'chip-edit', 'พร้อมลง':'chip-ready', 'ลงแล้ว':'chip-done'
+  const WORKORDER_STATUS_LIST = ['รับทราบ','กำลังทำ','เสร็จ'];
+  const WORKORDER_TYPE_LIST = ['อีเว้นท์','งานเพิ่ม','อื่นๆ'];
+  const WORKORDER_STATUS_CHIP_CLASS = {
+    'รับทราบ':'chip-shoot', 'กำลังทำ':'chip-script', 'เสร็จ':'chip-done'
   };
   const WORK_TYPES = ['ตัดคลิป','ถ่ายฟุตเทจ','ออกกอง','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
   const IDEA_TYPES = ['ไอเดียคอนเทนต์','เทรนด์','แคปชั่นสำเร็จรูป'];
@@ -1630,7 +1621,7 @@
         { id: uid(), name:'ฟ้า',   joinDate:'2025-04-01', note:'', status:'ทดลองงาน' }
       ],
       dailyReports:[],
-      contentPlans:[],
+      workOrders:[],
       scripts:[],
       ideas:[],
       sessions:[],
@@ -1646,7 +1637,28 @@
   function migrateData(parsed){
     if(!Array.isArray(parsed.members)) parsed.members = [];
     if(!Array.isArray(parsed.dailyReports)) parsed.dailyReports = [];
-    if(!Array.isArray(parsed.contentPlans)) parsed.contentPlans = [];
+    if(!Array.isArray(parsed.workOrders)){
+      const oldPlans = Array.isArray(parsed.contentPlans) ? parsed.contentPlans : [];
+      const oldDoneStatuses = ['พร้อมลง','ลงแล้ว'];
+      parsed.workOrders = oldPlans.map(p => {
+        const owner = parsed.members.find(m => m.id === p.ownerId);
+        const legacyNote = [p.platform ? `เดิมเป็นแพลตฟอร์ม: ${p.platform}` : '', owner ? `ผู้รับผิดชอบเดิม: ${owner.name}` : '']
+          .filter(Boolean).join(' · ');
+        return {
+          id: p.id, title: p.topic || '', requestedBy: '', brandId: '', jobType: 'อื่นๆ',
+          deadline: p.publishDate || '', status: oldDoneStatuses.includes(p.status) ? 'เสร็จ' : 'กำลังทำ',
+          note: [p.note || '', legacyNote].filter(Boolean).join(' · ')
+        };
+      });
+    }
+    delete parsed.contentPlans;
+    parsed.workOrders.forEach(w => {
+      if(w.requestedBy === undefined) w.requestedBy = '';
+      if(w.brandId === undefined) w.brandId = '';
+      if(w.jobType === undefined) w.jobType = 'อื่นๆ';
+      if(w.note === undefined) w.note = '';
+      if(!WORKORDER_STATUS_LIST.includes(w.status)) w.status = 'รับทราบ';
+    });
     if(!Array.isArray(parsed.scripts)) parsed.scripts = [];
     if(!Array.isArray(parsed.ideas)) parsed.ideas = [];
     if(!Array.isArray(parsed.sessions)) parsed.sessions = [];
@@ -2098,7 +2110,6 @@
   /* ===== Manage team modal ===== */
   function memberHasLinkedData(memberId){
     return data.dailyReports.some(r => r.memberId === memberId)
-      || data.contentPlans.some(p => p.ownerId === memberId)
       || data.scripts.some(s => s.authorId === memberId)
       || data.ideas.some(i => i.authorId === memberId)
       || (Array.isArray(data.workItems) && data.workItems.some(w => w.ownerId === memberId));
@@ -2141,7 +2152,7 @@
     const m = data.members.find(x => x.id === memberId);
     if(!m) return;
     if(memberHasLinkedData(memberId)){
-      alert(`ลบ "${m.name}" ไม่ได้ เพราะมีข้อมูลผูกอยู่ในระบบแล้ว (รีพอร์ต/แพลนคอนเทนต์/สคริปต์/ไอเดีย/แพลนงานรายวัน) — ไปเปลี่ยนสถานะเป็น "พ้นทีม" จากหน้าทีมงานแทน เพื่อไม่ให้ตัวเลขย้อนหลังหาย`);
+      alert(`ลบ "${m.name}" ไม่ได้ เพราะมีข้อมูลผูกอยู่ในระบบแล้ว (รีพอร์ต/สคริปต์/ไอเดีย/แพลนงานรายวัน) — ไปเปลี่ยนสถานะเป็น "พ้นทีม" จากหน้าทีมงานแทน เพื่อไม่ให้ตัวเลขย้อนหลังหาย`);
       return;
     }
     if(!confirm(`ลบสมาชิก "${m.name}" ออกจากระบบถาวร? การกระทำนี้ย้อนกลับไม่ได้`)) return;
@@ -2247,22 +2258,6 @@
       reportsEmpty.style.display = 'none';
       reportsTbody.innerHTML = recentReports.map(r => `
         <tr><td data-label="วันที่">${formatThaiDate(r.date)}</td><td data-label="ประเภทงาน">${escapeHtml(r.workType)}</td><td class="num-cell" data-label="จำนวน">${r.quantity} ชิ้น</td><td data-label="หมายเหตุ">${r.note ? escapeHtml(r.note) : '—'}</td></tr>
-      `).join('');
-    }
-
-    const myPlans = [...data.contentPlans].filter(p => p.ownerId === m.id).sort((a, b) => a.publishDate.localeCompare(b.publishDate));
-    const plansList = document.getElementById('mdPlansList');
-    const plansEmpty = document.getElementById('mdPlansEmpty');
-    if(myPlans.length === 0){
-      plansList.innerHTML = '';
-      plansEmpty.style.display = 'block';
-    } else {
-      plansEmpty.style.display = 'none';
-      plansList.innerHTML = myPlans.map(p => `
-        <div class="list-item">
-          <div><div class="li-title">${escapeHtml(p.topic)}</div><div class="li-sub">${escapeHtml(p.platform)} · ลง ${formatThaiDate(p.publishDate)}</div></div>
-          <span class="chip ${STATUS_CHIP_CLASS[p.status] || 'chip-idea'}">${escapeHtml(p.status)}</span>
-        </div>
       `).join('');
     }
 
@@ -2454,15 +2449,14 @@
 
   /* ===== Content plan page ===== */
   function renderPlanFormSelectOptions(){
-    const ownerSel = document.getElementById('planFormOwner');
-    ownerSel.innerHTML = data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}${!isActiveStatus(m.status) ? ' (พ้นทีม)' : ''}</option>`).join('')
-      || '<option value="">ไม่มีสมาชิก</option>';
+    const brandSel = document.getElementById('planFormBrand');
+    brandSel.innerHTML = '<option value="">— ไม่ระบุแบรนด์ —</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
 
     const statusSel = document.getElementById('planFormStatus');
-    statusSel.innerHTML = STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    statusSel.innerHTML = WORKORDER_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
 
     const platformSel = document.getElementById('planFormPlatform');
-    platformSel.innerHTML = PLATFORM_LIST.map(p => `<option value="${p}">${p}</option>`).join('');
+    platformSel.innerHTML = WORKORDER_TYPE_LIST.map(p => `<option value="${p}">${p}</option>`).join('');
   }
 
   function openPlanModal(planId){
@@ -2471,22 +2465,23 @@
     renderPlanFormSelectOptions();
 
     if(planId){
-      const p = data.contentPlans.find(x => x.id === planId);
-      document.getElementById('planModalTitle').textContent = 'แก้ไขคอนเทนต์';
-      document.getElementById('planFormTopic').value = p.topic;
-      document.getElementById('planFormPlatform').value = p.platform;
-      document.getElementById('planFormDate').value = p.publishDate;
-      document.getElementById('planFormOwner').value = p.ownerId;
+      const p = data.workOrders.find(x => x.id === planId);
+      document.getElementById('planModalTitle').textContent = 'แก้ไขงาน';
+      document.getElementById('planFormTopic').value = p.title;
+      document.getElementById('planFormRequestedBy').value = p.requestedBy || '';
+      document.getElementById('planFormBrand').value = p.brandId || '';
+      document.getElementById('planFormPlatform').value = p.jobType;
+      document.getElementById('planFormDate').value = p.deadline;
       document.getElementById('planFormStatus').value = p.status;
       document.getElementById('planFormNote').value = p.note || '';
     } else {
-      document.getElementById('planModalTitle').textContent = 'เพิ่มคอนเทนต์';
+      document.getElementById('planModalTitle').textContent = 'เพิ่มงาน';
       document.getElementById('planFormTopic').value = '';
-      document.getElementById('planFormPlatform').value = 'TikTok';
+      document.getElementById('planFormRequestedBy').value = '';
+      document.getElementById('planFormBrand').value = '';
+      document.getElementById('planFormPlatform').value = WORKORDER_TYPE_LIST[0];
       document.getElementById('planFormDate').value = todayISO();
-      const firstActive = data.members.find(m => isActiveStatus(m.status));
-      document.getElementById('planFormOwner').value = firstActive ? firstActive.id : '';
-      document.getElementById('planFormStatus').value = 'ไอเดีย';
+      document.getElementById('planFormStatus').value = 'รับทราบ';
       document.getElementById('planFormNote').value = '';
     }
     document.getElementById('planModalOverlay').classList.add('open');
@@ -2497,27 +2492,27 @@
   }
 
   function savePlan(){
-    const topic = document.getElementById('planFormTopic').value.trim();
-    const platform = document.getElementById('planFormPlatform').value;
-    const publishDate = document.getElementById('planFormDate').value;
-    const ownerId = document.getElementById('planFormOwner').value;
+    const title = document.getElementById('planFormTopic').value.trim();
+    const requestedBy = document.getElementById('planFormRequestedBy').value.trim();
+    const brandId = document.getElementById('planFormBrand').value;
+    const jobType = document.getElementById('planFormPlatform').value;
+    const deadline = document.getElementById('planFormDate').value;
     const status = document.getElementById('planFormStatus').value;
     const note = document.getElementById('planFormNote').value.trim();
     const msgEl = document.getElementById('planFormMsg');
 
-    if(!topic){ msgEl.textContent = 'กรอกหัวข้อคอนเทนต์'; msgEl.style.display = 'block'; return; }
-    if(!publishDate){ msgEl.textContent = 'กรุณาเลือกวันที่วางแผนลง'; msgEl.style.display = 'block'; return; }
-    if(!ownerId){ msgEl.textContent = 'กรุณาเลือกผู้รับผิดชอบ'; msgEl.style.display = 'block'; return; }
+    if(!title){ msgEl.textContent = 'กรอกหัวข้อ/รายละเอียดงาน'; msgEl.style.display = 'block'; return; }
+    if(!deadline){ msgEl.textContent = 'กรุณาเลือกกำหนดส่ง'; msgEl.style.display = 'block'; return; }
     msgEl.style.display = 'none';
 
     if(editingPlanId){
-      const p = data.contentPlans.find(x => x.id === editingPlanId);
-      p.topic = topic; p.platform = platform; p.publishDate = publishDate;
-      p.ownerId = ownerId; p.status = status; p.note = note;
-      logActivity('แพลนคอนเทนต์', `แก้ไขคอนเทนต์: ${topic}`);
+      const p = data.workOrders.find(x => x.id === editingPlanId);
+      p.title = title; p.requestedBy = requestedBy; p.brandId = brandId;
+      p.jobType = jobType; p.deadline = deadline; p.status = status; p.note = note;
+      logActivity('งานสั่งเข้ามา', `แก้ไขงาน: ${title}`);
     } else {
-      data.contentPlans.push({ id: uid(), topic, platform, publishDate, ownerId, status, note });
-      logActivity('แพลนคอนเทนต์', `เพิ่มคอนเทนต์: ${topic}`);
+      data.workOrders.push({ id: uid(), title, requestedBy, brandId, jobType, deadline, status, note });
+      logActivity('งานสั่งเข้ามา', `เพิ่มงาน: ${title}`);
     }
     saveData();
     closePlanModal();
@@ -2528,16 +2523,16 @@
   }
 
   function deletePlan(planId){
-    const target = data.contentPlans.find(p => p.id === planId);
+    const target = data.workOrders.find(p => p.id === planId);
     if(!target) return;
     const linkedScript = data.scripts.find(s => s.contentPlanId === planId);
     if(linkedScript){
-      alert(`ลบคอนเทนต์ "${target.topic}" ไม่ได้ เพราะมีสคริปต์ "${linkedScript.topic}" ผูกอยู่ — ไปลบหรือย้ายสคริปต์นั้นไปผูกกับคอนเทนต์อื่นก่อนจากหน้า "คลังสคริปต์"`);
+      alert(`ลบงาน "${target.title}" ไม่ได้ เพราะมีสคริปต์ "${linkedScript.topic}" ผูกอยู่ — ไปลบหรือย้ายสคริปต์นั้นไปผูกกับงานอื่นก่อนจากหน้า "คลังสคริปต์"`);
       return;
     }
-    if(!confirm('ลบคอนเทนต์นี้ออกจากแพลน?')) return;
-    data.contentPlans = data.contentPlans.filter(p => p.id !== planId);
-    logActivity('แพลนคอนเทนต์', `ลบคอนเทนต์: ${target.topic}`);
+    if(!confirm('ลบงานนี้ออก?')) return;
+    data.workOrders = data.workOrders.filter(p => p.id !== planId);
+    logActivity('งานสั่งเข้ามา', `ลบงาน: ${target.title}`);
     saveData();
     renderPlanTable();
     renderDashboard();
@@ -2546,9 +2541,9 @@
   }
 
   function updatePlanStatus(planId, newStatus){
-    const p = data.contentPlans.find(x => x.id === planId);
+    const p = data.workOrders.find(x => x.id === planId);
     p.status = newStatus;
-    logActivity('แพลนคอนเทนต์', `เปลี่ยนสถานะ "${p.topic}" เป็น ${newStatus}`);
+    logActivity('งานสั่งเข้ามา', `เปลี่ยนสถานะ "${p.title}" เป็น ${newStatus}`);
     saveData();
     renderDashboard();
     renderTopbarBadge();
@@ -2558,7 +2553,7 @@
   function renderPlanTable(){
     const tbody = document.getElementById('planTableBody');
     const emptyMsg = document.getElementById('planEmptyMsg');
-    const rows = [...data.contentPlans].sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+    const rows = [...data.workOrders].sort((a, b) => a.deadline.localeCompare(b.deadline));
 
     if(rows.length === 0){
       tbody.innerHTML = '';
@@ -2568,17 +2563,17 @@
     emptyMsg.style.display = 'none';
 
     tbody.innerHTML = rows.map(p => {
-      const owner = data.members.find(m => m.id === p.ownerId);
-      const ownerName = owner ? owner.name : '—';
+      const brand = p.brandId ? data.brands.find(b => b.id === p.brandId) : null;
       return `
         <tr>
-          <td data-label="หัวข้อคอนเทนต์">${escapeHtml(p.topic)}</td>
-          <td data-label="แพลตฟอร์ม"><span class="chip chip-outline">${escapeHtml(p.platform)}</span></td>
-          <td data-label="วันที่ลง">${formatThaiDate(p.publishDate)}</td>
-          <td data-label="ผู้รับผิดชอบ">${owner ? `${avatarHtml(owner)}${escapeHtml(ownerName)}` : '—'}</td>
+          <td data-label="หัวข้อ/รายละเอียดงาน">${escapeHtml(p.title)}</td>
+          <td data-label="ใครสั่ง">${p.requestedBy ? escapeHtml(p.requestedBy) : '—'}</td>
+          <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
+          <td data-label="ประเภทงาน"><span class="chip chip-outline">${escapeHtml(p.jobType)}</span></td>
+          <td data-label="กำหนดส่ง">${formatThaiDate(p.deadline)}</td>
           <td data-label="สถานะ">
             <select class="form-control status-select" data-id="${p.id}">
-              ${STATUS_LIST.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
+              ${WORKORDER_STATUS_LIST.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
           </td>
           <td data-label="สคริปต์">
@@ -2607,8 +2602,8 @@
   /* ===== Script page ===== */
   function renderScriptFormSelectOptions(){
     const planSel = document.getElementById('scriptFormPlan');
-    planSel.innerHTML = data.contentPlans.map(p => `<option value="${p.id}">${escapeHtml(p.topic)} (${escapeHtml(p.platform)} · ${formatThaiDate(p.publishDate)})</option>`).join('')
-      || '<option value="">— ยังไม่มีแพลนคอนเทนต์ ไปสร้างที่หน้าแพลนคอนเทนต์ก่อน —</option>';
+    planSel.innerHTML = data.workOrders.map(p => `<option value="${p.id}">${escapeHtml(p.title)} (${escapeHtml(p.jobType)} · กำหนดส่ง ${formatThaiDate(p.deadline)})</option>`).join('')
+      || '<option value="">— ยังไม่มีงานสั่งเข้ามา ไปสร้างที่หน้างานสั่งเข้ามาก่อน —</option>';
 
     const authorSel = document.getElementById('scriptFormAuthor');
     const activeMembers = data.members.filter(m => isActiveStatus(m.status));
@@ -2633,10 +2628,10 @@
       document.getElementById('scriptFormDate').value = s.writtenDate;
     } else {
       document.getElementById('scriptModalTitle').textContent = 'เพิ่มสคริปต์';
-      const planId = prefillPlanId || (data.contentPlans[0] ? data.contentPlans[0].id : '');
+      const planId = prefillPlanId || (data.workOrders[0] ? data.workOrders[0].id : '');
       document.getElementById('scriptFormPlan').value = planId;
-      const selectedPlan = data.contentPlans.find(p => p.id === planId);
-      document.getElementById('scriptFormTopic').value = selectedPlan ? selectedPlan.topic : '';
+      const selectedPlan = data.workOrders.find(p => p.id === planId);
+      document.getElementById('scriptFormTopic').value = selectedPlan ? selectedPlan.title : '';
       document.getElementById('scriptFormHook').value = '';
       document.getElementById('scriptFormContent').value = '';
       document.getElementById('scriptFormCta').value = '';
@@ -2661,7 +2656,7 @@
     const writtenDate = document.getElementById('scriptFormDate').value;
     const msgEl = document.getElementById('scriptFormMsg');
 
-    if(!contentPlanId){ msgEl.textContent = 'ต้องเลือกคอนเทนต์ที่จะผูกก่อน (ไปสร้างที่หน้าแพลนคอนเทนต์ถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
+    if(!contentPlanId){ msgEl.textContent = 'ต้องเลือกงานที่จะผูกก่อน (ไปสร้างที่หน้างานสั่งเข้ามาถ้ายังไม่มี)'; msgEl.style.display = 'block'; return; }
     if(!topic){ msgEl.textContent = 'กรอกหัวข้อ'; msgEl.style.display = 'block'; return; }
     if(!hook){ msgEl.textContent = 'กรอก Hook (3 วิแรก)'; msgEl.style.display = 'block'; return; }
     if(!content){ msgEl.textContent = 'กรอกเนื้อหา'; msgEl.style.display = 'block'; return; }
@@ -2727,14 +2722,14 @@
     emptyMsg.style.display = 'none';
 
     container.innerHTML = rows.map(s => {
-      const plan = data.contentPlans.find(p => p.id === s.contentPlanId);
+      const plan = data.workOrders.find(p => p.id === s.contentPlanId);
       const author = data.members.find(m => m.id === s.authorId);
       return `
         <div class="script-card" data-script-id="${s.id}">
           <div class="script-card-head">
             <div>
               <div class="li-title">${escapeHtml(s.topic)}</div>
-              <div class="li-sub">เขียนโดย ${author ? escapeHtml(author.name) : '—'} · ${formatThaiDate(s.writtenDate)}${plan ? ` · ผูกกับ ${escapeHtml(plan.topic)}` : ' · คอนเทนต์ถูกลบไปแล้ว'}</div>
+              <div class="li-sub">เขียนโดย ${author ? escapeHtml(author.name) : '—'} · ${formatThaiDate(s.writtenDate)}${plan ? ` · ผูกกับ ${escapeHtml(plan.title)}` : ' · งานถูกลบไปแล้ว'}</div>
             </div>
             <div class="action-btns">
               <button class="icon-btn" onclick="openScriptModal('${s.id}')">แก้ไข</button>
@@ -3756,10 +3751,10 @@
       }
       const isToday = c.dateStr === todayStr;
       const holiday = getHolidayForDate(c.dateStr);
-      const plansToday = data.contentPlans.filter(p => p.publishDate === c.dateStr);
+      const plansToday = data.workOrders.filter(p => p.deadline === c.dateStr);
       const eventsToday = data.calendarEvents.filter(e => e.date === c.dateStr);
       const items = [
-        ...plansToday.map(p => ({ label: p.topic, chipClass: STATUS_CHIP_CLASS[p.status] || 'chip-idea', onclick: `openPlanModal('${p.id}')` })),
+        ...plansToday.map(p => ({ label: p.title, chipClass: WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot', onclick: `openPlanModal('${p.id}')` })),
         ...eventsToday.map(e => ({ label: e.title, chipClass: 'chip-event', onclick: `openCalendarEventModal('${e.id}')` }))
       ];
       const shown = items.slice(0, 3);
@@ -4161,23 +4156,23 @@
   function getUpcomingContentPlans(){
     const now = new Date(); now.setHours(0,0,0,0);
     const in7days = new Date(now.getTime() + 7*24*60*60*1000);
-    return data.contentPlans.filter(p => {
-      const d = new Date(p.publishDate + 'T00:00:00');
-      return d >= now && d <= in7days && p.status !== 'ลงแล้ว';
-    }).sort((a, b) => a.publishDate.localeCompare(b.publishDate));
+    return data.workOrders.filter(p => {
+      const d = new Date(p.deadline + 'T00:00:00');
+      return d >= now && d <= in7days && p.status !== 'เสร็จ';
+    }).sort((a, b) => a.deadline.localeCompare(b.deadline));
   }
 
   function renderUpcomingList(){
     const container = document.getElementById('upcomingList');
     const upcoming = getUpcomingContentPlans();
     if(upcoming.length === 0){
-      container.innerHTML = '<div class="empty-mini">ไม่มีคอนเทนต์ใกล้ถึงวันลงใน 7 วันข้างหน้า</div>';
+      container.innerHTML = '<div class="empty-mini">ไม่มีงานสั่งเข้ามาที่ใกล้ถึงกำหนดส่งใน 7 วันข้างหน้า</div>';
       return;
     }
     container.innerHTML = upcoming.map(p => `
       <div class="list-item">
-        <div><div class="li-title">${escapeHtml(p.topic)}</div><div class="li-sub">${escapeHtml(p.platform)} · ลง ${formatThaiDate(p.publishDate)}</div></div>
-        <span class="chip ${STATUS_CHIP_CLASS[p.status] || 'chip-idea'}">${escapeHtml(p.status)}</span>
+        <div><div class="li-title">${escapeHtml(p.title)}</div><div class="li-sub">${escapeHtml(p.jobType)} · กำหนดส่ง ${formatThaiDate(p.deadline)}</div></div>
+        <span class="chip ${WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot'}">${escapeHtml(p.status)}</span>
       </div>
     `).join('');
   }
@@ -4281,7 +4276,7 @@
     const monthReports = data.dailyReports.filter(r => dateInDashPeriod(r.date));
 
     const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
-    const publishedCount = data.contentPlans.filter(p => p.status === 'ลงแล้ว' && dateInDashPeriod(p.publishDate)).length;
+    const publishedCount = data.workOrders.filter(p => p.status === 'เสร็จ' && dateInDashPeriod(p.deadline)).length;
     const activeMembers = data.members.filter(m => isActiveStatus(m.status)).length;
     const reportedMemberIds = new Set(monthReports.map(r => r.memberId));
 
@@ -4340,7 +4335,7 @@
 
   function renderTopbarBadge(){
     const count = getUpcomingContentPlans().length;
-    document.getElementById('topbarBadge').innerHTML = `🔔 ${count} <span class="btn-label">คอนเทนต์ใกล้ถึงวันลง</span>`;
+    document.getElementById('topbarBadge').innerHTML = `🔔 ${count} <span class="btn-label">งานใกล้ถึงกำหนดส่ง</span>`;
   }
 
   /* ===== Monthly summary page ===== */
@@ -4828,8 +4823,8 @@
   });
   document.getElementById('scriptFormPlan').addEventListener('change', (e) => {
     if(editingScriptId) return;
-    const p = data.contentPlans.find(x => x.id === e.target.value);
-    document.getElementById('scriptFormTopic').value = p ? p.topic : '';
+    const p = data.workOrders.find(x => x.id === e.target.value);
+    document.getElementById('scriptFormTopic').value = p ? p.title : '';
   });
   document.getElementById('scriptSearchInput').addEventListener('input', renderScriptsList);
 
