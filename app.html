@@ -670,6 +670,7 @@
           <div class="mini-stat"><div class="label">ส่งรีพอร์ต</div><div class="num" id="kpiMembers">0 <small>/0 คน</small></div></div>
           <div class="mini-stat"><div class="label">กำลังทำ</div><div class="num progress" id="teamWorkInProgress">0 <small>งาน</small></div></div>
           <div class="mini-stat"><div class="label">รอตรวจ</div><div class="num warning" id="teamWorkPendingReview">0 <small>งาน</small></div></div>
+          <div class="mini-stat"><div class="label">สำเร็จ</div><div class="num accent" id="teamWorkSuccess">0 <small>งาน</small></div></div>
           <div class="mini-stat"><div class="label">โพสต์แล้ว</div><div class="num success" id="teamWorkPosted">0 <small>งาน</small></div></div>
           <div class="mini-stat"><div class="label">ช่องทางที่ลง</div><div class="num accent" id="dashChannelCount">0 <small>ช่อง</small></div></div>
         </div>
@@ -1581,8 +1582,9 @@
     'ดำเนินการ':'chip-script', 'รอตรวจ':'chip-shoot', 'แก้ไข':'chip-edit',
     'สำเร็จ':'chip-ready', 'Post':'chip-done', 'ยกเลิก':'chip-idea'
   };
-  const WORK_IN_PROGRESS_STATUSES = ['ดำเนินการ', 'แก้ไข', 'สำเร็จ'];
+  const WORK_IN_PROGRESS_STATUSES = ['ดำเนินการ', 'แก้ไข'];
   const WORK_PENDING_REVIEW_STATUSES = ['รอตรวจ'];
+  const WORK_SUCCESS_STATUSES = ['สำเร็จ'];
   const WORK_POSTED_STATUSES = ['Post'];
   const MEMBER_STATUS_LIST = ['เทสงาน', 'ทดลองงาน', 'ประจำ', 'พ้นทีม'];
   const MEMBER_STATUS_CHIP_CLASS = {
@@ -4422,12 +4424,13 @@
   function getWorkItemBucket(status){
     if(WORK_IN_PROGRESS_STATUSES.includes(status)) return 'inProgress';
     if(WORK_PENDING_REVIEW_STATUSES.includes(status)) return 'pendingReview';
+    if(WORK_SUCCESS_STATUSES.includes(status)) return 'success';
     if(WORK_POSTED_STATUSES.includes(status)) return 'posted';
     return null;
   }
 
   function countWorkItemBuckets(items){
-    const counts = { inProgress: 0, pendingReview: 0, posted: 0 };
+    const counts = { inProgress: 0, pendingReview: 0, success: 0, posted: 0 };
     items.forEach(w => { const b = getWorkItemBucket(w.status); if(b) counts[b]++; });
     return counts;
   }
@@ -4437,6 +4440,7 @@
     const totalCounts = countWorkItemBuckets(periodItems);
     document.getElementById('teamWorkInProgress').innerHTML = `${totalCounts.inProgress} <small>งาน</small>`;
     document.getElementById('teamWorkPendingReview').innerHTML = `${totalCounts.pendingReview} <small>งาน</small>`;
+    document.getElementById('teamWorkSuccess').innerHTML = `${totalCounts.success} <small>งาน</small>`;
     document.getElementById('teamWorkPosted').innerHTML = `${totalCounts.posted} <small>งาน</small>`;
 
     const postedChannels = new Set(
@@ -4475,6 +4479,7 @@
           <div class="bs-stats">
             <div class="stat"><div class="stat-num progress">${counts.inProgress}</div><div class="stat-label">กำลังทำ</div></div>
             <div class="stat"><div class="stat-num warning">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
+            <div class="stat"><div class="stat-num accent">${counts.success}</div><div class="stat-label">สำเร็จ</div></div>
             <div class="stat"><div class="stat-num success">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
           </div>
           ${channelRows.length ? `
