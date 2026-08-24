@@ -741,6 +741,9 @@
               <select class="form-control" id="wiFilterStatus"><option value="">ทั้งหมด</option></select>
             </div>
             <button class="btn btn-outline btn-sm" id="wiClearFilterBtn">ล้างตัวกรอง</button>
+            <button class="csv-btn" id="exportWorkItemsCsvBtn">⬇ ออกรายงาน CSV</button>
+            <input type="file" accept=".csv" id="importWorkItemsFile" style="display:none;">
+            <button class="csv-btn" type="button" id="importWorkItemsBtn">⬆ นำเข้า CSV</button>
           </div>
         </div>
         <div class="card">
@@ -781,6 +784,11 @@
           </div>
           <button class="btn btn-sm" id="addBrandBtn">➕ เพิ่มแบรนด์</button>
         </div>
+        <div class="toolbar" style="margin-bottom:14px; justify-content:flex-end;">
+          <button class="csv-btn" id="exportBrandsCsvBtn">⬇ ออกรายงาน CSV</button>
+          <input type="file" accept=".csv" id="importBrandsFile" style="display:none;">
+          <button class="csv-btn" type="button" id="importBrandsBtn">⬆ นำเข้า CSV</button>
+        </div>
         <div class="card">
           <div id="brandsList"></div>
           <div class="empty-mini" id="brandsEmptyMsg" style="display:none;">ยังไม่มีแบรนด์ในระบบ กด "เพิ่มแบรนด์" เพื่อเริ่มต้น</div>
@@ -802,6 +810,8 @@
               <select class="form-control" id="productsFilterBrand"></select>
             </div>
             <button class="csv-btn" id="exportProductsCsvBtn">⬇ ออกรายงาน CSV</button>
+            <input type="file" accept=".csv" id="importProductsFile" style="display:none;">
+            <button class="csv-btn" type="button" id="importProductsBtn">⬆ นำเข้า CSV</button>
           </div>
           <table class="responsive-collapse">
             <thead><tr><th>แบรนด์</th><th>ชื่อสินค้า</th><th></th></tr></thead>
@@ -936,6 +946,11 @@
             <button class="btn btn-outline btn-sm" id="openManageTeamBtn">🗂️ จัดการทีมงาน</button>
             <button class="btn btn-sm" id="addMemberBtn">➕ เพิ่มสมาชิก</button>
           </div>
+        </div>
+        <div class="toolbar" style="margin-bottom:14px; justify-content:flex-end;">
+          <button class="csv-btn" id="exportTeamCsvBtn">⬇ ออกรายงาน CSV</button>
+          <input type="file" accept=".csv" id="importTeamFile" style="display:none;">
+          <button class="csv-btn" type="button" id="importTeamBtn">⬆ นำเข้า CSV</button>
         </div>
         <div class="card" id="teamTableCard">
           <table>
@@ -1263,6 +1278,18 @@
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="productModalCancel">ยกเลิก</button>
       <button class="btn btn-sm" id="productModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== นำเข้า CSV — กล่องยืนยันก่อนนำเข้าจริง ===== -->
+<div class="modal-overlay" id="importResultModalOverlay">
+  <div class="modal" style="max-width:520px; max-height:85vh; overflow-y:auto;">
+    <h3 id="importResultTitle">ตรวจสอบก่อนนำเข้า</h3>
+    <div id="importResultBody" style="font-size:13.5px; line-height:1.7;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="importResultCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="importResultConfirm">ยืนยันนำเข้า</button>
     </div>
   </div>
 </div>
@@ -2423,6 +2450,99 @@
     renderManageTeamList();
   }
 
+  function exportTeamCsv(){
+    const rows = [...data.members].sort((a, b) => a.name.localeCompare(b.name));
+    const lines = [['ชื่อ', 'ตำแหน่ง', 'แผนก', 'รหัสพนักงาน', 'วันเกิด', 'วันที่เริ่มงาน', 'เบอร์โทร', 'อีเมล', 'สถานะ', 'หมายเหตุ'].map(csvEscape).join(',')];
+    rows.forEach(m => lines.push([
+      csvEscape(m.name), csvEscape(m.position || ''), csvEscape(m.department || ''), csvEscape(m.employeeCode || ''),
+      csvEscape(m.birthDate || ''), csvEscape(m.joinDate || ''), csvEscape(m.phone || ''), csvEscape(m.email || ''),
+      csvEscape(m.status), csvEscape(m.note || '')
+    ].join(',')));
+    downloadCsv(lines.join('\r\n'), `contentflow-ทีมงาน-${todayISO()}.csv`);
+  }
+
+  function importTeamCsv(inputEl){
+    readCsvFile(inputEl, (rows) => {
+      const dataRows = rows.slice(1);
+      const toCreate = [];
+      const toUpdate = [];
+      const errors = [];
+      const seenNames = new Set();
+      const isValidDate = (s) => !s || isValidDateStr(s);
+      dataRows.forEach((r, idx) => {
+        const rowNum = idx + 2;
+        const name = (r[0] || '').trim();
+        const position = (r[1] || '').trim();
+        const department = (r[2] || '').trim();
+        const employeeCode = (r[3] || '').trim();
+        const birthDate = (r[4] || '').trim();
+        const joinDate = (r[5] || '').trim();
+        const phone = (r[6] || '').trim();
+        const email = (r[7] || '').trim();
+        const statusRaw = (r[8] || '').trim();
+        const note = (r[9] || '').trim();
+        if(!name){
+          if(r.some(v => (v || '').trim())) errors.push(`แถวที่ ${rowNum}: ไม่ได้ระบุชื่อ`);
+          return;
+        }
+        if(seenNames.has(name)){ errors.push(`แถวที่ ${rowNum}: "${name}" ซ้ำกับแถวก่อนหน้าในไฟล์เดียวกัน (ข้าม)`); return; }
+        if(!isValidDate(birthDate)){ errors.push(`แถวที่ ${rowNum}: วันเกิด "${birthDate}" ต้องเป็นรูปแบบ YYYY-MM-DD`); return; }
+        if(!isValidDate(joinDate)){ errors.push(`แถวที่ ${rowNum}: วันที่เริ่มงาน "${joinDate}" ต้องเป็นรูปแบบ YYYY-MM-DD`); return; }
+        let status = null;
+        if(statusRaw){
+          if(!MEMBER_STATUS_LIST.includes(statusRaw)){
+            errors.push(`แถวที่ ${rowNum}: สถานะ "${statusRaw}" ไม่ถูกต้อง (ต้องเป็น ${MEMBER_STATUS_LIST.join('/')})`); return;
+          }
+          status = statusRaw;
+        }
+        seenNames.add(name);
+        const existing = data.members.find(m => m.name.trim() === name);
+        const rec = { name, position, department, employeeCode, birthDate, joinDate, phone, email, note, status };
+        if(existing) toUpdate.push(Object.assign({ id: existing.id }, rec));
+        else toCreate.push(Object.assign({}, rec, { joinDate: joinDate || todayISO(), status: status || DEFAULT_NEW_MEMBER_STATUS }));
+      });
+
+      let bodyHtml = `<p>พบ ${dataRows.length} แถวข้อมูล (ไม่รวมหัวตาราง)</p>`;
+      bodyHtml += `<p><strong>จะเพิ่มสมาชิกใหม่ ${toCreate.length} รายการ</strong></p>`;
+      if(toCreate.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + toCreate.slice(0, 15).map(t => `<li>${escapeHtml(t.name)}</li>`).join('') + (toCreate.length > 15 ? `<li>...และอีก ${toCreate.length - 15} รายการ</li>` : '') + '</ul>';
+      bodyHtml += `<p><strong>จะอัปเดตสมาชิกเดิม ${toUpdate.length} รายการ</strong></p>`;
+      if(toUpdate.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + toUpdate.slice(0, 15).map(t => `<li>${escapeHtml(t.name)}</li>`).join('') + (toUpdate.length > 15 ? `<li>...และอีก ${toUpdate.length - 15} รายการ</li>` : '') + '</ul>';
+      if(errors.length){
+        bodyHtml += `<p style="color:var(--danger); margin-top:10px;"><strong>ข้าม/ผิดพลาด ${errors.length} แถว:</strong></p>`
+          + '<ul style="margin:6px 0; padding-left:20px; color:var(--danger);">' + errors.slice(0, 15).map(e => `<li>${escapeHtml(e)}</li>`).join('') + (errors.length > 15 ? `<li>...และอีก ${errors.length - 15} รายการ</li>` : '') + '</ul>';
+      }
+
+      const hasChanges = toCreate.length > 0 || toUpdate.length > 0;
+      openImportResultModal('นำเข้าทีมงานจาก CSV', bodyHtml, hasChanges ? () => {
+        toUpdate.forEach(t => {
+          const m = data.members.find(x => x.id === t.id);
+          if(!m) return;
+          m.position = t.position; m.department = t.department; m.employeeCode = t.employeeCode;
+          m.birthDate = t.birthDate; m.joinDate = t.joinDate || m.joinDate; m.phone = t.phone; m.email = t.email;
+          m.note = t.note; if(t.status) m.status = t.status;
+        });
+        toCreate.forEach(t => {
+          data.members.push({
+            id: uid(), name: t.name, joinDate: t.joinDate, note: t.note, status: t.status || DEFAULT_NEW_MEMBER_STATUS,
+            photoDataUrl: null, position: t.position, department: t.department, employeeCode: t.employeeCode,
+            birthDate: t.birthDate, phone: t.phone, email: t.email
+          });
+        });
+        logActivity('ทีมงาน', `นำเข้าทีมงานจาก CSV: เพิ่มใหม่ ${toCreate.length}, อัปเดต ${toUpdate.length} รายการ`);
+        saveData();
+        renderTeamPage();
+        renderFilterMemberOptions();
+        renderReportTable();
+        renderWorkItemFilterOptions();
+        renderWorkItemsTable();
+        renderDashboard();
+        renderSummaryTable();
+        renderLoginGate();
+        renderManageTeamList();
+      } : null);
+    });
+  }
+
   function updateMemberStatus(memberId, newStatus){
     const m = data.members.find(x => x.id === memberId);
     m.status = newStatus;
@@ -2947,6 +3067,71 @@
     `).join('');
   }
 
+  function exportBrandsCsv(){
+    const rows = [...data.brands].sort((a, b) => a.name.localeCompare(b.name));
+    const lines = [['ชื่อแบรนด์', 'ช่อง TikTok ที่ดูแล', 'หมายเหตุ'].map(csvEscape).join(',')];
+    rows.forEach(b => lines.push([csvEscape(b.name), csvEscape(b.tiktokChannel || ''), csvEscape(b.note || '')].join(',')));
+    downloadCsv(lines.join('\r\n'), `contentflow-แบรนด์-${todayISO()}.csv`);
+  }
+
+  function importBrandsCsv(inputEl){
+    readCsvFile(inputEl, (rows) => {
+      const dataRows = rows.slice(1);
+      const toCreate = [];
+      const toUpdate = [];
+      const errors = [];
+      const seenNames = new Set();
+      dataRows.forEach((r, idx) => {
+        const rowNum = idx + 2;
+        const name = (r[0] || '').trim();
+        const tiktokChannel = (r[1] || '').trim();
+        const note = (r[2] || '').trim();
+        if(!name){
+          if((r[1] || '').trim() || (r[2] || '').trim()) errors.push(`แถวที่ ${rowNum}: ไม่ได้ระบุชื่อแบรนด์`);
+          return;
+        }
+        if(seenNames.has(name)){ errors.push(`แถวที่ ${rowNum}: "${name}" ซ้ำกับแถวก่อนหน้าในไฟล์เดียวกัน (ข้าม)`); return; }
+        seenNames.add(name);
+        const existing = data.brands.find(b => b.name.trim() === name);
+        if(existing) toUpdate.push({ id: existing.id, name, tiktokChannel, note });
+        else toCreate.push({ name, tiktokChannel, note });
+      });
+
+      let bodyHtml = `<p>พบ ${dataRows.length} แถวข้อมูล (ไม่รวมหัวตาราง)</p>`;
+      bodyHtml += `<p><strong>จะเพิ่มแบรนด์ใหม่ ${toCreate.length} รายการ</strong></p>`;
+      if(toCreate.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + toCreate.slice(0, 15).map(t => `<li>${escapeHtml(t.name)}</li>`).join('') + (toCreate.length > 15 ? `<li>...และอีก ${toCreate.length - 15} รายการ</li>` : '') + '</ul>';
+      bodyHtml += `<p><strong>จะอัปเดตแบรนด์เดิม ${toUpdate.length} รายการ</strong> (ช่อง TikTok/หมายเหตุ — ไม่กระทบสินค้า/ช่องทางที่มีอยู่)</p>`;
+      if(toUpdate.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + toUpdate.slice(0, 15).map(t => `<li>${escapeHtml(t.name)}</li>`).join('') + (toUpdate.length > 15 ? `<li>...และอีก ${toUpdate.length - 15} รายการ</li>` : '') + '</ul>';
+      if(errors.length){
+        bodyHtml += `<p style="color:var(--danger); margin-top:10px;"><strong>ข้าม/ผิดพลาด ${errors.length} แถว:</strong></p>`
+          + '<ul style="margin:6px 0; padding-left:20px; color:var(--danger);">' + errors.slice(0, 15).map(e => `<li>${escapeHtml(e)}</li>`).join('') + (errors.length > 15 ? `<li>...และอีก ${errors.length - 15} รายการ</li>` : '') + '</ul>';
+      }
+
+      const hasChanges = toCreate.length > 0 || toUpdate.length > 0;
+      openImportResultModal('นำเข้าแบรนด์จาก CSV', bodyHtml, hasChanges ? () => {
+        toUpdate.forEach(t => {
+          const b = data.brands.find(x => x.id === t.id);
+          if(b){ b.tiktokChannel = t.tiktokChannel; b.note = t.note; }
+        });
+        toCreate.forEach(t => {
+          data.brands.push({ id: uid(), name: t.name, tiktokChannel: t.tiktokChannel, note: t.note, products: [], channels: [], logoDataUrl: null });
+        });
+        logActivity('แบรนด์', `นำเข้าแบรนด์จาก CSV: เพิ่มใหม่ ${toCreate.length}, อัปเดต ${toUpdate.length} รายการ`);
+        saveData();
+        renderBrandsList();
+        renderWorkItemFilterOptions();
+        renderWorkItemsTable();
+        renderTeamWorkSummary();
+        populateWorkFormOptions('wiForm');
+        refreshAwBlockBrandOptions();
+        renderFeedPlanBrandOptions();
+        renderProductsFilterOptions();
+        renderProductsTable();
+        renderDashboard();
+      } : null);
+    });
+  }
+
   function renderBrandChannelsList(){
     const list = document.getElementById('brandChannelsList');
     if(pendingBrandChannels.length === 0){
@@ -3226,6 +3411,39 @@
     downloadCsv(lines.join('\r\n'), `contentflow-สินค้า-${todayISO()}.csv`);
   }
 
+  function importProductsCsv(inputEl){
+    readCsvFile(inputEl, (rows) => {
+      const dataRows = rows.slice(1);
+      const toAdd = [];
+      const errors = [];
+      dataRows.forEach((r, idx) => {
+        const rowNum = idx + 2;
+        const brandName = (r[0] || '').trim();
+        const name = (r[1] || '').trim();
+        if(!brandName && !name) return;
+        if(!brandName){ errors.push(`แถวที่ ${rowNum}: ไม่ได้ระบุแบรนด์`); return; }
+        if(!name){ errors.push(`แถวที่ ${rowNum}: ไม่ได้ระบุชื่อสินค้า`); return; }
+        const brand = data.brands.find(b => b.name.trim() === brandName);
+        if(!brand){ errors.push(`แถวที่ ${rowNum}: ไม่พบแบรนด์ "${brandName}" ในระบบ`); return; }
+        const already = (brand.products || []).includes(name) || toAdd.some(t => t.brandId === brand.id && t.name === name);
+        if(already){ errors.push(`แถวที่ ${rowNum}: "${name}" มีอยู่แล้วใน ${brand.name} (ข้าม)`); return; }
+        toAdd.push({ brandId: brand.id, brandName: brand.name, name });
+      });
+
+      const bodyHtml = buildImportSummaryHtml(dataRows.length, 'จะเพิ่มสินค้าใหม่', toAdd.map(t => `${t.brandName} — ${t.name}`), errors);
+      openImportResultModal('นำเข้าสินค้าจาก CSV', bodyHtml, toAdd.length ? () => {
+        toAdd.forEach(t => {
+          const brand = data.brands.find(b => b.id === t.brandId);
+          if(brand){ if(!Array.isArray(brand.products)) brand.products = []; brand.products.push(t.name); }
+        });
+        logActivity('สินค้า', `นำเข้าสินค้าจาก CSV ${toAdd.length} รายการ`);
+        saveData();
+        renderProductsFilterOptions();
+        renderProductsTable();
+      } : null);
+    });
+  }
+
   /* ===== Work items (รายงานการทำงาน) ===== */
   function populateWorkFormProductOptions(prefix){
     const brandId = document.getElementById(prefix + 'Brand').value;
@@ -3462,6 +3680,95 @@
     renderSummaryTable();
     renderCalendar();
     renderFeedPlan();
+  }
+
+  function exportWorkItemsCsv(){
+    const rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const lines = [['วันที่', 'ชื่องาน', 'ผู้รับผิดชอบ', 'แบรนด์', 'ประเภทงาน', 'จำนวน', 'สินค้า', 'สถานที่', 'ช่องทาง', 'สถานะ', 'รายละเอียด'].map(csvEscape).join(',')];
+    rows.forEach(w => {
+      const owner = data.members.find(m => m.id === w.ownerId);
+      const brand = data.brands.find(b => b.id === w.brandId);
+      lines.push([
+        csvEscape(w.date || ''), csvEscape(w.title || ''), csvEscape(owner ? owner.name : ''), csvEscape(brand ? brand.name : ''),
+        csvEscape(w.workType || ''), csvEscape(w.quantity || 1), csvEscape(w.product || ''), csvEscape(w.location || ''),
+        csvEscape(w.channel || ''), csvEscape(w.status || ''), csvEscape(w.description || '')
+      ].join(','));
+    });
+    downloadCsv(lines.join('\r\n'), `contentflow-รายงานการทำงาน-${todayISO()}.csv`);
+  }
+
+  function importWorkItemsCsv(inputEl){
+    readCsvFile(inputEl, (rows) => {
+      const dataRows = rows.slice(1);
+      const toAdd = [];
+      const errors = [];
+      const isValidDate = (s) => isValidDateStr(s);
+      dataRows.forEach((r, idx) => {
+        const rowNum = idx + 2;
+        const date = (r[0] || '').trim();
+        const title = (r[1] || '').trim();
+        const ownerName = (r[2] || '').trim();
+        const brandName = (r[3] || '').trim();
+        const workTypeRaw = (r[4] || '').trim();
+        const quantityRaw = (r[5] || '').trim();
+        const product = (r[6] || '').trim();
+        const location = (r[7] || '').trim();
+        const channel = (r[8] || '').trim();
+        const statusRaw = (r[9] || '').trim();
+        const description = (r[10] || '').trim();
+        if(!r.some(v => (v || '').trim())) return;
+
+        if(!isValidDate(date)){ errors.push(`แถวที่ ${rowNum}: วันที่ "${date}" ต้องเป็นรูปแบบ YYYY-MM-DD`); return; }
+        if(!ownerName){ errors.push(`แถวที่ ${rowNum}: ไม่ได้ระบุผู้รับผิดชอบ`); return; }
+        const owner = data.members.find(m => m.name.trim() === ownerName);
+        if(!owner){ errors.push(`แถวที่ ${rowNum}: ไม่พบสมาชิกชื่อ "${ownerName}" ในระบบ`); return; }
+        let brandId = '';
+        if(brandName){
+          const brand = data.brands.find(b => b.name.trim() === brandName);
+          if(!brand){ errors.push(`แถวที่ ${rowNum}: ไม่พบแบรนด์ "${brandName}" ในระบบ`); return; }
+          brandId = brand.id;
+        }
+        let workType = 'อื่นๆ';
+        if(workTypeRaw){
+          if(!WORK_TYPES.includes(workTypeRaw)){ errors.push(`แถวที่ ${rowNum}: ประเภทงาน "${workTypeRaw}" ไม่ถูกต้อง (ต้องเป็น ${WORK_TYPES.join('/')})`); return; }
+          workType = workTypeRaw;
+        }
+        const quantity = Number(quantityRaw);
+        if(!quantity || quantity < 1 || !Number.isFinite(quantity)){ errors.push(`แถวที่ ${rowNum}: จำนวน "${quantityRaw}" ต้องเป็นตัวเลขมากกว่า 0`); return; }
+        let status = WORKITEM_STATUS_LIST[0];
+        if(statusRaw){
+          if(!WORKITEM_STATUS_LIST.includes(statusRaw)){ errors.push(`แถวที่ ${rowNum}: สถานะ "${statusRaw}" ไม่ถูกต้อง (ต้องเป็น ${WORKITEM_STATUS_LIST.join('/')})`); return; }
+          status = statusRaw;
+        }
+        if(status === 'Post' && !channel){ errors.push(`แถวที่ ${rowNum}: สถานะ Post ต้องระบุช่องทางที่ลงด้วย`); return; }
+
+        toAdd.push({ date, title, ownerId: owner.id, ownerName: owner.name, brandId, brandName, workType, quantity, product, location, channel, status, description });
+      });
+
+      const summaryList = toAdd.map(t => `${t.date} — ${escapeHtml(t.ownerName)}${t.brandName ? ' · ' + escapeHtml(t.brandName) : ''} · ${escapeHtml(t.workType)} ${t.quantity} ชิ้น`);
+      const bodyHtml = buildImportSummaryHtml(dataRows.length, 'จะเพิ่มงานใหม่', summaryList, errors);
+      openImportResultModal('นำเข้ารายงานการทำงานจาก CSV', bodyHtml, toAdd.length ? () => {
+        toAdd.forEach(t => {
+          const report = { id: uid(), memberId: t.ownerId, date: t.date, workType: t.workType, quantity: t.quantity, contentPlanId: null, brandId: t.brandId, note: t.description };
+          data.dailyReports.push(report);
+          data.workItems.push({
+            id: uid(), title: t.title, date: t.date, ownerId: t.ownerId, brandId: t.brandId, workType: t.workType,
+            quantity: t.quantity, product: t.product, location: t.location, channel: t.channel, coverImageDataUrl: '',
+            description: t.description, status: t.status, imageNote: '', driveLink: '',
+            postDate: t.status === 'Post' ? t.date : '', linkPost: '', reportId: report.id
+          });
+        });
+        logActivity('รายงานการทำงาน', `นำเข้ารายงานการทำงานจาก CSV ${toAdd.length} รายการ`);
+        saveData();
+        renderWorkItemsTable();
+        renderReportTable();
+        renderDashboard();
+        renderTeamPage();
+        renderSummaryTable();
+        renderCalendar();
+        renderFeedPlan();
+      } : null);
+    });
   }
 
   /* ===== "บันทึกงานวันนี้" — เพิ่มได้หลายก้อนงาน ฟิลด์เปลี่ยนตามประเภทงาน ===== */
@@ -4703,6 +5010,86 @@
     URL.revokeObjectURL(url);
   }
 
+  /* ===== นำเข้า CSV (ทั่วไป) ===== */
+  function parseCsvText(text){
+    text = text.replace(/^﻿/, '');
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for(let i = 0; i < text.length; i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i + 1] === '"'){ field += '"'; i++; }
+          else inQuotes = false;
+        } else field += c;
+      } else if(c === '"'){
+        inQuotes = true;
+      } else if(c === ','){
+        row.push(field); field = '';
+      } else if(c === '\r'){
+        // ข้าม รอ \n จัดการแบ่งแถว
+      } else if(c === '\n'){
+        row.push(field); rows.push(row); row = []; field = '';
+      } else {
+        field += c;
+      }
+    }
+    if(field !== '' || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => !(r.length === 1 && r[0].trim() === ''));
+  }
+
+  function isValidDateStr(s){
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+    if(!m) return false;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+  }
+
+  function readCsvFile(inputEl, onRows){
+    const file = inputEl.files && inputEl.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onRows(parseCsvText(String(reader.result)));
+    reader.onerror = () => alert('อ่านไฟล์ไม่สำเร็จ ลองไฟล์อื่น');
+    reader.readAsText(file, 'UTF-8');
+    inputEl.value = '';
+  }
+
+  function buildImportSummaryHtml(totalRows, addLabel, addList, errors){
+    let html = `<p>พบ ${totalRows} แถวข้อมูล (ไม่รวมหัวตาราง)</p><p><strong>${addLabel} ${addList.length} รายการ</strong></p>`;
+    if(addList.length){
+      html += '<ul style="margin:6px 0; padding-left:20px;">' + addList.slice(0, 15).map(t => `<li>${escapeHtml(t)}</li>`).join('')
+        + (addList.length > 15 ? `<li>...และอีก ${addList.length - 15} รายการ</li>` : '') + '</ul>';
+    }
+    if(errors.length){
+      html += `<p style="color:var(--danger); margin-top:10px;"><strong>ข้าม/ผิดพลาด ${errors.length} แถว:</strong></p>`
+        + '<ul style="margin:6px 0; padding-left:20px; color:var(--danger);">' + errors.slice(0, 15).map(e => `<li>${escapeHtml(e)}</li>`).join('')
+        + (errors.length > 15 ? `<li>...และอีก ${errors.length - 15} รายการ</li>` : '') + '</ul>';
+    }
+    return html;
+  }
+
+  let pendingImportCommit = null;
+
+  function openImportResultModal(title, bodyHtml, commitFn){
+    document.getElementById('importResultTitle').textContent = title;
+    document.getElementById('importResultBody').innerHTML = bodyHtml;
+    pendingImportCommit = commitFn || null;
+    document.getElementById('importResultConfirm').style.display = pendingImportCommit ? '' : 'none';
+    document.getElementById('importResultModalOverlay').classList.add('open');
+  }
+
+  function closeImportResultModal(){
+    document.getElementById('importResultModalOverlay').classList.remove('open');
+    pendingImportCommit = null;
+  }
+
+  function confirmImportResult(){
+    if(pendingImportCommit) pendingImportCommit();
+    closeImportResultModal();
+  }
+
   function exportSummaryCsv(){
     const monthStr = document.getElementById('summaryMonthInput').value;
     if(!monthStr){ alert('กรุณาเลือกเดือนก่อนออกรายงาน'); return; }
@@ -4871,10 +5258,27 @@
   });
   document.getElementById('productsFilterBrand').addEventListener('change', renderProductsTable);
   document.getElementById('exportProductsCsvBtn').addEventListener('click', exportProductsCsv);
+  document.getElementById('importProductsBtn').addEventListener('click', () => document.getElementById('importProductsFile').click());
+  document.getElementById('importProductsFile').addEventListener('change', function(){ importProductsCsv(this); });
+  document.getElementById('exportBrandsCsvBtn').addEventListener('click', exportBrandsCsv);
+  document.getElementById('importBrandsBtn').addEventListener('click', () => document.getElementById('importBrandsFile').click());
+  document.getElementById('importBrandsFile').addEventListener('change', function(){ importBrandsCsv(this); });
+  document.getElementById('exportTeamCsvBtn').addEventListener('click', exportTeamCsv);
+  document.getElementById('importTeamBtn').addEventListener('click', () => document.getElementById('importTeamFile').click());
+  document.getElementById('importTeamFile').addEventListener('change', function(){ importTeamCsv(this); });
+  document.getElementById('exportWorkItemsCsvBtn').addEventListener('click', exportWorkItemsCsv);
+  document.getElementById('importWorkItemsBtn').addEventListener('click', () => document.getElementById('importWorkItemsFile').click());
+  document.getElementById('importWorkItemsFile').addEventListener('change', function(){ importWorkItemsCsv(this); });
   document.getElementById('productFormBrandSearch').addEventListener('input', renderProductBrandDropdown);
   document.getElementById('productFormBrandSearch').addEventListener('focus', renderProductBrandDropdown);
   document.addEventListener('click', (e) => {
     if(!e.target.closest('#productFormBrandSearch') && !e.target.closest('#productFormBrandDropdown')) hideProductBrandDropdown();
+  });
+
+  document.getElementById('importResultCancel').addEventListener('click', closeImportResultModal);
+  guardClick(document.getElementById('importResultConfirm'), confirmImportResult);
+  document.getElementById('importResultModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'importResultModalOverlay') closeImportResultModal();
   });
 
   document.getElementById('workItemModalCancel').addEventListener('click', closeWorkItemModal);
