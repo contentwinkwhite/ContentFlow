@@ -253,6 +253,10 @@
   .brand-summary-card .stat{text-align:center; flex:1;}
   .brand-summary-card .stat-num{font-size:15px; font-weight:700; font-family:'Bai Jamjuree',system-ui,sans-serif;}
   .brand-summary-card .stat-label{font-size:10px; color:var(--text-sub);}
+  .brand-summary-card .bs-channels{margin-top:8px; padding-top:8px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:4px;}
+  .brand-summary-card .bs-channel-row{display:flex; justify-content:space-between; gap:8px; font-size:11px; color:var(--text-sub);}
+  .brand-summary-card .bs-channel-row .cnt{font-weight:700; color:var(--text); flex-shrink:0;}
+  .brand-summary-card .bs-channel-row .name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 
   .chip{
     display:inline-flex; align-items:center; gap:5px;
@@ -4451,6 +4455,14 @@
     listEl.innerHTML = data.brands.map(b => {
       const brandItems = periodItems.filter(w => w.brandId === b.id);
       const counts = countWorkItemBuckets(brandItems);
+
+      const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
+      brandItems.forEach(w => { if(w.status === 'Post' && w.channel) channelNames.add(w.channel); });
+      const channelRows = Array.from(channelNames).map(name => ({
+        name,
+        count: brandItems.filter(w => w.status === 'Post' && w.channel === name).length
+      })).sort((a, b2) => b2.count - a.count || a.name.localeCompare(b2.name));
+
       return `
         <div class="brand-summary-card">
           <div class="bs-head">
@@ -4465,6 +4477,11 @@
             <div class="stat"><div class="stat-num warning">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
             <div class="stat"><div class="stat-num success">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
           </div>
+          ${channelRows.length ? `
+            <div class="bs-channels">
+              ${channelRows.map(c => `<div class="bs-channel-row"><span class="name">${escapeHtml(c.name)}</span><span class="cnt">${c.count} ชิ้น</span></div>`).join('')}
+            </div>
+          ` : ''}
         </div>
       `;
     }).join('');
