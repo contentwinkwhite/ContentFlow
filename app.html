@@ -1664,6 +1664,7 @@
   };
   const DEFAULT_NEW_MEMBER_STATUS = 'ทดลองงาน';
   function isActiveStatus(status){ return status !== 'พ้นทีม'; }
+  function isReportableMember(m){ return m.department !== 'ผู้จัดการ' && m.department !== 'ผู้บริหาร'; }
 
   const ATTENDANCE_STATUS_LIST = ['มาสาย', 'ลา', 'ขาด'];
   const ATTENDANCE_STATUS_CHIP_CLASS = { 'มาสาย':'chip-shoot', 'ลา':'chip-script', 'ขาด':'chip-edit' };
@@ -5474,14 +5475,15 @@
 
     const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
     const publishedCount = data.workOrders.filter(p => p.status === 'เสร็จ' && dateInDashPeriod(p.deadline)).length;
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status)).length;
-    const reportedMemberIds = new Set(monthReports.map(r => r.memberId));
+    const reportableMemberIds = new Set(data.members.filter(isReportableMember).map(m => m.id));
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m)).length;
+    const reportedMemberIds = new Set(monthReports.filter(r => reportableMemberIds.has(r.memberId)).map(r => r.memberId));
 
     document.getElementById('kpiTotal').innerHTML = `${totalItems} <small>ชิ้น</small>`;
     document.getElementById('kpiPublished').innerHTML = `${publishedCount} <small>ชิ้น</small>`;
     document.getElementById('kpiMembers').innerHTML = `${reportedMemberIds.size} <small>/${activeMembers} คน</small>`;
 
-    const byMember = data.members.map(m => ({
+    const byMember = data.members.filter(isReportableMember).map(m => ({
       id: m.id,
       name: m.name,
       total: monthReports.filter(r => r.memberId === m.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
@@ -5546,7 +5548,7 @@
 
   /* ===== Monthly summary page ===== */
   function getSummaryRows(){
-    return data.members.map(m => {
+    return data.members.filter(isReportableMember).map(m => {
       const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && periodMatches(r.date, 'summaryPeriodFilter'));
       const byType = {};
       WORK_TYPES.forEach(t => { byType[t] = 0; });
@@ -5587,7 +5589,7 @@
 
     totalEl.innerHTML = `${grandTotal} <small>ชิ้น</small>`;
     if(periodStateSum && periodStateSum.type === 'month' && periodStateSum.month){
-      const prevTotal = data.members.reduce((sum, m) => sum + data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(prevMonthStr(periodStateSum.month))).reduce((s, r) => s + (Number(r.quantity) || 0), 0), 0);
+      const prevTotal = data.members.filter(isReportableMember).reduce((sum, m) => sum + data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(prevMonthStr(periodStateSum.month))).reduce((s, r) => s + (Number(r.quantity) || 0), 0), 0);
       if(prevTotal === 0 && grandTotal === 0){
         trendEl.innerHTML = '';
       } else if(prevTotal === 0){
