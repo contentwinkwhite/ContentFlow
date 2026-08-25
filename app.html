@@ -1021,6 +1021,11 @@
           </table>
           <div class="empty-mini" id="mdReportsEmpty" style="display:none;">ยังไม่มีรีพอร์ต</div>
         </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;" id="mdPortfolioLabel">ผลงานตัดคลิป (เดือนนี้)</div>
+          <div class="clip-grid" id="mdPortfolioGrid"></div>
+          <div class="empty-mini" id="mdPortfolioEmpty" style="display:none;">ยังไม่มีคลิปในช่วงที่เลือก</div>
+        </div>
         <div class="card">
           <div style="font-weight:700; font-size:13px; margin-bottom:6px;">สคริปต์ที่เขียน</div>
           <div id="mdScriptsList"></div>
@@ -2229,10 +2234,10 @@
             ${MEMBER_STATUS_LIST.map(s => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </td>
-        <td class="num-cell" data-label="ชิ้นงานเดือนนี้">${monthTotal} ชิ้น</td>
+        <td class="num-cell" data-label="ชิ้นงานเดือนนี้">${isReportableMember(m) ? `${monthTotal} ชิ้น` : '—'}</td>
         <td data-label="">
           <div class="action-btns">
-            <button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>
+            ${isReportableMember(m) ? `<button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>` : ''}
             <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
           </div>
         </td>
@@ -2264,11 +2269,11 @@
         </div>
         <div class="team-mcard-bottom">
           <span>เข้าร่วม ${formatThaiDate(m.joinDate)}</span>
-          <span class="qty">${monthTotal} ชิ้น/เดือนนี้</span>
+          <span class="qty">${isReportableMember(m) ? `${monthTotal} ชิ้น/เดือนนี้` : '—'}</span>
         </div>
         <div class="team-mcard-bottom" style="border-top:none; padding-top:0; margin-top:8px;">
           <div class="action-btns">
-            <button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>
+            ${isReportableMember(m) ? `<button class="icon-btn" onclick="openMemberDashboard('${m.id}')">📊 แดชบอร์ด</button>` : ''}
             <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
           </div>
         </div>
@@ -2585,6 +2590,45 @@
       reportsTbody.innerHTML = recentReports.map(r => `
         <tr><td data-label="วันที่">${formatThaiDate(r.date)}</td><td data-label="ประเภทงาน">${escapeHtml(r.workType)}</td><td class="num-cell" data-label="จำนวน">${r.quantity} ชิ้น</td><td data-label="หมายเหตุ">${r.note ? escapeHtml(r.note) : '—'}</td></tr>
       `).join('');
+    }
+
+    document.getElementById('mdPortfolioLabel').textContent = `ผลงานตัดคลิป (${periodTypeText})`;
+    const myClips = data.workItems.filter(w => w.ownerId === m.id && w.workType === 'ตัดคลิป' && periodMatches(w.date, 'mdPeriodFilter')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const portfolioGrid = document.getElementById('mdPortfolioGrid');
+    const portfolioEmpty = document.getElementById('mdPortfolioEmpty');
+    if(myClips.length === 0){
+      portfolioGrid.innerHTML = '';
+      portfolioEmpty.style.display = 'block';
+    } else {
+      portfolioEmpty.style.display = 'none';
+      portfolioGrid.innerHTML = myClips.map(w => {
+        const brand = data.brands.find(b => b.id === w.brandId);
+        const hasDrive = !!w.driveLink;
+        return `
+          <div class="clip-card">
+            ${w.coverImageDataUrl
+              ? `<img class="clip-card-img" src="${w.coverImageDataUrl}" alt="" data-id="${w.id}">`
+              : `<div class="clip-card-noimg" data-id="${w.id}">${hasDrive ? '📁 เปิดไดร์ฟ' : 'ไม่มีรูปปก'}</div>`}
+            <div class="clip-card-body">
+              <div class="clip-card-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</div>
+              <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
+              <div class="clip-card-meta">
+                <span>${w.date ? formatShortDate(w.date) : '—'}</span>
+                <span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      portfolioGrid.querySelectorAll('.clip-card-img, .clip-card-noimg').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', () => {
+          const w = data.workItems.find(x => x.id === el.dataset.id);
+          if(!w) return;
+          if(w.driveLink) window.open(w.driveLink, '_blank', 'noopener');
+          else if(w.coverImageDataUrl) showImageLightbox(w.coverImageDataUrl);
+        });
+      });
     }
 
     const myScripts = [...data.scripts].filter(s => s.authorId === m.id).sort((a, b) => b.writtenDate.localeCompare(a.writtenDate));
