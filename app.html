@@ -132,6 +132,7 @@
   .login-member-dept.dept-content{background:#eaf1ff; color:#2563eb; border-color:transparent;}
   .login-member-dept.dept-graphic{background:#f3e8ff; color:#9333ea; border-color:transparent;}
   .login-member-dept.dept-manager{background:#fef3e1; color:#b8790a; border-color:transparent;}
+  .login-member-dept.dept-exec{background:#fee2e2; color:#991b1b; border-color:transparent;}
   .sb-item{
     display:flex; align-items:center; gap:11px;
     padding:11px 12px; border-radius:10px; font-size:14px; color:var(--text-sub);
@@ -1994,19 +1995,20 @@
     if(dept === 'คอนเทนต์') return 'dept-content';
     if(dept === 'กราฟิก') return 'dept-graphic';
     if(dept === 'ผู้จัดการ') return 'dept-manager';
+    if(dept === 'ผู้บริหาร') return 'dept-exec';
     return '';
   }
 
   function populateMemberDepartmentOptions(forceValue){
     const sel = document.getElementById('memberFormDepartment');
-    const fixed = ['คอนเทนต์', 'กราฟิก', 'ผู้จัดการ'];
+    const fixed = ['คอนเทนต์', 'กราฟิก', 'ผู้จัดการ', 'ผู้บริหาร'];
     const options = fixed.slice();
     if(forceValue && !options.includes(forceValue)) options.push(forceValue);
     sel.innerHTML = '<option value="">— ไม่ระบุ —</option>' + options.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
     sel.value = forceValue || '';
   }
 
-  const MEMBER_POSITION_LIST = ['Content Creator', 'Content Supervisor', 'หัวหน้าทีมคอนเทนต์', 'หัวหน้ากราฟิก', 'ผู้จัดการ'];
+  const MEMBER_POSITION_LIST = ['Content Creator', 'Content Supervisor', 'หัวหน้าทีมคอนเทนต์', 'หัวหน้ากราฟิก', 'ผู้จัดการ', 'CEO'];
 
   function populateMemberPositionOptions(forceValue){
     const sel = document.getElementById('memberFormPosition');
