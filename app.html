@@ -133,10 +133,10 @@
   .login-member-dept.dept-graphic{background:#f3e8ff; color:#9333ea; border-color:transparent;}
   .login-member-dept.dept-manager{background:#fef3e1; color:#b8790a; border-color:transparent;}
   .login-member-dept.dept-exec{background:#fee2e2; color:#991b1b; border-color:transparent;}
-  .login-member-reorder{display:flex; flex-direction:column; gap:3px; flex-shrink:0;}
-  .login-member-reorder .icon-btn{padding:2px 8px; font-size:11px; line-height:1.2;}
-  .login-member-reorder .icon-btn:disabled{opacity:.35; cursor:not-allowed;}
-  .login-member-reorder .icon-btn:disabled:hover{border-color:var(--border); color:var(--text-sub);}
+  .member-reorder{display:flex; flex-direction:column; gap:3px; flex-shrink:0;}
+  .member-reorder .icon-btn{padding:2px 8px; font-size:11px; line-height:1.2;}
+  .member-reorder .icon-btn:disabled{opacity:.35; cursor:not-allowed;}
+  .member-reorder .icon-btn:disabled:hover{border-color:var(--border); color:var(--text-sub);}
   .sb-item{
     display:flex; align-items:center; gap:11px;
     padding:11px 12px; border-radius:10px; font-size:14px; color:var(--text-sub);
@@ -1965,7 +1965,7 @@
       return;
     }
     emptyMsg.style.display = 'none';
-    listEl.innerHTML = data.members.map((m, idx) => `
+    listEl.innerHTML = data.members.map(m => `
       <div class="login-member-row">
         <button class="login-member-btn" onclick="loginAs('${m.id}')">
           <span class="login-member-left">
@@ -1977,10 +1977,6 @@
           </span>
           ${m.department ? `<span class="login-member-dept ${loginDeptClass(m.department)}">${escapeHtml(m.department)}</span>` : ''}
         </button>
-        <div class="login-member-reorder">
-          <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="เลื่อนขึ้น">▲</button>
-          <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', 1)" ${idx === data.members.length - 1 ? 'disabled' : ''} title="เลื่อนลง">▼</button>
-        </div>
       </div>
     `).join('');
   }
@@ -1993,6 +1989,7 @@
     const [m] = data.members.splice(idx, 1);
     data.members.splice(newIdx, 0, m);
     saveData();
+    renderManageTeamList();
     renderLoginGate();
     renderTeamPage();
   }
@@ -2258,7 +2255,7 @@
 
   function renderManageTeamList(){
     const list = document.getElementById('manageTeamList');
-    list.innerHTML = data.members.map(m => `
+    list.innerHTML = data.members.map((m, idx) => `
       <div class="list-item">
         <div style="display:flex; align-items:center; gap:0;">
           ${avatarHtml(m)}
@@ -2267,9 +2264,15 @@
             <div class="li-sub">${escapeHtml(m.status)}${m.position ? ' · ' + escapeHtml(m.position) : ''}</div>
           </div>
         </div>
-        <div class="action-btns">
-          <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
-          <button class="icon-btn danger" onclick="deleteMemberHard('${m.id}')">ลบ</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="member-reorder">
+            <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="เลื่อนขึ้น">▲</button>
+            <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', 1)" ${idx === data.members.length - 1 ? 'disabled' : ''} title="เลื่อนลง">▼</button>
+          </div>
+          <div class="action-btns">
+            <button class="icon-btn" onclick="openMemberModal('${m.id}')">แก้ไข</button>
+            <button class="icon-btn danger" onclick="deleteMemberHard('${m.id}')">ลบ</button>
+          </div>
         </div>
       </div>
     `).join('');
