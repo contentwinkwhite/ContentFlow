@@ -5131,6 +5131,7 @@
     }).join('');
 
     const byBrand = data.brands.map(b => ({
+      id: b.id,
       name: b.name,
       total: monthReports.filter(r => r.brandId === b.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
     })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
@@ -5141,7 +5142,7 @@
     } else {
       const maxBrand = Math.max(...byBrand.map(x => x.total));
       brandListEl.innerHTML = byBrand.map(x => `
-        <div class="bar-row">
+        <div class="bar-row clickable" onclick="goToBrandWork('${x.id}')" title="ดูงานของแบรนด์ ${escapeHtml(x.name)}">
           <span class="name">${escapeHtml(x.name)}</span>
           <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / maxBrand * 100)}%"></div></div>
           <span class="val">${x.total} ชิ้น</span>
@@ -5151,6 +5152,14 @@
 
     renderUpcomingList();
     renderTeamWorkSummary();
+  }
+
+  function goToBrandWork(brandId){
+    showPage('workplan');
+    document.getElementById('wiFilterBrand').value = brandId;
+    document.getElementById('wiFilterOwner').value = '';
+    document.getElementById('wiFilterStatus').value = '';
+    renderWorkItemsTable();
   }
 
   function renderTopbarBadge(){
