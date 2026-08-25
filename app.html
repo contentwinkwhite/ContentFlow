@@ -3698,6 +3698,8 @@
       renderSummaryTable();
       renderCalendar();
       renderFeedPlan();
+      renderClipPreviewGrid();
+      renderScorePage();
       if(goingToPost){ openPostDetailsModal(w.id); }
     } else {
       const initialStatus = status === 'Post' ? WORKITEM_STATUS_LIST[0] : status;
@@ -3715,6 +3717,8 @@
       renderSummaryTable();
       renderCalendar();
       renderFeedPlan();
+      renderClipPreviewGrid();
+      renderScorePage();
       if(status === 'Post'){ openPostDetailsModal(w.id); }
     }
   }
@@ -3738,6 +3742,8 @@
     renderSummaryTable();
     renderCalendar();
     renderFeedPlan();
+    renderClipPreviewGrid();
+    renderScorePage();
   }
 
   function exportWorkItemsCsv(){
@@ -4216,6 +4222,8 @@
     renderWorkItemsTable();
     renderDashboard();
     renderCalendar();
+    renderClipPreviewGrid();
+    renderScorePage();
   }
 
   const SCORE_OPTIONS = [1, 1.5, 2];
@@ -4288,6 +4296,8 @@
     renderTeamPage();
     renderSummaryTable();
     renderCalendar();
+    renderClipPreviewGrid();
+    renderScorePage();
   }
 
   function renderWorkItemsTable(){
@@ -4478,6 +4488,7 @@
               <span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span>
             </div>
             ${hasDrive ? '' : `<div style="font-size:10.5px; color:var(--text-sub); margin-top:4px;">ยังไม่มีลิงก์ไดร์ฟ</div>`}
+            <button type="button" class="icon-btn" onclick="openWorkItemModal('${w.id}')" style="width:100%; justify-content:center; margin-top:8px;">✎ แก้ไข</button>
           </div>
         </div>
       `;
