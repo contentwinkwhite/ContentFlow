@@ -4500,11 +4500,12 @@
     grid.innerHTML = rows.map(w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const owner = data.members.find(m => m.id === w.ownerId);
+      const hasDrive = !!w.driveLink;
       return `
         <div class="clip-card">
           ${w.coverImageDataUrl
-            ? `<img class="clip-card-img" src="${w.coverImageDataUrl}" alt="" onclick="showImageLightbox('${w.coverImageDataUrl}')">`
-            : `<div class="clip-card-noimg">ไม่มีรูปปก</div>`}
+            ? `<img class="clip-card-img" src="${w.coverImageDataUrl}" alt="" data-id="${w.id}">`
+            : `<div class="clip-card-noimg" data-id="${w.id}">${hasDrive ? '📁 เปิดไดร์ฟ' : 'ไม่มีรูปปก'}</div>`}
           <div class="clip-card-body">
             <div class="clip-card-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</div>
             <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
@@ -4512,10 +4513,21 @@
               <span>${owner ? escapeHtml(owner.name) : '—'} · ${w.date ? formatShortDate(w.date) : '—'}</span>
               <span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span>
             </div>
+            ${hasDrive ? '' : `<div style="font-size:10.5px; color:var(--text-sub); margin-top:4px;">ยังไม่มีลิงก์ไดร์ฟ</div>`}
           </div>
         </div>
       `;
     }).join('');
+
+    grid.querySelectorAll('.clip-card-img, .clip-card-noimg').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const w = data.workItems.find(x => x.id === el.dataset.id);
+        if(!w) return;
+        if(w.driveLink) window.open(w.driveLink, '_blank', 'noopener');
+        else if(w.coverImageDataUrl) showImageLightbox(w.coverImageDataUrl);
+      });
+    });
   }
 
   /* ===== Calendar ===== */
