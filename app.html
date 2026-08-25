@@ -131,7 +131,7 @@
   .login-member-dept{flex-shrink:0; font-size:11px; font-weight:700; padding:5px 12px; border-radius:999px; white-space:nowrap; background:var(--card); color:var(--text-sub); border:1px solid var(--border);}
   .login-member-dept.dept-content{background:#eaf1ff; color:#2563eb; border-color:transparent;}
   .login-member-dept.dept-graphic{background:#f3e8ff; color:#9333ea; border-color:transparent;}
-  .login-member-dept.dept-outside{background:#f0fdf4; color:#16a34a; border-color:transparent;}
+  .login-member-dept.dept-manager{background:#fef3e1; color:#b8790a; border-color:transparent;}
   .sb-item{
     display:flex; align-items:center; gap:11px;
     padding:11px 12px; border-radius:10px; font-size:14px; color:var(--text-sub);
@@ -1155,8 +1155,8 @@
 
     <div class="wi-section-label">ข้อมูลพนักงาน (ไม่บังคับ)</div>
     <div class="field-row">
-      <label>ตำแหน่ง</label>
-      <input type="text" class="form-control" id="memberFormPosition" placeholder="เช่น Content Creator">
+      <label>ตำแหน่ง (ไม่บังคับ)</label>
+      <select class="form-control" id="memberFormPosition"></select>
     </div>
     <div class="field-row">
       <label>สาย (ไม่บังคับ)</label>
@@ -1164,7 +1164,7 @@
         <option value="">— ไม่ระบุ —</option>
         <option value="คอนเทนต์">คอนเทนต์</option>
         <option value="กราฟิก">กราฟิก</option>
-        <option value="งานนอก">งานนอก</option>
+        <option value="ผู้จัดการ">ผู้จัดการ</option>
       </select>
     </div>
     <div class="field-row">
@@ -1993,16 +1993,26 @@
   function loginDeptClass(dept){
     if(dept === 'คอนเทนต์') return 'dept-content';
     if(dept === 'กราฟิก') return 'dept-graphic';
-    if(dept === 'งานนอก') return 'dept-outside';
+    if(dept === 'ผู้จัดการ') return 'dept-manager';
     return '';
   }
 
   function populateMemberDepartmentOptions(forceValue){
     const sel = document.getElementById('memberFormDepartment');
-    const fixed = ['คอนเทนต์', 'กราฟิก', 'งานนอก'];
+    const fixed = ['คอนเทนต์', 'กราฟิก', 'ผู้จัดการ'];
     const options = fixed.slice();
     if(forceValue && !options.includes(forceValue)) options.push(forceValue);
     sel.innerHTML = '<option value="">— ไม่ระบุ —</option>' + options.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+    sel.value = forceValue || '';
+  }
+
+  const MEMBER_POSITION_LIST = ['Content Creator', 'Content Supervisor', 'หัวหน้าทีมคอนเทนต์', 'หัวหน้ากราฟิก', 'ผู้จัดการ'];
+
+  function populateMemberPositionOptions(forceValue){
+    const sel = document.getElementById('memberFormPosition');
+    const options = MEMBER_POSITION_LIST.slice();
+    if(forceValue && !options.includes(forceValue)) options.push(forceValue);
+    sel.innerHTML = '<option value="">— ไม่ระบุ —</option>' + options.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
     sel.value = forceValue || '';
   }
 
@@ -2403,7 +2413,7 @@
       document.getElementById('memberFormName').value = m.name;
       document.getElementById('memberFormJoinDate').value = m.joinDate;
       document.getElementById('memberFormNote').value = m.note || '';
-      document.getElementById('memberFormPosition').value = m.position || '';
+      populateMemberPositionOptions(m.position || '');
       populateMemberDepartmentOptions(m.department || '');
       document.getElementById('memberFormEmployeeCode').value = m.employeeCode || '';
       document.getElementById('memberFormBirthDate').value = m.birthDate || '';
@@ -2416,7 +2426,7 @@
       document.getElementById('memberFormName').value = '';
       document.getElementById('memberFormJoinDate').value = todayISO();
       document.getElementById('memberFormNote').value = '';
-      document.getElementById('memberFormPosition').value = '';
+      populateMemberPositionOptions('');
       populateMemberDepartmentOptions('');
       document.getElementById('memberFormEmployeeCode').value = '';
       document.getElementById('memberFormBirthDate').value = '';
