@@ -519,6 +519,12 @@
   .toolbar{display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:flex-end;}
   .toolbar .field-row{margin-bottom:0; min-width:170px;}
 
+  .period-filter{display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;}
+  .period-filter .mode-btns{display:flex; gap:6px; flex-wrap:wrap;}
+  .period-filter [data-period-input]{display:flex; gap:8px; align-items:flex-end;}
+  .period-filter [data-period-input] .field-row{margin-bottom:0; min-width:150px;}
+  .period-filter [data-period-input] label{font-size:11px;}
+
   .action-btns{display:flex; gap:6px; flex-wrap:wrap;}
   .icon-btn{
     background:none; border:1px solid var(--border); border-radius:7px;
@@ -681,22 +687,7 @@
 
     <div class="content">
       <div class="page dash-compact" data-page="dashboard">
-        <div class="toolbar" style="margin-bottom:12px;">
-          <div class="field-row" style="margin-bottom:0;">
-            <label>ช่วงเวลา</label>
-            <div style="display:flex; gap:6px;">
-              <button class="btn btn-outline btn-sm" type="button" id="dashPeriodDayBtn" onclick="setDashPeriodType('day')">รายวัน</button>
-              <button class="btn btn-sm" type="button" id="dashPeriodMonthBtn" onclick="setDashPeriodType('month')">รายเดือน</button>
-              <button class="btn btn-outline btn-sm" type="button" id="dashPeriodYearBtn" onclick="setDashPeriodType('year')">รายปี</button>
-            </div>
-          </div>
-          <div class="field-row" style="margin-bottom:0; min-width:160px;">
-            <label>&nbsp;</label>
-            <input type="date" class="form-control" id="dashPeriodDayInput" style="display:none;">
-            <input type="month" class="form-control" id="dashPeriodMonthInput">
-            <input type="number" class="form-control" id="dashPeriodYearInput" style="display:none;" min="2020" max="2100">
-          </div>
-        </div>
+        <div id="dashPeriodFilterSlot"></div>
         <div class="mini-stat-grid">
           <div class="mini-stat"><div class="label" id="kpiTotalLabel">ชิ้นงานเดือนนี้</div><div class="num accent" id="kpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">งานสั่งเสร็จ</div><div class="num success" id="kpiPublished">0 <small>ชิ้น</small></div></div>
@@ -797,10 +788,7 @@
         </div>
 
         <div class="card" style="margin-bottom:16px;">
-          <div class="field-row" style="max-width:220px; margin-bottom:0;">
-            <label>เลือกเดือน</label>
-            <input type="month" class="form-control" id="scoreMonthInput">
-          </div>
+          <div id="scorePeriodFilterSlot"></div>
         </div>
 
         <div class="card" style="margin-bottom:16px;">
@@ -1007,11 +995,12 @@
           </div>
           <div class="hr-info-grid" id="mdHrInfo" style="padding-top:12px; border-top:1px solid var(--border);"></div>
         </div>
+        <div id="mdPeriodFilterSlot"></div>
         <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
-          <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num accent" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label" id="mdKpiMonthLabel">ชิ้นงานเดือนนี้</div><div class="num accent" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ชิ้นงานสะสมทั้งหมด</div><div class="num" id="mdKpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">สคริปต์ที่เขียนทั้งหมด</div><div class="num" id="mdKpiScripts">0 <small>ชิ้น</small></div></div>
-          <div class="mini-stat"><div class="label">คะแนนเฉลี่ย/ชิ้น (เดือนนี้)</div><div class="num accent" id="mdKpiScore">– <small>/2</small></div></div>
+          <div class="mini-stat"><div class="label" id="mdKpiScoreLabel">คะแนนเฉลี่ย/ชิ้น (เดือนนี้)</div><div class="num accent" id="mdKpiScore">– <small>/2</small></div></div>
         </div>
         <div class="grid-2" style="margin-bottom:14px;">
           <div class="card">
@@ -1019,7 +1008,7 @@
             <div class="bar-list" id="mdTrendList"></div>
           </div>
           <div class="card">
-            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามประเภทงาน (เดือนนี้)</div>
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;" id="mdByTypeLabel">แยกตามประเภทงาน (เดือนนี้)</div>
             <div class="type-chip-row" id="mdByTypeChips"></div>
           </div>
         </div>
@@ -1051,17 +1040,14 @@
         </div>
 
         <div id="summaryMonthView">
-          <div class="page-head" style="margin-bottom:12px;">
-            <div class="field-row" style="max-width:220px; margin-bottom:0;">
-              <label>เลือกเดือน</label>
-              <input type="month" class="form-control" id="summaryMonthInput">
-            </div>
+          <div class="page-head" style="margin-bottom:12px; align-items:flex-end;">
+            <div id="summaryPeriodFilterSlot" style="flex:1;"></div>
             <button class="csv-btn" id="exportCsvBtn">⬇ ออกรายงาน CSV</button>
           </div>
 
           <div class="mini-stat-grid" style="grid-template-columns:repeat(3,1fr);">
             <div class="mini-stat">
-              <div class="label">ยอดชิ้นงานเดือนนี้</div>
+              <div class="label" id="summaryKpiTotalLabel">ยอดชิ้นงานเดือนนี้</div>
               <div class="num accent" id="summaryKpiTotal">0 <small>ชิ้น</small></div>
               <div style="font-size:11.5px; margin-top:2px;" id="summaryKpiTrend"></div>
             </div>
@@ -1078,7 +1064,7 @@
           </div>
 
           <div class="card" style="margin-bottom:14px;">
-            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">อันดับคนทำงาน (เดือนนี้)</div>
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;" id="summaryRankLabel">อันดับคนทำงาน (เดือนนี้)</div>
             <div class="bar-list" id="summaryRankList"></div>
           </div>
 
@@ -1089,7 +1075,7 @@
               </thead>
               <tbody id="summaryTableBody"></tbody>
             </table>
-            <div class="empty-mini" id="summaryEmptyMsg" style="display:none;">ไม่มีรีพอร์ตในเดือนนี้</div>
+            <div class="empty-mini" id="summaryEmptyMsg" style="display:none;">ไม่มีรีพอร์ตในช่วงที่เลือก</div>
           </div>
         </div>
 
@@ -2347,17 +2333,23 @@
       </div>
     `).join('');
 
-    const monthStr = currentMonthStr();
     const myReportsAll = data.dailyReports.filter(r => r.memberId === m.id);
-    const myReportsMonth = myReportsAll.filter(r => r.date.startsWith(monthStr));
+    const myReportsMonth = myReportsAll.filter(r => periodMatches(r.date, 'mdPeriodFilter'));
 
-    const monthTotal = myReportsMonth.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    const periodTotal = myReportsMonth.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
     const allTimeTotal = myReportsAll.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
     const scriptCount = data.scripts.filter(s => s.authorId === m.id).length;
-    const scoredThisMonth = data.workItems.filter(w => w.ownerId === m.id && w.date && w.date.startsWith(monthStr) && typeof w.score === 'number');
-    const avgScore = scoredThisMonth.length ? (scoredThisMonth.reduce((s, w) => s + w.score, 0) / scoredThisMonth.length) : null;
+    const scoredThisPeriod = data.workItems.filter(w => w.ownerId === m.id && periodMatches(w.date, 'mdPeriodFilter') && typeof w.score === 'number');
+    const avgScore = scoredThisPeriod.length ? (scoredThisPeriod.reduce((s, w) => s + w.score, 0) / scoredThisPeriod.length) : null;
 
-    document.getElementById('mdKpiMonth').innerHTML = `${monthTotal} <small>ชิ้น</small>`;
+    const periodStateMd = periodState['mdPeriodFilter'];
+    const periodTypeLabels = { day: 'วันที่เลือก', range: 'ช่วงที่เลือก', month: 'เดือนนี้', year: 'ปีนี้' };
+    const periodTypeText = periodStateMd ? (periodTypeLabels[periodStateMd.type] || 'ที่เลือก') : 'เดือนนี้';
+    document.getElementById('mdKpiMonthLabel').textContent = `ชิ้นงาน${periodTypeText}`;
+    document.getElementById('mdKpiScoreLabel').textContent = `คะแนนเฉลี่ย/ชิ้น (${periodTypeText})`;
+    document.getElementById('mdByTypeLabel').textContent = `แยกตามประเภทงาน (${periodTypeText})`;
+
+    document.getElementById('mdKpiMonth').innerHTML = `${periodTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiTotal').innerHTML = `${allTimeTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiScripts').innerHTML = `${scriptCount} <small>ชิ้น</small>`;
     document.getElementById('mdKpiScore').innerHTML = avgScore !== null ? `${avgScore.toFixed(2)} <small>/2</small>` : `– <small>ยังไม่มีคะแนน</small>`;
@@ -4459,9 +4451,9 @@
   }
 
   /* ===== ให้คะแนนงาน (scorework) ===== */
-  function getScoreSummaryRows(monthStr){
+  function getScoreSummaryRows(){
     return data.members.filter(m => m.status !== 'พ้นทีม' && m.department === 'คอนเทนต์').map(m => {
-      const items = data.workItems.filter(w => w.ownerId === m.id && w.date && w.date.startsWith(monthStr));
+      const items = data.workItems.filter(w => w.ownerId === m.id && periodMatches(w.date, 'scorePeriodFilter'));
       const buckets = countWorkItemBuckets(items);
       const done = buckets.success + buckets.posted;
       const scored = items.filter(w => typeof w.score === 'number');
@@ -4472,13 +4464,9 @@
   }
 
   function renderScorePage(){
-    const input = document.getElementById('scoreMonthInput');
-    if(!input.value) input.value = currentMonthStr();
-    const monthStr = input.value;
-
     const summaryBody = document.getElementById('scoreSummaryTableBody');
     const summaryEmpty = document.getElementById('scoreSummaryEmptyMsg');
-    const rows = getScoreSummaryRows(monthStr);
+    const rows = getScoreSummaryRows();
     if(rows.length === 0){
       summaryBody.innerHTML = '';
       summaryEmpty.style.display = 'block';
@@ -4500,7 +4488,7 @@
     const canScore = canScoreWork();
     const listBody = document.getElementById('scoreWorkItemsTableBody');
     const listEmpty = document.getElementById('scoreWorkItemsEmptyMsg');
-    const items = data.workItems.filter(w => w.date && w.date.startsWith(monthStr)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const items = data.workItems.filter(w => periodMatches(w.date, 'scorePeriodFilter')).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     if(items.length === 0){
       listBody.innerHTML = '';
       listEmpty.style.display = 'block';
@@ -5096,42 +5084,120 @@
 
   function currentMonthStr(){ return todayISO().slice(0, 7); }
 
-  let dashPeriodType = 'month';
-  let dashPeriodValue = currentMonthStr();
+  /* ===== ตัวกรองช่วงเวลาแบบใช้ร่วมกันทุกหน้า (วัน/ช่วงกำหนดเอง/เดือน/ปี) ===== */
+  const periodState = {};
 
-  function dateInDashPeriod(dateStr){
-    if(!dateStr) return false;
-    return dateStr.startsWith(dashPeriodValue);
+  function periodFilterHtml(prefix){
+    return `
+      <div class="period-filter" id="${prefix}">
+        <div class="field-row" style="margin-bottom:0;">
+          <label>ช่วงเวลา</label>
+          <div class="mode-btns">
+            <button type="button" class="btn btn-outline btn-sm" data-period-mode="day">รายวัน</button>
+            <button type="button" class="btn btn-outline btn-sm" data-period-mode="range">กำหนดเอง</button>
+            <button type="button" class="btn btn-sm" data-period-mode="month">รายเดือน</button>
+            <button type="button" class="btn btn-outline btn-sm" data-period-mode="year">รายปี</button>
+          </div>
+        </div>
+        <div data-period-input="day" style="display:none;">
+          <div class="field-row"><label>วันที่</label><input type="date" class="form-control"></div>
+        </div>
+        <div data-period-input="range" style="display:none;">
+          <div class="field-row"><label>จากวันที่</label><input type="date" class="form-control" data-range="from"></div>
+          <div class="field-row"><label>ถึงวันที่</label><input type="date" class="form-control" data-range="to"></div>
+        </div>
+        <div data-period-input="month">
+          <div class="field-row"><label>เดือน</label><input type="month" class="form-control"></div>
+        </div>
+        <div data-period-input="year" style="display:none;">
+          <div class="field-row"><label>ปี</label><input type="number" class="form-control" min="2020" max="2100"></div>
+        </div>
+      </div>
+    `;
   }
 
-  function setDashPeriodType(type){
-    dashPeriodType = type;
-    ['day', 'month', 'year'].forEach(t => {
-      const btn = document.getElementById(`dashPeriod${t.charAt(0).toUpperCase()}${t.slice(1)}Btn`);
-      if(!btn) return;
-      if(t === type) btn.classList.remove('btn-outline'); else btn.classList.add('btn-outline');
+  function initPeriodFilter(prefix, onChange){
+    periodState[prefix] = { type: 'month', day: todayISO(), from: todayISO(), to: todayISO(), month: currentMonthStr(), year: todayISO().slice(0, 4) };
+    const root = document.getElementById(prefix);
+    if(!root) return;
+    root.querySelectorAll('[data-period-mode]').forEach(btn => {
+      btn.addEventListener('click', () => setPeriodMode(prefix, btn.dataset.periodMode, onChange));
     });
-    document.getElementById('dashPeriodDayInput').style.display = type === 'day' ? '' : 'none';
-    document.getElementById('dashPeriodMonthInput').style.display = type === 'month' ? '' : 'none';
-    document.getElementById('dashPeriodYearInput').style.display = type === 'year' ? '' : 'none';
-    const today = todayISO();
+    root.querySelector('[data-period-input="day"] input').addEventListener('change', (e) => { periodState[prefix].day = e.target.value; onChange(); });
+    root.querySelector('[data-range="from"]').addEventListener('change', (e) => { periodState[prefix].from = e.target.value; onChange(); });
+    root.querySelector('[data-range="to"]').addEventListener('change', (e) => { periodState[prefix].to = e.target.value; onChange(); });
+    root.querySelector('[data-period-input="month"] input').addEventListener('change', (e) => { periodState[prefix].month = e.target.value; onChange(); });
+    root.querySelector('[data-period-input="year"] input').addEventListener('change', (e) => { periodState[prefix].year = e.target.value; onChange(); });
+    setPeriodMode(prefix, 'month', null);
+  }
+
+  function setPeriodMode(prefix, type, onChange){
+    const state = periodState[prefix];
+    if(!state) return;
+    state.type = type;
+    const root = document.getElementById(prefix);
+    if(!root) return;
+    root.querySelectorAll('[data-period-mode]').forEach(btn => {
+      btn.classList.toggle('btn-outline', btn.dataset.periodMode !== type);
+    });
+    ['day', 'range', 'month', 'year'].forEach(t => {
+      const row = root.querySelector(`[data-period-input="${t}"]`);
+      if(row) row.style.display = t === type ? '' : 'none';
+    });
     if(type === 'day'){
-      const el = document.getElementById('dashPeriodDayInput');
-      if(!el.value) el.value = today;
-      dashPeriodValue = el.value;
-      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานวันที่เลือก';
+      const inp = root.querySelector('[data-period-input="day"] input');
+      if(!inp.value) inp.value = state.day;
+      state.day = inp.value;
+    } else if(type === 'range'){
+      const fromInp = root.querySelector('[data-range="from"]');
+      const toInp = root.querySelector('[data-range="to"]');
+      if(!fromInp.value) fromInp.value = state.from;
+      if(!toInp.value) toInp.value = state.to;
+      state.from = fromInp.value;
+      state.to = toInp.value;
     } else if(type === 'month'){
-      const el = document.getElementById('dashPeriodMonthInput');
-      if(!el.value) el.value = currentMonthStr();
-      dashPeriodValue = el.value;
-      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานเดือนนี้';
-    } else {
-      const el = document.getElementById('dashPeriodYearInput');
-      if(!el.value) el.value = today.slice(0, 4);
-      dashPeriodValue = el.value;
-      document.getElementById('kpiTotalLabel').textContent = 'ชิ้นงานปีนี้';
+      const inp = root.querySelector('[data-period-input="month"] input');
+      if(!inp.value) inp.value = state.month;
+      state.month = inp.value;
+    } else if(type === 'year'){
+      const inp = root.querySelector('[data-period-input="year"] input');
+      if(!inp.value) inp.value = state.year;
+      state.year = inp.value;
     }
-    renderDashboard();
+    if(onChange) onChange();
+  }
+
+  function periodMatches(dateStr, prefix){
+    if(!dateStr) return false;
+    const state = periodState[prefix];
+    if(!state) return true;
+    if(state.type === 'day') return dateStr === state.day;
+    if(state.type === 'range') return (!state.from || dateStr >= state.from) && (!state.to || dateStr <= state.to);
+    if(state.type === 'month') return dateStr.startsWith(state.month);
+    if(state.type === 'year') return dateStr.startsWith(state.year);
+    return true;
+  }
+
+  function periodLabel(prefix){
+    const state = periodState[prefix];
+    if(!state) return '';
+    if(state.type === 'day') return state.day ? formatThaiDate(state.day) : '';
+    if(state.type === 'range') return (state.from ? formatThaiDate(state.from) : '?') + ' – ' + (state.to ? formatThaiDate(state.to) : '?');
+    if(state.type === 'month') return state.month || '';
+    if(state.type === 'year') return state.year ? `ปี ${Number(state.year) + 543}` : '';
+    return '';
+  }
+
+  function dateInDashPeriod(dateStr){
+    return periodMatches(dateStr, 'dashPeriodFilter');
+  }
+
+  function updateDashPeriodLabel(){
+    const state = periodState['dashPeriodFilter'];
+    const labelEl = document.getElementById('kpiTotalLabel');
+    if(!state || !labelEl) return;
+    const labels = { day: 'ชิ้นงานวันที่เลือก', range: 'ชิ้นงานช่วงที่เลือก', month: 'ชิ้นงานเดือนนี้', year: 'ชิ้นงานปีนี้' };
+    labelEl.textContent = labels[state.type] || 'ชิ้นงาน';
   }
 
   function getWorkItemBucket(status){
@@ -5206,6 +5272,7 @@
   }
 
   function renderDashboard(){
+    updateDashPeriodLabel();
     const monthReports = data.dailyReports.filter(r => dateInDashPeriod(r.date));
 
     const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
@@ -5281,9 +5348,9 @@
   }
 
   /* ===== Monthly summary page ===== */
-  function getSummaryRows(monthStr){
+  function getSummaryRows(){
     return data.members.map(m => {
-      const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(monthStr));
+      const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && periodMatches(r.date, 'summaryPeriodFilter'));
       const byType = {};
       WORK_TYPES.forEach(t => { byType[t] = 0; });
       let total = 0;
@@ -5301,43 +5368,44 @@
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
-  function renderSummaryKpis(monthStr){
+  function renderSummaryKpis(){
     const totalEl = document.getElementById('summaryKpiTotal');
+    const totalLabelEl = document.getElementById('summaryKpiTotalLabel');
     const trendEl = document.getElementById('summaryKpiTrend');
     const avgEl = document.getElementById('summaryKpiAvg');
     const avgSubEl = document.getElementById('summaryKpiAvgSub');
     const topCountEl = document.getElementById('summaryKpiTopCount');
     const topNameEl = document.getElementById('summaryKpiTopName');
     const rankListEl = document.getElementById('summaryRankList');
+    const rankLabelEl = document.getElementById('summaryRankLabel');
 
-    if(!monthStr){
-      totalEl.innerHTML = '0 <small>ชิ้น</small>';
-      trendEl.textContent = '';
-      avgEl.innerHTML = '0 <small>ชิ้น/วัน</small>';
-      avgSubEl.textContent = '—';
-      topCountEl.innerHTML = '0 <small>ชิ้น</small>';
-      topNameEl.textContent = '—';
-      rankListEl.innerHTML = '<div class="empty-mini">เลือกเดือนก่อน</div>';
-      return;
-    }
+    const periodStateSum = periodState['summaryPeriodFilter'];
+    const periodTypeLabels = { day: 'วันที่เลือก', range: 'ช่วงที่เลือก', month: 'เดือนนี้', year: 'ปีนี้' };
+    const periodTypeText = periodStateSum ? (periodTypeLabels[periodStateSum.type] || 'ที่เลือก') : 'เดือนนี้';
+    totalLabelEl.textContent = `ยอดชิ้นงาน${periodTypeText}`;
+    rankLabelEl.textContent = `อันดับคนทำงาน (${periodTypeText})`;
 
-    const rows = getSummaryRows(monthStr);
+    const rows = getSummaryRows();
     const grandTotal = rows.reduce((s, r) => s + r.total, 0);
-    const prevTotal = getSummaryRows(prevMonthStr(monthStr)).reduce((s, r) => s + r.total, 0);
 
     totalEl.innerHTML = `${grandTotal} <small>ชิ้น</small>`;
-    if(prevTotal === 0 && grandTotal === 0){
-      trendEl.innerHTML = '';
-    } else if(prevTotal === 0){
-      trendEl.innerHTML = `<span class="trend-up">↑ ใหม่ทั้งหมด</span> (เดือนก่อนไม่มีข้อมูล)`;
+    if(periodStateSum && periodStateSum.type === 'month' && periodStateSum.month){
+      const prevTotal = data.members.reduce((sum, m) => sum + data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(prevMonthStr(periodStateSum.month))).reduce((s, r) => s + (Number(r.quantity) || 0), 0), 0);
+      if(prevTotal === 0 && grandTotal === 0){
+        trendEl.innerHTML = '';
+      } else if(prevTotal === 0){
+        trendEl.innerHTML = `<span class="trend-up">↑ ใหม่ทั้งหมด</span> (เดือนก่อนไม่มีข้อมูล)`;
+      } else {
+        const diffPct = Math.round(((grandTotal - prevTotal) / prevTotal) * 100);
+        if(diffPct > 0) trendEl.innerHTML = `<span class="trend-up">↑ ${diffPct}%</span> จากเดือนก่อน`;
+        else if(diffPct < 0) trendEl.innerHTML = `<span class="trend-down">↓ ${Math.abs(diffPct)}%</span> จากเดือนก่อน`;
+        else trendEl.innerHTML = `<span class="trend-flat">เท่าเดือนก่อน</span>`;
+      }
     } else {
-      const diffPct = Math.round(((grandTotal - prevTotal) / prevTotal) * 100);
-      if(diffPct > 0) trendEl.innerHTML = `<span class="trend-up">↑ ${diffPct}%</span> จากเดือนก่อน`;
-      else if(diffPct < 0) trendEl.innerHTML = `<span class="trend-down">↓ ${Math.abs(diffPct)}%</span> จากเดือนก่อน`;
-      else trendEl.innerHTML = `<span class="trend-flat">เท่าเดือนก่อน</span>`;
+      trendEl.innerHTML = '';
     }
 
-    const uniqueDays = new Set(data.dailyReports.filter(r => r.date.startsWith(monthStr)).map(r => r.date)).size;
+    const uniqueDays = new Set(data.dailyReports.filter(r => periodMatches(r.date, 'summaryPeriodFilter')).map(r => r.date)).size;
     const avgPerDay = uniqueDays > 0 ? Math.round((grandTotal / uniqueDays) * 10) / 10 : 0;
     avgEl.innerHTML = `${avgPerDay} <small>ชิ้น/วัน</small>`;
     avgSubEl.textContent = uniqueDays > 0 ? `จาก ${uniqueDays} วันที่มีการบันทึก` : 'ยังไม่มีการบันทึก';
@@ -5353,7 +5421,7 @@
     }
 
     if(ranked.length === 0){
-      rankListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในเดือนนี้</div>';
+      rankListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในช่วงที่เลือก</div>';
     } else {
       const maxTotal = ranked[0].total;
       rankListEl.innerHTML = ranked.map((r, i) => `
@@ -5368,18 +5436,15 @@
   }
 
   function renderSummaryTable(){
-    const monthStr = document.getElementById('summaryMonthInput').value;
     const head = document.getElementById('summaryTableHead');
     const body = document.getElementById('summaryTableBody');
     const emptyMsg = document.getElementById('summaryEmptyMsg');
 
-    renderSummaryKpis(monthStr);
+    renderSummaryKpis();
 
     head.innerHTML = `<th>คน</th>${WORK_TYPES.map(t => `<th class="num-cell">${escapeHtml(t)}</th>`).join('')}<th class="num-cell">รวม</th>`;
 
-    if(!monthStr){ body.innerHTML = ''; emptyMsg.style.display = 'block'; return; }
-
-    const rows = getSummaryRows(monthStr);
+    const rows = getSummaryRows();
     const hasAnyData = rows.some(r => r.total > 0);
 
     if(!hasAnyData){
@@ -5506,10 +5571,7 @@
   }
 
   function exportSummaryCsv(){
-    const monthStr = document.getElementById('summaryMonthInput').value;
-    if(!monthStr){ alert('กรุณาเลือกเดือนก่อนออกรายงาน'); return; }
-
-    const rows = getSummaryRows(monthStr);
+    const rows = getSummaryRows();
     const header = ['คน', ...WORK_TYPES, 'รวม'].map(csvEscape);
     const lines = [header.join(',')];
 
@@ -5522,7 +5584,8 @@
     const grandTotal = rows.reduce((s, r) => s + r.total, 0);
     lines.push([csvEscape('รวมทั้งทีม'), ...grandTotalByType, grandTotal].join(','));
 
-    downloadCsv(lines.join('\r\n'), `contentflow-สรุป-KPI-${monthStr}.csv`);
+    const periodLabelText = periodLabel('summaryPeriodFilter').replace(/[^\w\dก-๙-]/g, '_');
+    downloadCsv(lines.join('\r\n'), `contentflow-สรุป-KPI-${periodLabelText || todayISO()}.csv`);
   }
 
   function getFilteredDailyReportRows(){
@@ -5844,10 +5907,6 @@
 
   document.getElementById('addPlanBtn').addEventListener('click', () => openPlanModal());
 
-  document.getElementById('dashPeriodDayInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
-  document.getElementById('dashPeriodMonthInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
-  document.getElementById('dashPeriodYearInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
-
   document.getElementById('planModalCancel').addEventListener('click', closePlanModal);
   guardClick(document.getElementById('planModalSave'), savePlan);
   document.getElementById('planModalOverlay').addEventListener('click', (e) => {
@@ -5881,8 +5940,6 @@
     renderIdeasList();
   });
 
-  document.getElementById('summaryMonthInput').addEventListener('change', renderSummaryTable);
-  document.getElementById('scoreMonthInput').addEventListener('change', renderScorePage);
   document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
   document.getElementById('exportDayCsvBtn').addEventListener('click', exportDayReportCsv);
   document.getElementById('summaryViewMonthBtn').addEventListener('click', () => showSummaryView('month'));
@@ -5974,12 +6031,14 @@
   });
 
   async function boot(){
-    document.getElementById('summaryMonthInput').value = currentMonthStr();
-    document.getElementById('scoreMonthInput').value = currentMonthStr();
-    document.getElementById('dashPeriodMonthInput').value = currentMonthStr();
-    document.getElementById('dashPeriodDayInput').value = todayISO();
-    document.getElementById('dashPeriodYearInput').value = todayISO().slice(0, 4);
-    dashPeriodValue = currentMonthStr();
+    document.getElementById('dashPeriodFilterSlot').innerHTML = periodFilterHtml('dashPeriodFilter');
+    initPeriodFilter('dashPeriodFilter', renderDashboard);
+    document.getElementById('mdPeriodFilterSlot').innerHTML = periodFilterHtml('mdPeriodFilter');
+    initPeriodFilter('mdPeriodFilter', renderMemberDashboard);
+    document.getElementById('summaryPeriodFilterSlot').innerHTML = periodFilterHtml('summaryPeriodFilter');
+    initPeriodFilter('summaryPeriodFilter', renderSummaryTable);
+    document.getElementById('scorePeriodFilterSlot').innerHTML = periodFilterHtml('scorePeriodFilter');
+    initPeriodFilter('scorePeriodFilter', renderScorePage);
     try {
       const remote = await fetchRemoteData();
       data = migrateData(remote.payload);
