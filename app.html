@@ -2245,7 +2245,7 @@
         <td data-label="สมาชิก">${avatarHtml(m)}${escapeHtml(m.name)}</td>
         <td data-label="ตำแหน่ง">${m.position ? escapeHtml(m.position) : '—'}${m.employeeCode ? `<div class="li-sub">${escapeHtml(m.employeeCode)}</div>` : ''}</td>
         <td data-label="แผนก">${m.department ? escapeHtml(m.department) : '—'}</td>
-        <td data-label="เข้าร่วมทีม">${formatThaiDate(m.joinDate)}<div class="li-sub">อายุงาน ${formatTenure(m.joinDate)}</div></td>
+        <td data-label="เข้าร่วมทีม">${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? `<div class="li-sub">อายุงาน ${formatTenure(m.joinDate)}</div>` : ''}</td>
         <td data-label="สถานะ">
           <select class="form-control status-select member-status-select" data-id="${m.id}">
             ${MEMBER_STATUS_LIST.map(s => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
@@ -2285,7 +2285,7 @@
           </select>
         </div>
         <div class="team-mcard-bottom">
-          <span>เข้าร่วม ${formatThaiDate(m.joinDate)} · อายุงาน ${formatTenure(m.joinDate)}</span>
+          <span>เข้าร่วม ${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? ` · อายุงาน ${formatTenure(m.joinDate)}` : ''}</span>
           <span class="qty">${isReportableMember(m) ? `${monthTotal} ชิ้น/เดือนนี้` : '—'}</span>
         </div>
         <div class="team-mcard-bottom" style="border-top:none; padding-top:0; margin-top:8px;">
@@ -2542,7 +2542,7 @@
       { label:'ตำแหน่ง', value: m.position },
       { label:'แผนก', value: m.department },
       { label:'รหัสพนักงาน', value: m.employeeCode },
-      { label:'อายุงาน', value: formatTenure(m.joinDate) },
+      ...(m.department !== 'ผู้บริหาร' ? [{ label:'อายุงาน', value: formatTenure(m.joinDate) }] : []),
       { label:'วันเดือนปีเกิด', value: m.birthDate ? formatThaiDate(m.birthDate) : '' },
       { label:'เบอร์โทรติดต่อ', value: m.phone },
       { label:'อีเมล', value: m.email }
