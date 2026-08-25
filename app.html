@@ -384,6 +384,14 @@
     vertical-align:middle; cursor:pointer; flex-shrink:0;
   }
 
+  .clip-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px;}
+  .clip-card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden;}
+  .clip-card-img{width:100%; aspect-ratio:9/16; object-fit:cover; display:block; cursor:zoom-in; background:var(--bg);}
+  .clip-card-noimg{width:100%; aspect-ratio:9/16; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text-sub); font-size:11.5px; text-align:center; padding:8px;}
+  .clip-card-body{padding:10px;}
+  .clip-card-title{font-size:12.5px; font-weight:600; margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  .clip-card-meta{display:flex; align-items:center; justify-content:space-between; gap:6px; font-size:11px; color:var(--text-sub); margin-top:6px;}
+
   .fp-unassigned-grid{display:flex; flex-wrap:wrap; gap:10px;}
   .fp-unassigned-item{width:76px; cursor:pointer; text-align:center; transition:transform .1s ease;}
   .fp-unassigned-item:hover{transform:translateY(-2px);}
@@ -637,6 +645,7 @@
       <button class="sb-item" data-page="dashboard"><span class="ic">📊</span> แดชบอร์ด</button>
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
       <button class="sb-item" data-page="scorework"><span class="ic">⭐</span> ให้คะแนนงาน</button>
+      <button class="sb-item" data-page="clippreview"><span class="ic">🎬</span> พรีวิวคลิป</button>
       <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
       <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
@@ -809,6 +818,36 @@
             <tbody id="scoreWorkItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="scoreWorkItemsEmptyMsg" style="display:none;">ไม่มีงานในเดือนนี้</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="clippreview">
+        <div class="page-head">
+          <div>
+            <h2>พรีวิวคลิป</h2>
+            <p>ดูรูปหน้าปกคลิปที่ทีมงานตัดไว้ทั้งหมดแบบรวดเร็ว คลิกรูปเพื่อดูขนาดเต็ม</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="toolbar" style="margin-bottom:0;">
+            <div class="field-row">
+              <label>กรองตามแบรนด์</label>
+              <select class="form-control" id="cpFilterBrand"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row">
+              <label>กรองตามคนทำ</label>
+              <select class="form-control" id="cpFilterOwner"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row">
+              <label>กรองตามสถานะ</label>
+              <select class="form-control" id="cpFilterStatus"><option value="">ทั้งหมด</option></select>
+            </div>
+            <button class="btn btn-outline btn-sm" id="cpClearFilterBtn">ล้างตัวกรอง</button>
+          </div>
+        </div>
+        <div class="clip-grid" id="clipPreviewGrid"></div>
+        <div class="card" id="clipPreviewEmptyMsg" style="display:none;">
+          <div class="empty-mini">ยังไม่มีงานตัดคลิปตรงตัวกรอง</div>
         </div>
       </div>
 
@@ -1589,7 +1628,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
@@ -1908,7 +1947,7 @@
     if(!iso) return '';
     const d = new Date(iso + 'T00:00:00');
     if(isNaN(d.getTime())) return '';
-    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`;
   }
 
   function formatThaiDateTime(iso){
@@ -4223,7 +4262,7 @@
   function canScoreWork(){
     const currentId = getCurrentUserId();
     const m = currentId ? data.members.find(x => x.id === currentId) : null;
-    return !!(m && m.department === 'ผู้บริหาร');
+    return !!(m && (m.department === 'ผู้จัดการ' || m.department === 'ผู้บริหาร'));
   }
 
   function scoreCellHtml(w, canScore){
@@ -4419,6 +4458,64 @@
     listBody.querySelectorAll('.score-input').forEach(sel => {
       sel.addEventListener('change', (e) => updateWorkItemScore(e.target.dataset.id, e.target.value));
     });
+  }
+
+  /* ===== พรีวิวคลิป (clippreview) ===== */
+  function renderClipPreviewFilterOptions(){
+    const brandSel = document.getElementById('cpFilterBrand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = '<option value="">ทั้งหมด</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    brandSel.value = curBrand;
+
+    const ownerSel = document.getElementById('cpFilterOwner');
+    const curOwner = ownerSel.value;
+    ownerSel.innerHTML = '<option value="">ทั้งหมด</option>' + data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    ownerSel.value = curOwner;
+
+    const statusSel = document.getElementById('cpFilterStatus');
+    const curStatus = statusSel.value;
+    statusSel.innerHTML = '<option value="">ทั้งหมด</option>' + WORKITEM_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    statusSel.value = curStatus;
+  }
+
+  function renderClipPreviewGrid(){
+    const brandFilter = document.getElementById('cpFilterBrand').value;
+    const ownerFilter = document.getElementById('cpFilterOwner').value;
+    const statusFilter = document.getElementById('cpFilterStatus').value;
+    const grid = document.getElementById('clipPreviewGrid');
+    const emptyMsg = document.getElementById('clipPreviewEmptyMsg');
+
+    let rows = data.workItems.filter(w => w.workType === 'ตัดคลิป').sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
+    if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
+    if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
+
+    if(rows.length === 0){
+      grid.innerHTML = '';
+      emptyMsg.style.display = 'block';
+      return;
+    }
+    emptyMsg.style.display = 'none';
+
+    grid.innerHTML = rows.map(w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const owner = data.members.find(m => m.id === w.ownerId);
+      return `
+        <div class="clip-card">
+          ${w.coverImageDataUrl
+            ? `<img class="clip-card-img" src="${w.coverImageDataUrl}" alt="" onclick="showImageLightbox('${w.coverImageDataUrl}')">`
+            : `<div class="clip-card-noimg">ไม่มีรูปปก</div>`}
+          <div class="clip-card-body">
+            <div class="clip-card-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</div>
+            <div class="li-sub">${brand ? escapeHtml(brand.name) : '—'}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
+            <div class="clip-card-meta">
+              <span>${owner ? escapeHtml(owner.name) : '—'} · ${w.date ? formatShortDate(w.date) : '—'}</span>
+              <span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   /* ===== Calendar ===== */
@@ -5539,6 +5636,16 @@
     renderWorkItemsTable();
   });
 
+  document.getElementById('cpFilterBrand').addEventListener('change', renderClipPreviewGrid);
+  document.getElementById('cpFilterOwner').addEventListener('change', renderClipPreviewGrid);
+  document.getElementById('cpFilterStatus').addEventListener('change', renderClipPreviewGrid);
+  document.getElementById('cpClearFilterBtn').addEventListener('click', () => {
+    document.getElementById('cpFilterBrand').value = '';
+    document.getElementById('cpFilterOwner').value = '';
+    document.getElementById('cpFilterStatus').value = '';
+    renderClipPreviewGrid();
+  });
+
   document.getElementById('postDetailsModalCancel').addEventListener('click', closePostDetailsModal);
   guardClick(document.getElementById('postDetailsModalSave'), savePostDetails);
   document.getElementById('postDetailsModalOverlay').addEventListener('click', (e) => {
@@ -5766,6 +5873,8 @@
     renderWorkItemFilterOptions();
     renderWorkItemsTable();
     renderScorePage();
+    renderClipPreviewFilterOptions();
+    renderClipPreviewGrid();
     renderCalendar();
     renderFeedPlanBrandOptions();
     renderDashboard();
