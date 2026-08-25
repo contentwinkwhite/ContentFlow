@@ -4353,7 +4353,7 @@
 
   /* ===== ให้คะแนนงาน (scorework) ===== */
   function getScoreSummaryRows(monthStr){
-    return data.members.filter(m => m.status !== 'พ้นทีม').map(m => {
+    return data.members.filter(m => m.status !== 'พ้นทีม' && m.department === 'คอนเทนต์').map(m => {
       const items = data.workItems.filter(w => w.ownerId === m.id && w.date && w.date.startsWith(monthStr));
       const buckets = countWorkItemBuckets(items);
       const done = buckets.success + buckets.posted;
