@@ -636,7 +636,6 @@
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
       <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
       <button class="sb-item" data-page="plan"><span class="ic">📋</span> สั่งงาน</button>
-      <button class="sb-item" data-page="feedplan"><span class="ic">🖼️</span> แพลนหน้าช่อง</button>
       <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
       <button class="sb-item" data-page="ideas"><span class="ic">💡</span> ไอเดีย & เทรนด์</button>
       <button class="sb-item" data-page="team"><span class="ic">👥</span> ทีมงาน</button>
@@ -854,57 +853,6 @@
             <tbody id="planTableBody"></tbody>
           </table>
           <div class="empty-mini" id="planEmptyMsg" style="display:none;">ยังไม่มีสั่งงาน กด "เพิ่มงาน" เพื่อบันทึกงานแรก</div>
-        </div>
-      </div>
-
-      <div class="page" data-page="feedplan">
-        <div class="page-head">
-          <div>
-            <h2>แพลนหน้าช่อง</h2>
-            <p>วางแผนว่าแต่ละวันในเดือนจะลงคลิปไหน เหมือนดูตารางกริดหน้าโปรไฟล์ TikTok — เลือกรูปทางซ้ายแล้ววางลงวันที่ต้องการทางขวา ดึงรูปจากคลิปตัดคลิปของแบรนด์นี้อัตโนมัติ หรืออัปโหลดรูปเองก็ได้</p>
-          </div>
-        </div>
-        <div class="card" style="margin-bottom:16px;">
-          <div class="toolbar" style="margin-bottom:0;">
-            <div class="field-row">
-              <label>แบรนด์</label>
-              <select class="form-control" id="fpBrandSelect"></select>
-            </div>
-            <div class="field-row">
-              <label>ช่องทาง</label>
-              <select class="form-control" id="fpChannelSelect"></select>
-            </div>
-            <div class="field-row">
-              <label>เดือน</label>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <button class="icon-btn" id="fpPrevMonthBtn">←</button>
-                <div style="font-weight:700; font-size:14px; min-width:110px; text-align:center;" id="fpMonthLabel"></div>
-                <button class="icon-btn" id="fpNextMonthBtn">→</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="fp-layout">
-          <div class="card">
-            <div style="font-weight:700; font-size:13px; margin-bottom:4px;">คลิปที่ยังไม่จัดลำดับ</div>
-            <p style="font-size:12px; color:var(--text-sub); margin:0 0 10px;" id="fpPickHint">คลิกรูปเพื่อใส่ในวันว่างแรกสุด (หรือคลิกช่องว่างในกริดก่อนเพื่อเลือกวันที่ต้องการ)</p>
-            <div class="fp-unassigned-grid" id="fpUnassignedGrid"></div>
-            <div class="empty-mini" id="fpUnassignedEmpty" style="display:none;"></div>
-            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border);">
-              <input type="file" accept="image/*" id="fpManualUploadFile" style="display:none;" onchange="handleFpManualUpload(this)">
-              <button class="btn btn-outline btn-sm" type="button" id="fpManualUploadBtn" onclick="document.getElementById('fpManualUploadFile').click()" style="width:100%; justify-content:center;">+ อัปโหลดรูปเอง</button>
-            </div>
-          </div>
-
-          <div class="card">
-            <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
-              <div style="font-weight:700; font-size:13px;">กริดหน้าช่อง</div>
-              <div style="font-size:12px; color:var(--text-sub);" id="fpGridCountLabel"></div>
-            </div>
-            <div class="fp-grid" id="fpGrid"></div>
-            <div class="empty-mini" id="fpGridEmpty" style="display:none;">เลือกแบรนด์และช่องทางก่อนถึงจะเห็นตารางวัน</div>
-          </div>
         </div>
       </div>
 
@@ -1425,18 +1373,6 @@
   </div>
 </div>
 
-<!-- ===== Feed Plan Item Detail Modal ===== -->
-<div class="modal-overlay" id="feedPlanItemModalOverlay">
-  <div class="modal">
-    <h3>รายละเอียดคลิป</h3>
-    <div id="fpDetailBody"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="feedPlanItemModalCancel">ปิด</button>
-      <button class="btn btn-sm" id="fpRemoveFromPlanBtn" style="background:var(--danger);">เอาออกจากแผน</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===== Calendar Event Modal ===== -->
 <div class="modal-overlay" id="calendarEventModalOverlay">
   <div class="modal">
@@ -1615,7 +1551,6 @@
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
     dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
-    feedplan:'แพลนหน้าช่อง',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
@@ -5600,17 +5535,6 @@
   document.getElementById('dashPeriodMonthInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
   document.getElementById('dashPeriodYearInput').addEventListener('change', (e) => { dashPeriodValue = e.target.value; renderDashboard(); });
 
-  document.getElementById('fpBrandSelect').addEventListener('change', renderFeedPlanChannelOptions);
-  document.getElementById('fpChannelSelect').addEventListener('change', renderFeedPlan);
-  document.getElementById('fpPrevMonthBtn').addEventListener('click', () => shiftFeedPlanMonth(-1));
-  document.getElementById('fpNextMonthBtn').addEventListener('click', () => shiftFeedPlanMonth(1));
-  document.getElementById('feedPlanItemModalCancel').addEventListener('click', closeFeedPlanItemModal);
-  document.getElementById('fpRemoveFromPlanBtn').addEventListener('click', () => {
-    if(confirm('เอาคลิปนี้ออกจากแผน?')) removeFeedPlanItemFromModal();
-  });
-  document.getElementById('feedPlanItemModalOverlay').addEventListener('click', (e) => {
-    if(e.target.id === 'feedPlanItemModalOverlay') closeFeedPlanItemModal();
-  });
   document.getElementById('planModalCancel').addEventListener('click', closePlanModal);
   guardClick(document.getElementById('planModalSave'), savePlan);
   document.getElementById('planModalOverlay').addEventListener('click', (e) => {
