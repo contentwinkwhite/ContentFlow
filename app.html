@@ -646,7 +646,6 @@
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
       <button class="sb-item" data-page="scorework"><span class="ic">⭐</span> ให้คะแนนงาน</button>
       <button class="sb-item" data-page="clippreview"><span class="ic">🎬</span> พรีวิวคลิป</button>
-      <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
       <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
       <button class="sb-item" data-page="plan"><span class="ic">📋</span> สั่งงาน</button>
@@ -848,27 +847,6 @@
         <div class="clip-grid" id="clipPreviewGrid"></div>
         <div class="card" id="clipPreviewEmptyMsg" style="display:none;">
           <div class="empty-mini">ยังไม่มีงานตัดคลิปตรงตัวกรอง</div>
-        </div>
-      </div>
-
-      <div class="page" data-page="calendar">
-        <div class="page-head">
-          <div>
-            <h2>ปฏิทิน</h2>
-            <p>ปฏิทินบอกเหตุการณ์ — แสดงคอนเทนต์ที่วางแผนลง วันสำคัญ/วันนักขัตฤกษ์ และเหตุการณ์ที่เพิ่มเอง คลิกวันที่เพื่อเพิ่มเหตุการณ์ลงวันนั้นได้เลย (ไม่รวมงานที่ทีมงานบันทึกรายวัน ดูงานเหล่านั้นได้ที่เมนู "รายงานการทำงาน")</p>
-          </div>
-          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-            <button class="icon-btn" id="calendarPrevBtn">← เดือนก่อน</button>
-            <div style="font-weight:700; font-size:15px; min-width:120px; text-align:center;" id="calendarMonthLabel"></div>
-            <button class="icon-btn" id="calendarNextBtn">เดือนถัดไป →</button>
-            <button class="btn btn-sm" id="calendarAddEventBtn">➕ เพิ่มเหตุการณ์</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="calendar-weekday-row">
-            <div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div>
-          </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
         </div>
       </div>
 
@@ -1451,31 +1429,6 @@
   </div>
 </div>
 
-<!-- ===== Calendar Event Modal ===== -->
-<div class="modal-overlay" id="calendarEventModalOverlay">
-  <div class="modal">
-    <h3 id="calendarEventModalTitle">เพิ่มเหตุการณ์</h3>
-    <div class="field-row">
-      <label>วันที่ *</label>
-      <input type="date" class="form-control" id="ceFormDate">
-    </div>
-    <div class="field-row">
-      <label>ชื่อเหตุการณ์ *</label>
-      <input type="text" class="form-control" id="ceFormTitle" placeholder="เช่น ประชุมทีม, ไลฟ์สด, เดดไลน์แคมเปญ">
-    </div>
-    <div class="field-row">
-      <label>รายละเอียด (ไม่บังคับ)</label>
-      <textarea class="form-control" id="ceFormNote" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea>
-    </div>
-    <div class="form-msg" id="ceFormMsg"></div>
-    <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="calendarEventDeleteBtn" style="display:none; margin-right:auto; color:var(--danger); border-color:var(--danger);">ลบ</button>
-      <button class="btn btn-outline btn-sm" id="calendarEventModalCancel">ยกเลิก</button>
-      <button class="btn btn-sm" id="calendarEventModalSave">บันทึก</button>
-    </div>
-  </div>
-</div>
-
 <!-- ===== Content Plan Modal ===== -->
 <div class="modal-overlay" id="planModalOverlay">
   <div class="modal">
@@ -1628,7 +1581,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
@@ -4532,10 +4485,12 @@
 
   /* ===== Calendar ===== */
   function renderCalendar(){
+    const monthLabelEl = document.getElementById('calendarMonthLabel');
+    if(!monthLabelEl) return;
     if(!calendarMonthStr) calendarMonthStr = currentMonthStr();
     const [y, m] = calendarMonthStr.split('-').map(Number);
     const monthNamesFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-    document.getElementById('calendarMonthLabel').textContent = `${monthNamesFull[m - 1]} ${y + 543}`;
+    monthLabelEl.textContent = `${monthNamesFull[m - 1]} ${y + 543}`;
 
     const startWeekday = new Date(y, m - 1, 1).getDay();
     const daysInMonth = new Date(y, m, 0).getDate();
@@ -5558,21 +5513,6 @@
   });
   document.getElementById('hamburgerBtn').addEventListener('click', openSidebar);
   document.getElementById('sbBackdrop').addEventListener('click', closeSidebarOnMobile);
-
-  document.getElementById('calendarPrevBtn').addEventListener('click', () => shiftCalendarMonth(-1));
-  document.getElementById('calendarNextBtn').addEventListener('click', () => shiftCalendarMonth(1));
-  document.getElementById('calendarAddEventBtn').addEventListener('click', () => {
-    const todayStr = todayISO();
-    const viewedMonth = calendarMonthStr || currentMonthStr();
-    const prefillDate = todayStr.startsWith(viewedMonth) ? todayStr : `${viewedMonth}-01`;
-    openCalendarEventModal(null, prefillDate);
-  });
-  document.getElementById('calendarEventModalCancel').addEventListener('click', closeCalendarEventModal);
-  guardClick(document.getElementById('calendarEventModalSave'), saveCalendarEvent);
-  document.getElementById('calendarEventDeleteBtn').addEventListener('click', deleteCalendarEvent);
-  document.getElementById('calendarEventModalOverlay').addEventListener('click', (e) => {
-    if(e.target.id === 'calendarEventModalOverlay') closeCalendarEventModal();
-  });
 
   document.getElementById('addBrandBtn').addEventListener('click', () => openBrandModal());
   document.getElementById('brandModalCancel').addEventListener('click', closeBrandModal);
