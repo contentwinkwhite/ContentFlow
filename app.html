@@ -256,6 +256,8 @@
 
   .brand-summary-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:10px;}
   .brand-summary-card{border:1px solid var(--border); border-radius:12px; padding:10px 12px;}
+  .brand-summary-card.clickable{cursor:pointer; transition:border-color .15s ease, background .15s ease;}
+  .brand-summary-card.clickable:hover{border-color:var(--accent); background:#eaf1ff;}
   .brand-summary-card .bs-head{display:flex; align-items:center; gap:0; margin-bottom:8px;}
   .brand-summary-card .li-title{font-size:13px;}
   .brand-summary-card .li-sub{font-size:11.5px;}
@@ -5074,7 +5076,7 @@
       })).sort((a, b2) => b2.count - a.count || a.name.localeCompare(b2.name));
 
       return `
-        <div class="brand-summary-card">
+        <div class="brand-summary-card clickable" onclick="goToBrandWork('${b.id}')" title="ดูงานของแบรนด์ ${escapeHtml(b.name)}">
           <div class="bs-head">
             ${brandLogoHtml(b)}
             <div>
