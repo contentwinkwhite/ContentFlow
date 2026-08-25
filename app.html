@@ -457,6 +457,19 @@
   .ss-option-clear{color:var(--text-sub);}
   .ss-option-empty{padding:9px 12px; font-size:13.5px; color:var(--text-sub);}
 
+  .ms-wrap{position:relative;}
+  .ms-trigger{width:100%; text-align:left; cursor:pointer; background:var(--card); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ms-dropdown{
+    display:none; position:absolute; top:calc(100% + 4px); left:0; right:0;
+    background:var(--panel); border:1px solid var(--border); border-radius:10px;
+    box-shadow:var(--shadow); max-height:240px; overflow-y:auto; z-index:40; padding:6px;
+  }
+  .ms-dropdown.open{display:block;}
+  .ms-option{display:flex; align-items:center; gap:8px; padding:8px 10px; font-size:13.5px; cursor:pointer; border-radius:7px;}
+  .ms-option:hover{background:var(--bg);}
+  .ms-option input{cursor:pointer;}
+  .ms-option-empty{padding:9px 12px; font-size:13.5px; color:var(--text-sub);}
+
   /* ===== Page head / buttons ===== */
   .page-head{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; flex-wrap:wrap;}
   .page-head h2{margin:0 0 5px; font-size:20px; font-weight:700;}
@@ -1332,6 +1345,7 @@
         <option>ตัดคลิป</option>
         <option>ถ่ายฟุตเทจ</option>
         <option>ออกกอง</option>
+        <option>อีเว้นท์</option>
         <option>พากย์เสียง</option>
         <option>เขียนสคริปต์</option>
         <option>อื่นๆ</option>
@@ -1610,7 +1624,7 @@
   const WORKORDER_STATUS_CHIP_CLASS = {
     'รับทราบ':'chip-shoot', 'กำลังทำ':'chip-script', 'เสร็จ':'chip-done'
   };
-  const WORK_TYPES = ['ตัดคลิป','ถ่ายฟุตเทจ','ออกกอง','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
+  const WORK_TYPES = ['ตัดคลิป','ถ่ายฟุตเทจ','ออกกอง','อีเว้นท์','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
   const IDEA_TYPES = ['ไอเดียคอนเทนต์','เทรนด์','แคปชั่นสำเร็จรูป'];
   const IDEA_CHIP_CLASS = {
     'ไอเดียคอนเทนต์':'chip-script', 'เทรนด์':'chip-shoot', 'แคปชั่นสำเร็จรูป':'chip-done'
@@ -2024,6 +2038,12 @@
     saveData();
     renderSessionsTable();
     renderLoginGate();
+    awBlocks.forEach(id => {
+      if(!awPeopleSelections[id] || awPeopleSelections[id].length === 0){
+        awPeopleSelections[id] = [memberId];
+        updateAwPeopleTrigger(id);
+      }
+    });
   }
 
   function logout(){
@@ -3815,6 +3835,7 @@
   /* ===== "บันทึกงานวันนี้" — เพิ่มได้หลายก้อนงาน ฟิลด์เปลี่ยนตามประเภทงาน ===== */
   let awBlocks = [];
   let awBlockSeq = 0;
+  let awPeopleSelections = {};
   const AW_CLIP_DRIVE_REQUIRED_STATUSES = ['รอตรวจ', 'สำเร็จ'];
 
   function awBlockTypeFieldsHtml(id, type){
@@ -3849,11 +3870,11 @@
         </div>
       `;
     }
-    if(type === 'ออกกอง'){
+    if(type === 'ออกกอง' || type === 'อีเว้นท์'){
       return `
         <div class="toolbar" style="margin-top:10px;">
           <div class="field-row"><label>แบรนด์ (ไม่บังคับ)</label><select class="form-control" id="aw_${id}_brand"></select></div>
-          <div class="field-row"><label>สถานที่ (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_location" placeholder="สถานที่ออกกอง"></div>
+          <div class="field-row"><label>สถานที่ (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_location" placeholder="${type === 'อีเว้นท์' ? 'สถานที่จัดอีเว้นท์' : 'สถานที่ออกกอง'}"></div>
           <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
         </div>
       `;
@@ -3888,6 +3909,13 @@
             <select class="form-control" id="aw_${id}_type" onchange="onAwBlockTypeChange('${id}')">
               ${WORK_TYPES.map(t => `<option value="${t}" ${t === type ? 'selected' : ''}>${t}</option>`).join('')}
             </select>
+          </div>
+          <div class="field-row" style="flex:1; min-width:220px;">
+            <label>คนที่ทำงานนี้ <span style="font-weight:400;color:var(--text-sub);">(เลือกได้หลายคน — ใครบันทึกแทนเพื่อนก็ได้)</span></label>
+            <div class="ms-wrap">
+              <button type="button" class="form-control ms-trigger" id="aw_${id}_people_trigger" onclick="toggleAwPeopleDropdown('${id}')">เลือกคน...</button>
+              <div class="ms-dropdown" id="aw_${id}_people_dropdown"></div>
+            </div>
           </div>
         </div>
         <div id="aw_${id}_fields">${awBlockTypeFieldsHtml(id, type)}</div>
@@ -4005,6 +4033,47 @@
     });
   }
 
+  function updateAwPeopleTrigger(id){
+    const btn = document.getElementById(`aw_${id}_people_trigger`);
+    if(!btn) return;
+    const selected = awPeopleSelections[id] || [];
+    const names = selected.map(mid => { const m = data.members.find(x => x.id === mid); return m ? m.name : ''; }).filter(Boolean);
+    btn.textContent = names.length ? `${names.length} คน: ${names.join(', ')}` : 'เลือกคน...';
+  }
+
+  function renderAwPeopleDropdown(id){
+    const dropdown = document.getElementById(`aw_${id}_people_dropdown`);
+    if(!dropdown) return;
+    const selected = new Set(awPeopleSelections[id] || []);
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    dropdown.innerHTML = activeMembers.length
+      ? activeMembers.map(m => `
+        <label class="ms-option">
+          <input type="checkbox" value="${m.id}" ${selected.has(m.id) ? 'checked' : ''} onchange="toggleAwPersonSelection('${id}', '${m.id}', this.checked)">
+          ${escapeHtml(m.name)}
+        </label>
+      `).join('')
+      : '<div class="ms-option-empty">ไม่มีสมาชิกที่ทำงานอยู่</div>';
+  }
+
+  function toggleAwPersonSelection(id, memberId, checked){
+    const set = new Set(awPeopleSelections[id] || []);
+    if(checked) set.add(memberId); else set.delete(memberId);
+    awPeopleSelections[id] = Array.from(set);
+    updateAwPeopleTrigger(id);
+  }
+
+  function toggleAwPeopleDropdown(id){
+    const dropdown = document.getElementById(`aw_${id}_people_dropdown`);
+    if(!dropdown) return;
+    const willOpen = !dropdown.classList.contains('open');
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+    if(willOpen){
+      renderAwPeopleDropdown(id);
+      dropdown.classList.add('open');
+    }
+  }
+
   function addAwBlock(){
     const id = 'b' + (++awBlockSeq) + Date.now().toString(36);
     const lastId = awBlocks[awBlocks.length - 1];
@@ -4017,10 +4086,14 @@
     document.getElementById('awBlockList').insertAdjacentHTML('beforeend', awBlockHtml(id, awBlocks.length, defaultDate, 'ตัดคลิป'));
     populateAwBlockBrand(id);
     onAwStatusChange(id);
+    const currentUserId = getCurrentUserId();
+    awPeopleSelections[id] = currentUserId ? [currentUserId] : [];
+    updateAwPeopleTrigger(id);
   }
 
   function removeAwBlock(id){
     awBlocks = awBlocks.filter(x => x !== id);
+    delete awPeopleSelections[id];
     const el = document.getElementById(`aw_${id}_wrap`);
     if(el) el.remove();
     renumberAwBlocks();
@@ -4029,6 +4102,7 @@
 
   function resetAwBlocks(){
     awBlocks = [];
+    awPeopleSelections = {};
     document.getElementById('awBlockList').innerHTML = '';
     addAwBlock();
   }
@@ -4054,8 +4128,11 @@
 
       if(!date){ msgEl.textContent = `งานที่ ${num}: กรุณาเลือกวันที่`; msgEl.style.display = 'block'; return; }
 
+      const ownerIds = (awPeopleSelections[id] && awPeopleSelections[id].length) ? awPeopleSelections[id] : [currentUserId];
+      if(ownerIds.length === 0){ msgEl.textContent = `งานที่ ${num}: ต้องเลือกอย่างน้อย 1 คนที่ทำงานนี้`; msgEl.style.display = 'block'; return; }
+
       const entry = {
-        date, workType, ownerId: currentUserId, brandId, quantity: 1,
+        date, workType, ownerIds, brandId, quantity: 1,
         description: '', location: '', imageNote: '', driveLink: '', channel: '', coverImageDataUrl: '',
         status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: ''
       };
@@ -4083,7 +4160,7 @@
           if(!entry.linkPost){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องใส่ลิงค์โพสต์`; msgEl.style.display = 'block'; return; }
           entry.postDate = date;
         }
-      } else if(workType === 'ออกกอง'){
+      } else if(workType === 'ออกกอง' || workType === 'อีเว้นท์'){
         entry.location = document.getElementById(`aw_${id}_location`).value.trim();
         entry.description = document.getElementById(`aw_${id}_description`).value.trim();
       } else if(workType === 'พากย์เสียง'){
@@ -4100,16 +4177,19 @@
     msgEl.style.display = 'none';
 
     entries.forEach(entry => {
-      const report = { id: uid(), memberId: entry.ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
-      data.dailyReports.push(report);
-      const w = {
-        id: uid(), title: '', date: entry.date, ownerId: entry.ownerId, brandId: entry.brandId,
-        workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
-        location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
-        postDate: entry.postDate, linkPost: entry.linkPost, reportId: report.id
-      };
-      data.workItems.push(w);
-      logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น`);
+      entry.ownerIds.forEach(ownerId => {
+        const report = { id: uid(), memberId: ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
+        data.dailyReports.push(report);
+        const w = {
+          id: uid(), title: '', date: entry.date, ownerId, brandId: entry.brandId,
+          workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
+          location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
+          postDate: entry.postDate, linkPost: entry.linkPost, reportId: report.id
+        };
+        data.workItems.push(w);
+      });
+      const ownerNames = entry.ownerIds.map(oid => { const m = data.members.find(x => x.id === oid); return m ? m.name : ''; }).filter(Boolean).join(', ');
+      logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น (${ownerNames})`);
     });
 
     saveData();
@@ -5314,6 +5394,9 @@
   document.getElementById('productFormBrandSearch').addEventListener('focus', renderProductBrandDropdown);
   document.addEventListener('click', (e) => {
     if(!e.target.closest('#productFormBrandSearch') && !e.target.closest('#productFormBrandDropdown')) hideProductBrandDropdown();
+  });
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('.ms-wrap')) document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
   });
 
   document.getElementById('importResultCancel').addEventListener('click', closeImportResultModal);
