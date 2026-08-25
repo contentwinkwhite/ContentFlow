@@ -632,6 +632,7 @@
     <nav class="sb-menu" id="sbMenu">
       <button class="sb-item" data-page="dashboard"><span class="ic">📊</span> แดชบอร์ด</button>
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
+      <button class="sb-item" data-page="scorework"><span class="ic">⭐</span> ให้คะแนนงาน</button>
       <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="brands"><span class="ic">🏢</span> งานที่บริษัทรับผิดชอบ</button>
       <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
@@ -766,10 +767,44 @@
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน</th><th></th></tr></thead>
+            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน (1-2)</th><th></th></tr></thead>
             <tbody id="workItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
+        </div>
+      </div>
+
+      <div class="page" data-page="scorework">
+        <div class="page-head">
+          <div>
+            <h2>ให้คะแนนงาน</h2>
+            <p>สรุปคะแนนรายคนต่อเดือนด้านบน ไล่ให้คะแนนทีละชิ้นด้านล่าง — ผู้บริหารให้คะแนนงานละ 1, 1.5 หรือ 2 คะแนน เพราะบางงานไม่ได้มีแค่ตัดคลิป</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="field-row" style="max-width:220px; margin-bottom:0;">
+            <label>เลือกเดือน</label>
+            <input type="month" class="form-control" id="scoreMonthInput">
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">สรุปคะแนนรายคน</div>
+          <table class="responsive-collapse">
+            <thead><tr><th>คน</th><th class="num-cell">งานทั้งหมด</th><th class="num-cell">เสร็จแล้ว</th><th class="num-cell">รอตรวจ</th><th class="num-cell">% เสร็จแล้ว</th><th class="num-cell">คะแนนรวม</th><th class="num-cell">คะแนนเฉลี่ย</th></tr></thead>
+            <tbody id="scoreSummaryTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="scoreSummaryEmptyMsg" style="display:none;">ไม่มีสมาชิกทีมที่ใช้งานอยู่</div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">รายงานการทำงาน (ให้คะแนนทีละชิ้น)</div>
+          <table class="responsive-collapse">
+            <thead><tr><th>วันที่</th><th>คนทำ</th><th>งาน</th><th>สถานะ</th><th>คะแนน (1-2)</th></tr></thead>
+            <tbody id="scoreWorkItemsTableBody"></tbody>
+          </table>
+          <div class="empty-mini" id="scoreWorkItemsEmptyMsg" style="display:none;">ไม่มีงานในเดือนนี้</div>
         </div>
       </div>
 
@@ -948,7 +983,7 @@
           <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num accent" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ชิ้นงานสะสมทั้งหมด</div><div class="num" id="mdKpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">สคริปต์ที่เขียนทั้งหมด</div><div class="num" id="mdKpiScripts">0 <small>ชิ้น</small></div></div>
-          <div class="mini-stat"><div class="label">คะแนนเฉลี่ย (เดือนนี้)</div><div class="num accent" id="mdKpiScore">– <small>/5</small></div></div>
+          <div class="mini-stat"><div class="label">คะแนนเฉลี่ย/ชิ้น (เดือนนี้)</div><div class="num accent" id="mdKpiScore">– <small>/2</small></div></div>
         </div>
         <div class="grid-2" style="margin-bottom:14px;">
           <div class="card">
@@ -1550,7 +1585,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
+    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', calendar:'ปฏิทิน', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
@@ -1973,8 +2008,7 @@
     sessionStorage.setItem(SESSION_KEY, memberId);
     data.sessions.push({ id: uid(), memberId, loginAt: nowISO() });
     saveData();
-    renderSessionsTable();
-    renderLoginGate();
+    renderEverything();
     awBlocks.forEach(id => {
       if(!awPeopleSelections[id] || awPeopleSelections[id].length === 0){
         awPeopleSelections[id] = [memberId];
@@ -2300,7 +2334,7 @@
     document.getElementById('mdKpiMonth').innerHTML = `${monthTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiTotal').innerHTML = `${allTimeTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiScripts').innerHTML = `${scriptCount} <small>ชิ้น</small>`;
-    document.getElementById('mdKpiScore').innerHTML = avgScore !== null ? `${avgScore.toFixed(2)} <small>/5</small>` : `– <small>ยังไม่มีคะแนน</small>`;
+    document.getElementById('mdKpiScore').innerHTML = avgScore !== null ? `${avgScore.toFixed(2)} <small>/2</small>` : `– <small>ยังไม่มีคะแนน</small>`;
 
     const now = new Date();
     const trendMonths = [];
@@ -4161,10 +4195,22 @@
     renderCalendar();
   }
 
+  const SCORE_OPTIONS = [1, 1.5, 2];
+
   function canScoreWork(){
     const currentId = getCurrentUserId();
     const m = currentId ? data.members.find(x => x.id === currentId) : null;
     return !!(m && m.department === 'ผู้บริหาร');
+  }
+
+  function scoreCellHtml(w, canScore){
+    if(canScore){
+      const opts = ['<option value="">—</option>'].concat(
+        SCORE_OPTIONS.map(v => `<option value="${v}"${w.score === v ? ' selected' : ''}>${v}</option>`)
+      ).join('');
+      return `<select class="form-control score-input" data-id="${w.id}" style="width:80px;">${opts}</select>`;
+    }
+    return `<span>${w.score === null || w.score === undefined ? '—' : escapeHtml(String(w.score))}</span>`;
   }
 
   function updateWorkItemScore(workItemId, rawValue){
@@ -4172,20 +4218,11 @@
     const w = data.workItems.find(x => x.id === workItemId);
     if(!w) return;
     const trimmed = String(rawValue).trim();
-    if(trimmed === ''){
-      w.score = null;
-    } else {
-      const num = Number(trimmed);
-      if(!Number.isFinite(num) || num < 1 || num > 5){
-        alert('คะแนนต้องเป็นตัวเลข 1-5');
-        renderWorkItemsTable();
-        return;
-      }
-      w.score = num;
-    }
-    logActivity('รายงานการทำงาน', `ให้คะแนนงาน "${w.title || w.product || w.workType}": ${w.score === null ? 'ยกเลิกคะแนน' : w.score + '/5'}`);
+    w.score = trimmed === '' ? null : Number(trimmed);
+    logActivity('รายงานการทำงาน', `ให้คะแนนงาน "${w.title || w.product || w.workType}": ${w.score === null ? 'ยกเลิกคะแนน' : w.score + ' คะแนน'}`);
     saveData();
     renderWorkItemsTable();
+    renderScorePage();
     renderMemberDashboard();
   }
 
@@ -4253,7 +4290,7 @@
       const hasNewCover = data.feedPlanItems.some(f => f.workItemId === w.id && f.coverOverrideDataUrl);
       return `
         <tr>
-          <td data-label="วันที่">${w.date ? formatThaiDate(w.date) : '—'}</td>
+          <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
           <td data-label="งาน">
             <div style="display:flex; align-items:center; gap:8px;">
               ${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : ''}
@@ -4271,11 +4308,7 @@
             </select>
             ${w.status === 'Post' ? `<div class="li-sub" style="margin-top:4px;">โพสต์ ${w.postDate ? formatThaiDate(w.postDate) : '—'}${w.linkPost ? ` · <a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a>` : ''} · <a href="javascript:void(0)" onclick="openPostDetailsModal('${w.id}')">แก้ไข</a></div>` : ''}
           </td>
-          <td data-label="คะแนน">
-            ${canScore
-              ? `<input type="number" min="1" max="5" step="1" class="form-control score-input" data-id="${w.id}" value="${w.score === null || w.score === undefined ? '' : w.score}" placeholder="1-5" style="width:64px;">`
-              : `<span>${w.score === null || w.score === undefined ? '—' : escapeHtml(String(w.score)) + ' / 5'}</span>`}
-          </td>
+          <td data-label="คะแนน (1-2)">${scoreCellHtml(w, canScore)}</td>
           <td data-label="">
             <div class="action-btns">
               <button class="icon-btn" onclick="openWorkItemModal('${w.id}')">แก้ไข</button>
@@ -4292,6 +4325,76 @@
 
     tbody.querySelectorAll('.status-select').forEach(sel => {
       sel.addEventListener('change', (e) => updateWorkItemStatus(e.target.dataset.id, e.target.value));
+    });
+  }
+
+  /* ===== ให้คะแนนงาน (scorework) ===== */
+  function getScoreSummaryRows(monthStr){
+    return data.members.filter(m => m.status !== 'พ้นทีม').map(m => {
+      const items = data.workItems.filter(w => w.ownerId === m.id && w.date && w.date.startsWith(monthStr));
+      const buckets = countWorkItemBuckets(items);
+      const done = buckets.success + buckets.posted;
+      const scored = items.filter(w => typeof w.score === 'number');
+      const scoreTotal = scored.reduce((s, w) => s + w.score, 0);
+      const scoreAvg = scored.length ? scoreTotal / scored.length : null;
+      return { member: m, total: items.length, done, pendingReview: buckets.pendingReview, scoreTotal, scoreAvg };
+    }).sort((a, b) => b.total - a.total);
+  }
+
+  function renderScorePage(){
+    const input = document.getElementById('scoreMonthInput');
+    if(!input.value) input.value = currentMonthStr();
+    const monthStr = input.value;
+
+    const summaryBody = document.getElementById('scoreSummaryTableBody');
+    const summaryEmpty = document.getElementById('scoreSummaryEmptyMsg');
+    const rows = getScoreSummaryRows(monthStr);
+    if(rows.length === 0){
+      summaryBody.innerHTML = '';
+      summaryEmpty.style.display = 'block';
+    } else {
+      summaryEmpty.style.display = 'none';
+      summaryBody.innerHTML = rows.map(r => `
+        <tr>
+          <td data-label="คน">${avatarHtml(r.member)}${escapeHtml(r.member.name)}</td>
+          <td class="num-cell" data-label="งานทั้งหมด">${r.total}</td>
+          <td class="num-cell" data-label="เสร็จแล้ว">${r.done}</td>
+          <td class="num-cell" data-label="รอตรวจ">${r.pendingReview}</td>
+          <td class="num-cell" data-label="% เสร็จแล้ว">${r.total ? Math.round((r.done / r.total) * 100) : 0}%</td>
+          <td class="num-cell" data-label="คะแนนรวม" style="font-weight:700;">${r.scoreTotal}</td>
+          <td class="num-cell" data-label="คะแนนเฉลี่ย">${r.scoreAvg === null ? '—' : r.scoreAvg.toFixed(2)}</td>
+        </tr>
+      `).join('');
+    }
+
+    const canScore = canScoreWork();
+    const listBody = document.getElementById('scoreWorkItemsTableBody');
+    const listEmpty = document.getElementById('scoreWorkItemsEmptyMsg');
+    const items = data.workItems.filter(w => w.date && w.date.startsWith(monthStr)).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if(items.length === 0){
+      listBody.innerHTML = '';
+      listEmpty.style.display = 'block';
+      return;
+    }
+    listEmpty.style.display = 'none';
+    listBody.innerHTML = items.map(w => {
+      const owner = data.members.find(m => m.id === w.ownerId);
+      return `
+        <tr>
+          <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
+          <td data-label="คนทำ">${owner ? `${avatarHtml(owner)}${escapeHtml(owner.name)}` : '—'}</td>
+          <td data-label="งาน">
+            <div class="li-title">${escapeHtml(w.title || w.product || w.location || w.workType || '(ไม่มีชื่อ)')}</div>
+            <div class="li-sub">${w.workType ? escapeHtml(w.workType) : ''}</div>
+          </td>
+          <td data-label="สถานะ"><span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span></td>
+          <td data-label="คะแนน (1-2)">${scoreCellHtml(w, canScore)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    listBody.querySelectorAll('.score-input').forEach(sel => {
+      sel.addEventListener('change', (e) => updateWorkItemScore(e.target.dataset.id, e.target.value));
     });
   }
 
@@ -5569,6 +5672,7 @@
   });
 
   document.getElementById('summaryMonthInput').addEventListener('change', renderSummaryTable);
+  document.getElementById('scoreMonthInput').addEventListener('change', renderScorePage);
   document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
   document.getElementById('exportDayCsvBtn').addEventListener('click', exportDayReportCsv);
   document.getElementById('summaryViewMonthBtn').addEventListener('click', () => showSummaryView('month'));
@@ -5638,6 +5742,7 @@
     renderProductsTable();
     renderWorkItemFilterOptions();
     renderWorkItemsTable();
+    renderScorePage();
     renderCalendar();
     renderFeedPlanBrandOptions();
     renderDashboard();
@@ -5658,6 +5763,7 @@
 
   async function boot(){
     document.getElementById('summaryMonthInput').value = currentMonthStr();
+    document.getElementById('scoreMonthInput').value = currentMonthStr();
     document.getElementById('dashPeriodMonthInput').value = currentMonthStr();
     document.getElementById('dashPeriodDayInput').value = todayISO();
     document.getElementById('dashPeriodYearInput').value = todayISO().slice(0, 4);
