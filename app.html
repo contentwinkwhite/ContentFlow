@@ -767,7 +767,7 @@
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th></th></tr></thead>
+            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน</th><th></th></tr></thead>
             <tbody id="workItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
@@ -1000,6 +1000,7 @@
           <div class="mini-stat"><div class="label">ชิ้นงานเดือนนี้</div><div class="num accent" id="mdKpiMonth">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">ชิ้นงานสะสมทั้งหมด</div><div class="num" id="mdKpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">สคริปต์ที่เขียนทั้งหมด</div><div class="num" id="mdKpiScripts">0 <small>ชิ้น</small></div></div>
+          <div class="mini-stat"><div class="label">คะแนนเฉลี่ย (เดือนนี้)</div><div class="num accent" id="mdKpiScore">– <small>/5</small></div></div>
         </div>
         <div class="grid-2" style="margin-bottom:14px;">
           <div class="card">
@@ -1768,6 +1769,7 @@
     if(parsed.settings.appPasswordHash === undefined) parsed.settings.appPasswordHash = '';
     if(!Array.isArray(parsed.brands)) parsed.brands = [];
     if(!Array.isArray(parsed.workItems)) parsed.workItems = [];
+    parsed.workItems.forEach(w => { if(w.score === undefined) w.score = null; });
     if(!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
     if(!Array.isArray(parsed.feedPlanItems)) parsed.feedPlanItems = [];
     parsed.feedPlanItems.forEach(f => {
@@ -2357,10 +2359,13 @@
     const monthTotal = myReportsMonth.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
     const allTimeTotal = myReportsAll.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
     const scriptCount = data.scripts.filter(s => s.authorId === m.id).length;
+    const scoredThisMonth = data.workItems.filter(w => w.ownerId === m.id && w.date && w.date.startsWith(monthStr) && typeof w.score === 'number');
+    const avgScore = scoredThisMonth.length ? (scoredThisMonth.reduce((s, w) => s + w.score, 0) / scoredThisMonth.length) : null;
 
     document.getElementById('mdKpiMonth').innerHTML = `${monthTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiTotal').innerHTML = `${allTimeTotal} <small>ชิ้น</small>`;
     document.getElementById('mdKpiScripts').innerHTML = `${scriptCount} <small>ชิ้น</small>`;
+    document.getElementById('mdKpiScore').innerHTML = avgScore !== null ? `${avgScore.toFixed(2)} <small>/5</small>` : `– <small>ยังไม่มีคะแนน</small>`;
 
     const now = new Date();
     const trendMonths = [];
@@ -3745,14 +3750,15 @@
 
   function exportWorkItemsCsv(){
     const rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const lines = [['วันที่', 'ชื่องาน', 'ผู้รับผิดชอบ', 'แบรนด์', 'ประเภทงาน', 'จำนวน', 'สินค้า', 'สถานที่', 'ช่องทาง', 'สถานะ', 'รายละเอียด'].map(csvEscape).join(',')];
+    const lines = [['วันที่', 'ชื่องาน', 'ผู้รับผิดชอบ', 'แบรนด์', 'ประเภทงาน', 'จำนวน', 'สินค้า', 'สถานที่', 'ช่องทาง', 'สถานะ', 'รายละเอียด', 'คะแนน'].map(csvEscape).join(',')];
     rows.forEach(w => {
       const owner = data.members.find(m => m.id === w.ownerId);
       const brand = data.brands.find(b => b.id === w.brandId);
       lines.push([
         csvEscape(w.date || ''), csvEscape(w.title || ''), csvEscape(owner ? owner.name : ''), csvEscape(brand ? brand.name : ''),
         csvEscape(w.workType || ''), csvEscape(w.quantity || 1), csvEscape(w.product || ''), csvEscape(w.location || ''),
-        csvEscape(w.channel || ''), csvEscape(w.status || ''), csvEscape(w.description || '')
+        csvEscape(w.channel || ''), csvEscape(w.status || ''), csvEscape(w.description || ''),
+        csvEscape(w.score === null || w.score === undefined ? '' : w.score)
       ].join(','));
     });
     downloadCsv(lines.join('\r\n'), `contentflow-รายงานการทำงาน-${todayISO()}.csv`);
@@ -4220,6 +4226,34 @@
     renderCalendar();
   }
 
+  function canScoreWork(){
+    const currentId = getCurrentUserId();
+    const m = currentId ? data.members.find(x => x.id === currentId) : null;
+    return !!(m && m.department === 'ผู้บริหาร');
+  }
+
+  function updateWorkItemScore(workItemId, rawValue){
+    if(!canScoreWork()) return;
+    const w = data.workItems.find(x => x.id === workItemId);
+    if(!w) return;
+    const trimmed = String(rawValue).trim();
+    if(trimmed === ''){
+      w.score = null;
+    } else {
+      const num = Number(trimmed);
+      if(!Number.isFinite(num) || num < 1 || num > 5){
+        alert('คะแนนต้องเป็นตัวเลข 1-5');
+        renderWorkItemsTable();
+        return;
+      }
+      w.score = num;
+    }
+    logActivity('รายงานการทำงาน', `ให้คะแนนงาน "${w.title || w.product || w.workType}": ${w.score === null ? 'ยกเลิกคะแนน' : w.score + '/5'}`);
+    saveData();
+    renderWorkItemsTable();
+    renderMemberDashboard();
+  }
+
   function openPostDetailsModal(workItemId){
     pendingPostWorkItemId = workItemId;
     const w = data.workItems.find(x => x.id === workItemId);
@@ -4277,6 +4311,7 @@
     }
     emptyMsg.style.display = 'none';
 
+    const canScore = canScoreWork();
     tbody.innerHTML = rows.map(w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const owner = data.members.find(m => m.id === w.ownerId);
@@ -4301,6 +4336,11 @@
             </select>
             ${w.status === 'Post' ? `<div class="li-sub" style="margin-top:4px;">โพสต์ ${w.postDate ? formatThaiDate(w.postDate) : '—'}${w.linkPost ? ` · <a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a>` : ''} · <a href="javascript:void(0)" onclick="openPostDetailsModal('${w.id}')">แก้ไข</a></div>` : ''}
           </td>
+          <td data-label="คะแนน">
+            ${canScore
+              ? `<input type="number" min="1" max="5" step="1" class="form-control score-input" data-id="${w.id}" value="${w.score === null || w.score === undefined ? '' : w.score}" placeholder="1-5" style="width:64px;">`
+              : `<span>${w.score === null || w.score === undefined ? '—' : escapeHtml(String(w.score)) + ' / 5'}</span>`}
+          </td>
           <td data-label="">
             <div class="action-btns">
               <button class="icon-btn" onclick="openWorkItemModal('${w.id}')">แก้ไข</button>
@@ -4310,6 +4350,10 @@
         </tr>
       `;
     }).join('');
+
+    tbody.querySelectorAll('.score-input').forEach(inp => {
+      inp.addEventListener('change', (e) => updateWorkItemScore(e.target.dataset.id, e.target.value));
+    });
 
     tbody.querySelectorAll('.status-select').forEach(sel => {
       sel.addEventListener('change', (e) => updateWorkItemStatus(e.target.dataset.id, e.target.value));
