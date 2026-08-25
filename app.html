@@ -973,7 +973,7 @@
         </div>
         <div class="card" id="teamTableCard">
           <table>
-            <thead><tr><th>สมาชิก</th><th>ตำแหน่ง</th><th>แผนก</th><th>เข้าร่วมทีม</th><th>สถานะ</th><th class="num-cell">ชิ้นงานเดือนนี้</th><th></th></tr></thead>
+            <thead><tr><th>สมาชิก</th><th>ตำแหน่ง</th><th>แผนก</th><th>วันเริ่มงาน</th><th>สถานะ</th><th class="num-cell">ชิ้นงานเดือนนี้</th><th></th></tr></thead>
             <tbody id="teamTableBody"></tbody>
           </table>
         </div>
@@ -1192,7 +1192,7 @@
       <input type="text" class="form-control" id="memberFormName" placeholder="เช่น แนน">
     </div>
     <div class="field-row">
-      <label>วันที่เข้าร่วมทีม</label>
+      <label>วันที่เริ่มงาน</label>
       <input type="date" class="form-control" id="memberFormJoinDate">
     </div>
     <div class="field-row">
@@ -1292,7 +1292,7 @@
         <input type="text" class="form-control" id="quickAddDepartment" placeholder="เช่น ฝ่ายผลิตคอนเทนต์">
       </div>
       <div class="field-row">
-        <label>วันที่เข้าร่วมทีม</label>
+        <label>วันที่เริ่มงาน</label>
         <input type="date" class="form-control" id="quickAddJoinDate">
       </div>
       <div class="form-msg" id="quickAddMsg"></div>
@@ -2245,7 +2245,7 @@
         <td data-label="สมาชิก">${avatarHtml(m)}${escapeHtml(m.name)}</td>
         <td data-label="ตำแหน่ง">${m.position ? escapeHtml(m.position) : '—'}${m.employeeCode ? `<div class="li-sub">${escapeHtml(m.employeeCode)}</div>` : ''}</td>
         <td data-label="แผนก">${m.department ? escapeHtml(m.department) : '—'}</td>
-        <td data-label="เข้าร่วมทีม">${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? `<div class="li-sub">อายุงาน ${formatTenure(m.joinDate)}</div>` : ''}</td>
+        <td data-label="วันเริ่มงาน">${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? `<div class="li-sub">อายุงาน ${formatTenure(m.joinDate)}</div>` : ''}</td>
         <td data-label="สถานะ">
           <select class="form-control status-select member-status-select" data-id="${m.id}">
             ${MEMBER_STATUS_LIST.map(s => `<option value="${s}" ${s === m.status ? 'selected' : ''}>${s}</option>`).join('')}
@@ -2285,7 +2285,7 @@
           </select>
         </div>
         <div class="team-mcard-bottom">
-          <span>เข้าร่วม ${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? ` · อายุงาน ${formatTenure(m.joinDate)}` : ''}</span>
+          <span>เริ่มงาน ${formatThaiDate(m.joinDate)}${m.department !== 'ผู้บริหาร' ? ` · อายุงาน ${formatTenure(m.joinDate)}` : ''}</span>
           <span class="qty">${isReportableMember(m) ? `${monthTotal} ชิ้น/เดือนนี้` : '—'}</span>
         </div>
         <div class="team-mcard-bottom" style="border-top:none; padding-top:0; margin-top:8px;">
@@ -2536,7 +2536,7 @@
     if(m.photoDataUrl){ mdAvatarEl.innerHTML = `<img src="${m.photoDataUrl}" alt="">`; }
     else { mdAvatarEl.innerHTML = ''; mdAvatarEl.textContent = m.name.charAt(0); }
     document.getElementById('mdName').textContent = m.name;
-    document.getElementById('mdMeta').innerHTML = `เข้าร่วม ${formatThaiDate(m.joinDate)} · <span class="chip ${MEMBER_STATUS_CHIP_CLASS[m.status] || 'chip-idea'}">${escapeHtml(m.status)}</span>`;
+    document.getElementById('mdMeta').innerHTML = `เริ่มงาน ${formatThaiDate(m.joinDate)} · <span class="chip ${MEMBER_STATUS_CHIP_CLASS[m.status] || 'chip-idea'}">${escapeHtml(m.status)}</span>`;
 
     const hrFields = [
       { label:'ตำแหน่ง', value: m.position },
@@ -2730,7 +2730,7 @@
     const msgEl = document.getElementById('memberFormMsg');
 
     if(!name || !joinDate){
-      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เข้าร่วมทีมให้ครบ';
+      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เริ่มงานให้ครบ';
       msgEl.style.display = 'block';
       return;
     }
@@ -6068,7 +6068,7 @@
     const joinDate = document.getElementById('quickAddJoinDate').value;
     const msgEl = document.getElementById('quickAddMsg');
     if(!name || !joinDate){
-      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เข้าร่วมทีมให้ครบ';
+      msgEl.textContent = 'กรอกชื่อเล่นและวันที่เริ่มงานให้ครบ';
       msgEl.style.display = 'block';
       return;
     }
