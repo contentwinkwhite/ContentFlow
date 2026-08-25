@@ -889,8 +889,13 @@
             <input type="file" accept=".csv" id="importProductsFile" style="display:none;">
             <button class="csv-btn" type="button" id="importProductsBtn">⬆ นำเข้า CSV</button>
           </div>
+          <div class="toolbar" id="productsBulkBar" style="display:none; margin-bottom:14px;">
+            <span style="font-size:13px; font-weight:600;" id="productsSelectedCount"></span>
+            <button class="btn btn-outline btn-sm" id="productsClearSelectBtn" type="button">ยกเลิกที่เลือก</button>
+            <button class="btn btn-outline btn-sm" id="productsBulkDeleteBtn" type="button" style="color:var(--danger); border-color:var(--danger);">🗑️ ลบที่เลือก</button>
+          </div>
           <table class="responsive-collapse">
-            <thead><tr><th>แบรนด์</th><th>ชื่อสินค้า</th><th></th></tr></thead>
+            <thead><tr><th style="width:34px;"><input type="checkbox" id="productsSelectAll"></th><th>แบรนด์</th><th>ชื่อสินค้า</th><th></th></tr></thead>
             <tbody id="productsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="productsEmptyMsg" style="display:none;">ยังไม่มีสินค้าในระบบ กด "เพิ่มสินค้า" เพื่อเริ่มต้น</div>
@@ -3332,28 +3337,88 @@
     if(data.brands.some(b => b.id === cur)) sel.value = cur;
   }
 
+  let selectedProductKeys = new Set();
+  function productKey(brandId, name){ return `${brandId}::${name}`; }
+
+  function getAllProductRows(){
+    const list = [];
+    data.brands.forEach(b => {
+      (Array.isArray(b.products) ? b.products : []).forEach(p => list.push({ brandId: b.id, brandName: b.name, name: p }));
+    });
+    return list;
+  }
+
+  function updateProductsBulkBar(){
+    const bar = document.getElementById('productsBulkBar');
+    if(!bar) return;
+    const n = selectedProductKeys.size;
+    bar.style.display = n > 0 ? 'flex' : 'none';
+    document.getElementById('productsSelectedCount').textContent = `เลือกแล้ว ${n} รายการ`;
+  }
+
+  function updateProductsSelectAllState(rows){
+    const selectAllEl = document.getElementById('productsSelectAll');
+    if(!selectAllEl) return;
+    const total = rows.length;
+    const selectedInView = rows.filter(r => selectedProductKeys.has(productKey(r.brandId, r.name))).length;
+    selectAllEl.checked = total > 0 && selectedInView === total;
+    selectAllEl.indeterminate = selectedInView > 0 && selectedInView < total;
+  }
+
+  function toggleAllProducts(checked){
+    const filterBrandId = document.getElementById('productsFilterBrand').value;
+    const rows = getAllProductRows().filter(r => !filterBrandId || r.brandId === filterBrandId);
+    rows.forEach(r => {
+      const key = productKey(r.brandId, r.name);
+      if(checked) selectedProductKeys.add(key); else selectedProductKeys.delete(key);
+    });
+    renderProductsTable();
+  }
+
+  function clearProductSelection(){
+    selectedProductKeys.clear();
+    renderProductsTable();
+  }
+
+  function deleteSelectedProducts(){
+    if(selectedProductKeys.size === 0) return;
+    const n = selectedProductKeys.size;
+    if(!confirm(`ลบสินค้าที่เลือกทั้งหมด ${n} รายการ? การกระทำนี้ย้อนกลับไม่ได้`)) return;
+    getAllProductRows().forEach(r => {
+      if(!selectedProductKeys.has(productKey(r.brandId, r.name))) return;
+      const brand = data.brands.find(b => b.id === r.brandId);
+      if(!brand || !Array.isArray(brand.products)) return;
+      const idx = brand.products.indexOf(r.name);
+      if(idx !== -1) brand.products.splice(idx, 1);
+    });
+    logActivity('สินค้า', `ลบสินค้าหลายรายการ: ${n} รายการ`);
+    selectedProductKeys.clear();
+    saveData();
+    renderProductsTable();
+  }
+
   function renderProductsTable(){
     const tbody = document.getElementById('productsTableBody');
     const emptyMsg = document.getElementById('productsEmptyMsg');
     if(!tbody) return;
     const filterBrandId = document.getElementById('productsFilterBrand').value;
-    let rows = [];
-    data.brands.forEach(b => {
-      (Array.isArray(b.products) ? b.products : []).forEach(p => {
-        if(!filterBrandId || b.id === filterBrandId) rows.push({ brandId: b.id, brandName: b.name, name: p });
-      });
-    });
+    let rows = getAllProductRows().filter(r => !filterBrandId || r.brandId === filterBrandId);
     rows.sort((a, b) => a.brandName.localeCompare(b.brandName) || a.name.localeCompare(b.name));
 
     if(rows.length === 0){
       tbody.innerHTML = '';
       emptyMsg.style.display = 'block';
+      updateProductsBulkBar();
+      updateProductsSelectAllState(rows);
       return;
     }
     emptyMsg.style.display = 'none';
 
-    tbody.innerHTML = rows.map(r => `
+    tbody.innerHTML = rows.map(r => {
+      const key = productKey(r.brandId, r.name);
+      return `
       <tr>
+        <td data-label=""><input type="checkbox" class="product-select" data-key="${escapeHtml(key)}" ${selectedProductKeys.has(key) ? 'checked' : ''}></td>
         <td data-label="แบรนด์"><span class="chip chip-outline">${escapeHtml(r.brandName)}</span></td>
         <td data-label="ชื่อสินค้า">${escapeHtml(r.name)}</td>
         <td data-label="">
@@ -3363,7 +3428,19 @@
           </div>
         </td>
       </tr>
-    `).join('');
+    `;
+    }).join('');
+
+    tbody.querySelectorAll('.product-select').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const key = e.target.dataset.key;
+        if(e.target.checked) selectedProductKeys.add(key); else selectedProductKeys.delete(key);
+        updateProductsBulkBar();
+        updateProductsSelectAllState(rows);
+      });
+    });
+    updateProductsBulkBar();
+    updateProductsSelectAllState(rows);
 
     tbody.querySelectorAll('button[data-act]').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -5562,7 +5639,10 @@
   document.getElementById('productModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'productModalOverlay') closeProductModal();
   });
-  document.getElementById('productsFilterBrand').addEventListener('change', renderProductsTable);
+  document.getElementById('productsFilterBrand').addEventListener('change', clearProductSelection);
+  document.getElementById('productsSelectAll').addEventListener('change', (e) => toggleAllProducts(e.target.checked));
+  document.getElementById('productsClearSelectBtn').addEventListener('click', clearProductSelection);
+  document.getElementById('productsBulkDeleteBtn').addEventListener('click', deleteSelectedProducts);
   document.getElementById('exportProductsCsvBtn').addEventListener('click', exportProductsCsv);
   document.getElementById('importProductsBtn').addEventListener('click', () => document.getElementById('importProductsFile').click());
   document.getElementById('importProductsFile').addEventListener('change', function(){ importProductsCsv(this); });
