@@ -133,6 +133,10 @@
   .login-member-dept.dept-graphic{background:#f3e8ff; color:#9333ea; border-color:transparent;}
   .login-member-dept.dept-manager{background:#fef3e1; color:#b8790a; border-color:transparent;}
   .login-member-dept.dept-exec{background:#fee2e2; color:#991b1b; border-color:transparent;}
+  .login-member-reorder{display:flex; flex-direction:column; gap:3px; flex-shrink:0;}
+  .login-member-reorder .icon-btn{padding:2px 8px; font-size:11px; line-height:1.2;}
+  .login-member-reorder .icon-btn:disabled{opacity:.35; cursor:not-allowed;}
+  .login-member-reorder .icon-btn:disabled:hover{border-color:var(--border); color:var(--text-sub);}
   .sb-item{
     display:flex; align-items:center; gap:11px;
     padding:11px 12px; border-radius:10px; font-size:14px; color:var(--text-sub);
@@ -1961,7 +1965,7 @@
       return;
     }
     emptyMsg.style.display = 'none';
-    listEl.innerHTML = data.members.map(m => `
+    listEl.innerHTML = data.members.map((m, idx) => `
       <div class="login-member-row">
         <button class="login-member-btn" onclick="loginAs('${m.id}')">
           <span class="login-member-left">
@@ -1973,8 +1977,24 @@
           </span>
           ${m.department ? `<span class="login-member-dept ${loginDeptClass(m.department)}">${escapeHtml(m.department)}</span>` : ''}
         </button>
+        <div class="login-member-reorder">
+          <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', -1)" ${idx === 0 ? 'disabled' : ''} title="เลื่อนขึ้น">▲</button>
+          <button type="button" class="icon-btn" onclick="moveMemberOrder('${m.id}', 1)" ${idx === data.members.length - 1 ? 'disabled' : ''} title="เลื่อนลง">▼</button>
+        </div>
       </div>
     `).join('');
+  }
+
+  function moveMemberOrder(memberId, direction){
+    const idx = data.members.findIndex(m => m.id === memberId);
+    if(idx === -1) return;
+    const newIdx = idx + direction;
+    if(newIdx < 0 || newIdx >= data.members.length) return;
+    const [m] = data.members.splice(idx, 1);
+    data.members.splice(newIdx, 0, m);
+    saveData();
+    renderLoginGate();
+    renderTeamPage();
   }
 
   function loginDeptClass(dept){
