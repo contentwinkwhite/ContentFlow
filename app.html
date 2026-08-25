@@ -4215,7 +4215,10 @@
   function canScoreWork(){
     const currentId = getCurrentUserId();
     const m = currentId ? data.members.find(x => x.id === currentId) : null;
-    return !!(m && (m.department === 'ผู้จัดการ' || m.department === 'ผู้บริหาร'));
+    if(!m) return false;
+    if(m.department === 'ผู้จัดการ' || m.department === 'ผู้บริหาร') return true;
+    if(m.position && m.position.startsWith('หัวหน้า')) return true;
+    return false;
   }
 
   function scoreCellHtml(w, canScore){
