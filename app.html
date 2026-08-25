@@ -1355,6 +1355,7 @@
       <label>ประเภทงาน *</label>
       <select class="form-control" id="wiFormWorkType">
         <option>ตัดคลิป</option>
+        <option>ลงคลิป</option>
         <option>ถ่ายฟุตเทจ</option>
         <option>ออกกอง</option>
         <option>อีเว้นท์</option>
@@ -1598,7 +1599,7 @@
   const WORKORDER_STATUS_CHIP_CLASS = {
     'รับทราบ':'chip-shoot', 'กำลังทำ':'chip-script', 'เสร็จ':'chip-done'
   };
-  const WORK_TYPES = ['ตัดคลิป','ถ่ายฟุตเทจ','ออกกอง','อีเว้นท์','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
+  const WORK_TYPES = ['ตัดคลิป','ลงคลิป','ถ่ายฟุตเทจ','ออกกอง','อีเว้นท์','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
   const IDEA_TYPES = ['ไอเดียคอนเทนต์','เทรนด์','แคปชั่นสำเร็จรูป'];
   const IDEA_CHIP_CLASS = {
     'ไอเดียคอนเทนต์':'chip-script', 'เทรนด์':'chip-shoot', 'แคปชั่นสำเร็จรูป':'chip-done'
@@ -3951,6 +3952,16 @@
         </div>
       `;
     }
+    if(type === 'ลงคลิป'){
+      return `
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>แบรนด์ (ไม่บังคับ)</label><select class="form-control" id="aw_${id}_brand" onchange="populateAwBlockChannel('${id}')"></select></div>
+          <div class="field-row"><label>ช่องทางที่ลง (ไม่บังคับ)</label><select class="form-control" id="aw_${id}_channel"></select></div>
+          <div class="field-row"><label>จำนวน *</label><input type="number" min="1" class="form-control" id="aw_${id}_quantity" value="1" style="width:90px;"></div>
+          <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
+        </div>
+      `;
+    }
     if(type === 'ออกกอง' || type === 'อีเว้นท์'){
       return `
         <div class="toolbar" style="margin-top:10px;">
@@ -4104,6 +4115,7 @@
     const type = document.getElementById(`aw_${id}_type`).value;
     document.getElementById(`aw_${id}_fields`).innerHTML = awBlockTypeFieldsHtml(id, type);
     populateAwBlockBrand(id);
+    if(type === 'ลงคลิป') populateAwBlockChannel(id);
     onAwStatusChange(id);
   }
 
@@ -4241,6 +4253,11 @@
           if(!entry.linkPost){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องใส่ลิงค์โพสต์`; msgEl.style.display = 'block'; return; }
           entry.postDate = date;
         }
+      } else if(workType === 'ลงคลิป'){
+        entry.channel = document.getElementById(`aw_${id}_channel`).value;
+        entry.quantity = Number(document.getElementById(`aw_${id}_quantity`).value);
+        entry.description = document.getElementById(`aw_${id}_description`).value.trim();
+        if(!entry.quantity || entry.quantity < 1){ msgEl.textContent = `งานที่ ${num}: จำนวนชิ้นต้องมากกว่า 0`; msgEl.style.display = 'block'; return; }
       } else if(workType === 'ออกกอง' || workType === 'อีเว้นท์'){
         entry.location = document.getElementById(`aw_${id}_location`).value.trim();
         entry.description = document.getElementById(`aw_${id}_description`).value.trim();
