@@ -5504,7 +5504,7 @@
       const channelRows = Array.from(channelNames).map(name => ({
         name,
         count: brandItems.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
-      })).sort((a, b2) => b2.count - a.count || a.name.localeCompare(b2.name));
+      }));
 
       return `
         <div class="brand-summary-card clickable" onclick="goToBrandWork('${b.id}')" title="ดูงานของแบรนด์ ${escapeHtml(b.name)}">
