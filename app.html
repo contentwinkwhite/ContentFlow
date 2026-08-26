@@ -5483,7 +5483,7 @@
     document.getElementById('teamWorkPosted').innerHTML = `${totalCounts.posted} <small>งาน</small>`;
 
     const postedChannels = new Set(
-      periodItems.filter(w => w.status === 'Post' && w.channel).map(w => `${w.brandId}::${w.channel}`)
+      periodItems.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).map(w => `${w.brandId}::${w.channel}`)
     );
     document.getElementById('dashChannelCount').innerHTML = `${postedChannels.size} <small>ช่อง</small>`;
 
@@ -5500,10 +5500,10 @@
       const counts = countWorkItemBuckets(brandItems);
 
       const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
-      brandItems.forEach(w => { if(w.status === 'Post' && w.channel) channelNames.add(w.channel); });
+      brandItems.forEach(w => { if((w.status === 'Post' || w.status === 'สำเร็จ') && w.channel) channelNames.add(w.channel); });
       const channelRows = Array.from(channelNames).map(name => ({
         name,
-        count: brandItems.filter(w => w.status === 'Post' && w.channel === name).length
+        count: brandItems.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
       })).sort((a, b2) => b2.count - a.count || a.name.localeCompare(b2.name));
 
       return `
