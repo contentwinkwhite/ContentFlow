@@ -1669,7 +1669,7 @@
   };
   const DEFAULT_NEW_MEMBER_STATUS = 'ทดลองงาน';
   function isActiveStatus(status){ return status !== 'พ้นทีม'; }
-  function isReportableMember(m){ return m.department !== 'ผู้จัดการ' && m.department !== 'ผู้บริหาร'; }
+  function isReportableMember(m){ return m.department !== 'ผู้จัดการ' && m.department !== 'ผู้บริหาร' && m.department !== 'ทีมงานนอก'; }
 
   const ATTENDANCE_STATUS_LIST = ['มาสาย', 'ลา', 'ขาด'];
   const ATTENDANCE_STATUS_CHIP_CLASS = { 'มาสาย':'chip-shoot', 'ลา':'chip-script', 'ขาด':'chip-edit' };
@@ -2037,7 +2037,7 @@
       return;
     }
     emptyMsg.style.display = 'none';
-    listEl.innerHTML = data.members.map(m => `
+    listEl.innerHTML = data.members.filter(m => m.department !== 'ทีมงานนอก').map(m => `
       <div class="login-member-row">
         <button class="login-member-btn" onclick="loginAs('${m.id}')">
           <span class="login-member-left">
@@ -2239,7 +2239,7 @@
   function renderTeamPage(){
     const monthStr = currentMonthStr();
     const tbody = document.getElementById('teamTableBody');
-    tbody.innerHTML = data.members.map(m => {
+    tbody.innerHTML = data.members.filter(m => m.department !== 'ทีมงานนอก').map(m => {
       const monthTotal = data.dailyReports
         .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
         .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
@@ -2270,7 +2270,7 @@
     });
 
     const mobileList = document.getElementById('teamMobileList');
-    mobileList.innerHTML = data.members.map(m => {
+    mobileList.innerHTML = data.members.filter(m => m.department !== 'ทีมงานนอก').map(m => {
       const monthTotal = data.dailyReports
         .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
         .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
@@ -3886,7 +3886,7 @@
 
     const ownerSel = document.getElementById(prefix + 'Owner');
     const curOwner = forceOwnerId !== undefined ? forceOwnerId : ownerSel.value;
-    let activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
+    let activeMembers = data.members.filter(m => isActiveStatus(m.status) && (isReportableMember(m) || m.department === 'ทีมงานนอก'));
     if(curOwner && !activeMembers.some(m => m.id === curOwner)){
       const legacyOwner = data.members.find(m => m.id === curOwner);
       if(legacyOwner) activeMembers = activeMembers.concat(legacyOwner);
@@ -3959,7 +3959,7 @@
       document.getElementById('workItemModalTitle').textContent = 'เพิ่มงาน';
       document.getElementById('wiFormTitle').value = '';
       document.getElementById('wiFormDate').value = prefillDate || todayISO();
-      const firstActive = data.members.find(m => isActiveStatus(m.status) && isReportableMember(m));
+      const firstActive = data.members.find(m => isActiveStatus(m.status) && isReportableMember(m)) || data.members.find(m => isActiveStatus(m.status) && m.department === 'ทีมงานนอก');
       document.getElementById('wiFormOwner').value = firstActive ? firstActive.id : '';
       document.getElementById('wiFormBrand').value = data.brands[0] ? data.brands[0].id : '';
       document.getElementById('wiFormWorkType').value = 'ตัดคลิป';
@@ -4398,7 +4398,7 @@
     const dropdown = document.getElementById(`aw_${id}_people_dropdown`);
     if(!dropdown) return;
     const selected = new Set(awPeopleSelections[id] || []);
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status) && (isReportableMember(m) || m.department === 'ทีมงานนอก'));
     dropdown.innerHTML = activeMembers.length
       ? activeMembers.map(m => `
         <label class="ms-option">
