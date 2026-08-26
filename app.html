@@ -2098,12 +2098,15 @@
     data.sessions.push({ id: uid(), memberId, loginAt: nowISO() });
     saveData();
     renderEverything();
-    awBlocks.forEach(id => {
-      if(!awPeopleSelections[id] || awPeopleSelections[id].length === 0){
-        awPeopleSelections[id] = [memberId];
-        updateAwPeopleTrigger(id);
-      }
-    });
+    const loggedInMember = data.members.find(m => m.id === memberId);
+    if(loggedInMember && isReportableMember(loggedInMember)){
+      awBlocks.forEach(id => {
+        if(!awPeopleSelections[id] || awPeopleSelections[id].length === 0){
+          awPeopleSelections[id] = [memberId];
+          updateAwPeopleTrigger(id);
+        }
+      });
+    }
   }
 
   function logout(){
@@ -3875,15 +3878,19 @@
     syncProductSearchDisplay(prefix);
   }
 
-  function populateWorkFormOptions(prefix){
+  function populateWorkFormOptions(prefix, forceOwnerId){
     const brandSel = document.getElementById(prefix + 'Brand');
     const curBrand = brandSel.value;
     brandSel.innerHTML = '<option value="">— ไม่ระบุแบรนด์ —</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
     if(curBrand === '' || data.brands.some(b => b.id === curBrand)) brandSel.value = curBrand;
 
     const ownerSel = document.getElementById(prefix + 'Owner');
-    const curOwner = ownerSel.value;
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    const curOwner = forceOwnerId !== undefined ? forceOwnerId : ownerSel.value;
+    let activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
+    if(curOwner && !activeMembers.some(m => m.id === curOwner)){
+      const legacyOwner = data.members.find(m => m.id === curOwner);
+      if(legacyOwner) activeMembers = activeMembers.concat(legacyOwner);
+    }
     ownerSel.innerHTML = activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')
       || '<option value="">ไม่มีสมาชิกที่ทำงานอยู่</option>';
     if(activeMembers.some(m => m.id === curOwner)) ownerSel.value = curOwner;
@@ -3923,7 +3930,8 @@
   function openWorkItemModal(workItemId, prefillDate){
     editingWorkItemId = workItemId || null;
     document.getElementById('wiFormMsg').style.display = 'none';
-    populateWorkFormOptions('wiForm');
+    const existingItem = workItemId ? data.workItems.find(x => x.id === workItemId) : null;
+    populateWorkFormOptions('wiForm', existingItem ? existingItem.ownerId : '');
     pendingWiCoverDataUrl = undefined;
     document.getElementById('wiFormCoverFile').value = '';
 
@@ -3951,7 +3959,7 @@
       document.getElementById('workItemModalTitle').textContent = 'เพิ่มงาน';
       document.getElementById('wiFormTitle').value = '';
       document.getElementById('wiFormDate').value = prefillDate || todayISO();
-      const firstActive = data.members.find(m => isActiveStatus(m.status));
+      const firstActive = data.members.find(m => isActiveStatus(m.status) && isReportableMember(m));
       document.getElementById('wiFormOwner').value = firstActive ? firstActive.id : '';
       document.getElementById('wiFormBrand').value = data.brands[0] ? data.brands[0].id : '';
       document.getElementById('wiFormWorkType').value = 'ตัดคลิป';
@@ -4390,7 +4398,7 @@
     const dropdown = document.getElementById(`aw_${id}_people_dropdown`);
     if(!dropdown) return;
     const selected = new Set(awPeopleSelections[id] || []);
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
     dropdown.innerHTML = activeMembers.length
       ? activeMembers.map(m => `
         <label class="ms-option">
