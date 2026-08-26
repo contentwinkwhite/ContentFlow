@@ -752,6 +752,7 @@
           </div>
         </div>
         <div class="card" style="margin-bottom:16px;">
+          <div id="wiPeriodFilterSlot" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border);"></div>
           <div class="toolbar" style="margin-bottom:0;">
             <div class="field-row">
               <label>กรองตามแบรนด์</label>
@@ -4662,6 +4663,7 @@
     const emptyMsg = document.getElementById('workItemsEmptyMsg');
 
     let rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    rows = rows.filter(w => periodMatches(w.date, 'wiPeriodFilter'));
     if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
     if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
     if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
@@ -6317,6 +6319,8 @@
     initPeriodFilter('summaryPeriodFilter', renderSummaryTable);
     document.getElementById('scorePeriodFilterSlot').innerHTML = periodFilterHtml('scorePeriodFilter');
     initPeriodFilter('scorePeriodFilter', renderScorePage);
+    document.getElementById('wiPeriodFilterSlot').innerHTML = periodFilterHtml('wiPeriodFilter');
+    initPeriodFilter('wiPeriodFilter', renderWorkItemsTable);
     document.getElementById('attendancePeriodFilterSlot').innerHTML = periodFilterHtml('attendancePeriodFilter');
     initPeriodFilter('attendancePeriodFilter', renderAttendancePage);
     try {
