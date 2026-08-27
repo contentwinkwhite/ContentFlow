@@ -2260,7 +2260,7 @@
   function renderTeamPage(){
     const monthStr = currentMonthStr();
     const tbody = document.getElementById('teamTableBody');
-    tbody.innerHTML = data.members.filter(m => m.department !== 'ทีมงานนอก').map(m => {
+    tbody.innerHTML = data.members.filter(isReportableMember).map(m => {
       const monthTotal = data.dailyReports
         .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
         .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
@@ -2291,7 +2291,7 @@
     });
 
     const mobileList = document.getElementById('teamMobileList');
-    mobileList.innerHTML = data.members.filter(m => m.department !== 'ทีมงานนอก').map(m => {
+    mobileList.innerHTML = data.members.filter(isReportableMember).map(m => {
       const monthTotal = data.dailyReports
         .filter(r => r.memberId === m.id && r.date.startsWith(monthStr))
         .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
@@ -2404,7 +2404,15 @@
     editingAttendanceId = recordId || null;
     document.getElementById('atFormMsg').style.display = 'none';
     const memberSel = document.getElementById('atFormMember');
-    memberSel.innerHTML = data.members.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    let pickableMembers = data.members.filter(isReportableMember);
+    if(recordId){
+      const rec = data.attendanceRecords.find(r => r.id === recordId);
+      if(rec && !pickableMembers.some(m => m.id === rec.memberId)){
+        const legacyMember = data.members.find(m => m.id === rec.memberId);
+        if(legacyMember) pickableMembers = pickableMembers.concat(legacyMember);
+      }
+    }
+    memberSel.innerHTML = pickableMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
     const statusSel = document.getElementById('atFormStatus');
     statusSel.innerHTML = ATTENDANCE_STATUS_LIST.map(s => `<option value="${s}">${escapeHtml(s)}</option>`).join('');
 
@@ -2420,7 +2428,7 @@
       document.getElementById('attendanceModalTitle').textContent = 'บันทึกวันทำงาน';
       document.getElementById('atFormDate').value = prefillDate || todayISO();
       const currentId = getCurrentUserId();
-      memberSel.value = (currentId && data.members.some(m => m.id === currentId)) ? currentId : (data.members[0] ? data.members[0].id : '');
+      memberSel.value = (currentId && pickableMembers.some(m => m.id === currentId)) ? currentId : (pickableMembers[0] ? pickableMembers[0].id : '');
       statusSel.value = ATTENDANCE_STATUS_LIST[0];
       document.getElementById('atFormNote').value = '';
       document.getElementById('attendanceDeleteBtn').style.display = 'none';
@@ -2480,7 +2488,7 @@
   function renderAttendancePage(){
     const summaryBody = document.getElementById('attendanceSummaryTableBody');
     const summaryEmpty = document.getElementById('attendanceSummaryEmptyMsg');
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
+    const activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
     const periodRecords = data.attendanceRecords.filter(r => periodMatches(r.date, 'attendancePeriodFilter'));
 
     if(activeMembers.length === 0){
