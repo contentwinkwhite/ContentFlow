@@ -939,6 +939,15 @@
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="toolbar" style="margin-bottom:0;">
+            <div class="field-row" style="flex:1; min-width:260px;">
+              <label>วางลิงก์ด่วน (Drive/ไฟล์)</label>
+              <input type="text" class="form-control" id="footageQuickLinkInput" placeholder="วางลิงก์แล้วกด Enter หรือปุ่มเพิ่ม — กรอกรายละเอียดทีหลังได้">
+            </div>
+            <button class="btn btn-sm" id="footageQuickAddBtn">➕ เพิ่มด่วน</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="toolbar" style="margin-bottom:0;">
             <div class="field-row">
               <label>กรองตามแบรนด์</label>
               <select class="form-control" id="footageFilterBrand"><option value="">ทั้งหมด</option></select>
@@ -3341,6 +3350,18 @@
     renderFootageList();
   }
 
+  function quickAddFootage(){
+    const input = document.getElementById('footageQuickLinkInput');
+    const link = input.value.trim();
+    if(!link) return;
+    data.footageItems.push({ id: uid(), brandId: '', description: '', source: '', fileLink: link, date: todayISO(), status: 'ยังไม่ได้ตัด' });
+    logActivity('เช็คลิสต์ฟุตเทจ', `วางลิงก์ด่วน: ${link}`);
+    saveData();
+    input.value = '';
+    input.focus();
+    renderFootageList();
+  }
+
   function toggleFootageStatus(footageId){
     const item = data.footageItems.find(x => x.id === footageId);
     if(!item) return;
@@ -3373,13 +3394,16 @@
 
     container.innerHTML = rows.map(item => {
       const brand = data.brands.find(b => b.id === item.brandId);
+      const descHtml = item.description
+        ? escapeHtml(item.description)
+        : `<span style="color:var(--warning);">⚠️ ยังไม่ได้กรอกรายละเอียด — กดแก้ไข</span>`;
       return `
         <div class="idea-card">
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
             <span class="chip ${FOOTAGE_STATUS_CHIP_CLASS[item.status] || 'chip-idea'}">${escapeHtml(item.status)}</span>
             ${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : ''}
           </div>
-          <div class="idea-content">${escapeHtml(item.description)}</div>
+          <div class="idea-content">${descHtml}</div>
           <div class="idea-meta">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">ลิงก์ไฟล์</a>` : ''}</div>
           <div class="idea-actions">
             <button class="icon-btn" onclick="toggleFootageStatus('${item.id}')">${item.status === 'ตัดแล้ว' ? '↩️ ยังไม่ได้ตัด' : '✅ ตัดแล้ว'}</button>
@@ -6244,6 +6268,10 @@
   });
   document.getElementById('scriptSearchInput').addEventListener('input', renderScriptsList);
 
+  guardClick(document.getElementById('footageQuickAddBtn'), quickAddFootage);
+  document.getElementById('footageQuickLinkInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); quickAddFootage(); }
+  });
   document.getElementById('addFootageBtn').addEventListener('click', () => openFootageModal());
   document.getElementById('footageModalCancel').addEventListener('click', closeFootageModal);
   guardClick(document.getElementById('footageModalSave'), saveFootage);
