@@ -943,6 +943,10 @@
               <label>วางลิงก์ด่วน (Drive/ไฟล์)</label>
               <input type="text" class="form-control" id="footageQuickLinkInput" placeholder="วางลิงก์แล้วกด Enter หรือปุ่มเพิ่ม — กรอกรายละเอียดทีหลังได้">
             </div>
+            <div class="field-row" style="width:110px;">
+              <label>จำนวนคลิปในลิงก์</label>
+              <input type="number" class="form-control" id="footageQuickCountInput" min="1" value="1">
+            </div>
             <button class="btn btn-sm" id="footageQuickAddBtn">➕ เพิ่มด่วน</button>
           </div>
         </div>
@@ -3360,12 +3364,23 @@
 
   function quickAddFootage(){
     const input = document.getElementById('footageQuickLinkInput');
+    const countInput = document.getElementById('footageQuickCountInput');
     const link = input.value.trim();
     if(!link) return;
-    data.footageItems.push({ id: uid(), brandId: '', description: '', source: '', fileLink: link, date: todayISO(), status: 'ยังไม่ได้ตัด' });
-    logActivity('เช็คลิสต์ฟุตเทจ', `วางลิงก์ด่วน: ${link}`);
+    let count = parseInt(countInput.value, 10);
+    if(!count || count < 1) count = 1;
+    const date = todayISO();
+    for(let i = 1; i <= count; i++){
+      data.footageItems.push({
+        id: uid(), brandId: '',
+        description: count > 1 ? `คลิปที่ ${i}/${count} (จากลิงก์เดียวกัน)` : '',
+        source: '', fileLink: link, date, status: 'ยังไม่ได้ตัด'
+      });
+    }
+    logActivity('เช็คลิสต์ฟุตเทจ', count > 1 ? `วางลิงก์ด่วน แยก ${count} คลิป: ${link}` : `วางลิงก์ด่วน: ${link}`);
     saveData();
     input.value = '';
+    countInput.value = '1';
     input.focus();
     renderFootageList();
   }
@@ -4176,6 +4191,7 @@
     readCsvFile(inputEl, (rows) => {
       const dataRows = rows.slice(1);
       const toAdd = [];
+      const toReplace = [];
       const errors = [];
       const isValidDate = (s) => isValidDateStr(s);
       dataRows.forEach((r, idx) => {
@@ -4217,12 +4233,36 @@
         }
         if(status === 'Post' && !channel){ errors.push(`แถวที่ ${rowNum}: สถานะ Post ต้องระบุช่องทางที่ลงด้วย`); return; }
 
-        toAdd.push({ date, title, ownerId: owner.id, ownerName: owner.name, brandId, brandName, workType, quantity, product, location, channel, status, description });
+        const rec = { date, title, ownerId: owner.id, ownerName: owner.name, brandId, brandName, workType, quantity, product, location, channel, status, description };
+        const existing = title ? data.workItems.find(w => w.date === date && w.ownerId === owner.id && (w.title || '').trim() === title) : null;
+        if(existing) toReplace.push(Object.assign({ existingId: existing.id }, rec));
+        else toAdd.push(rec);
       });
 
-      const summaryList = toAdd.map(t => `${t.date} — ${escapeHtml(t.ownerName)}${t.brandName ? ' · ' + escapeHtml(t.brandName) : ''} · ${escapeHtml(t.workType)} ${t.quantity} ชิ้น`);
-      const bodyHtml = buildImportSummaryHtml(dataRows.length, 'จะเพิ่มงานใหม่', summaryList, errors);
-      openImportResultModal('นำเข้ารายงานการทำงานจาก CSV', bodyHtml, toAdd.length ? () => {
+      const addList = toAdd.map(t => `${t.date} — ${escapeHtml(t.ownerName)}${t.brandName ? ' · ' + escapeHtml(t.brandName) : ''} · ${escapeHtml(t.workType)} ${t.quantity} ชิ้น`);
+      const replaceList = toReplace.map(t => `${t.date} — ${escapeHtml(t.ownerName)} · ${escapeHtml(t.title)}`);
+      let bodyHtml = `<p>พบ ${dataRows.length} แถวข้อมูล (ไม่รวมหัวตาราง)</p>`;
+      bodyHtml += `<p><strong>จะเพิ่มงานใหม่ ${toAdd.length} รายการ</strong></p>`;
+      if(addList.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + addList.slice(0, 15).map(t => `<li>${t}</li>`).join('') + (addList.length > 15 ? `<li>...และอีก ${addList.length - 15} รายการ</li>` : '') + '</ul>';
+      bodyHtml += `<p><strong>จะแทนที่งานเดิม ${toReplace.length} รายการ</strong> (วันที่+คนทำ+ชื่องานตรงกับที่มีอยู่แล้ว)</p>`;
+      if(replaceList.length) bodyHtml += '<ul style="margin:6px 0; padding-left:20px;">' + replaceList.slice(0, 15).map(t => `<li>${t}</li>`).join('') + (replaceList.length > 15 ? `<li>...และอีก ${replaceList.length - 15} รายการ</li>` : '') + '</ul>';
+      if(errors.length){
+        bodyHtml += `<p style="color:var(--danger); margin-top:10px;"><strong>ข้าม/ผิดพลาด ${errors.length} แถว:</strong></p>`
+          + '<ul style="margin:6px 0; padding-left:20px; color:var(--danger);">' + errors.slice(0, 15).map(e => `<li>${escapeHtml(e)}</li>`).join('') + (errors.length > 15 ? `<li>...และอีก ${errors.length - 15} รายการ</li>` : '') + '</ul>';
+      }
+
+      const hasChanges = toAdd.length > 0 || toReplace.length > 0;
+      openImportResultModal('นำเข้ารายงานการทำงานจาก CSV', bodyHtml, hasChanges ? () => {
+        toReplace.forEach(t => {
+          const w = data.workItems.find(x => x.id === t.existingId);
+          if(!w) return;
+          w.brandId = t.brandId; w.workType = t.workType; w.quantity = t.quantity; w.product = t.product;
+          w.location = t.location; w.channel = t.channel; w.status = t.status; w.description = t.description;
+          w.postDate = t.status === 'Post' ? (w.postDate || t.date) : '';
+          if(t.status !== 'Post') w.linkPost = '';
+          const report = data.dailyReports.find(r => r.id === w.reportId);
+          if(report){ report.workType = t.workType; report.quantity = t.quantity; report.brandId = t.brandId; report.note = t.description; }
+        });
         toAdd.forEach(t => {
           const report = { id: uid(), memberId: t.ownerId, date: t.date, workType: t.workType, quantity: t.quantity, contentPlanId: null, brandId: t.brandId, note: t.description };
           data.dailyReports.push(report);
@@ -4233,7 +4273,7 @@
             postDate: t.status === 'Post' ? t.date : '', linkPost: '', reportId: report.id
           });
         });
-        logActivity('รายงานการทำงาน', `นำเข้ารายงานการทำงานจาก CSV ${toAdd.length} รายการ`);
+        logActivity('รายงานการทำงาน', `นำเข้ารายงานการทำงานจาก CSV: เพิ่มใหม่ ${toAdd.length}, แทนที่ ${toReplace.length} รายการ`);
         saveData();
         renderWorkItemsTable();
         renderReportTable();
@@ -6278,6 +6318,9 @@
 
   guardClick(document.getElementById('footageQuickAddBtn'), quickAddFootage);
   document.getElementById('footageQuickLinkInput').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); quickAddFootage(); }
+  });
+  document.getElementById('footageQuickCountInput').addEventListener('keydown', (e) => {
     if(e.key === 'Enter'){ e.preventDefault(); quickAddFootage(); }
   });
   document.getElementById('addFootageBtn').addEventListener('click', () => openFootageModal());
