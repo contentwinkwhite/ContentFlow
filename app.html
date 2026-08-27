@@ -658,7 +658,7 @@
       <button class="sb-item" data-page="products"><span class="ic">🏷️</span> สินค้า</button>
       <button class="sb-item" data-page="plan"><span class="ic">📋</span> สั่งงาน</button>
       <button class="sb-item" data-page="scripts"><span class="ic">📜</span> คลังสคริปต์</button>
-      <button class="sb-item" data-page="ideas"><span class="ic">💡</span> ไอเดีย & เทรนด์</button>
+      <button class="sb-item" data-page="footage"><span class="ic">🎬</span> เช็คลิสต์ฟุตเทจ</button>
       <button class="sb-item" data-page="team"><span class="ic">👥</span> ทีมงาน</button>
       <button class="sb-item" data-page="attendance"><span class="ic">🗓️</span> วันทำงานทีมงาน</button>
       <button class="sb-item" data-page="summary"><span class="ic">📈</span> สรุป KPI</button>
@@ -929,30 +929,34 @@
         </div>
       </div>
 
-      <div class="page" data-page="ideas">
+      <div class="page" data-page="footage">
         <div class="page-head">
           <div>
-            <h2>ไอเดีย & เทรนด์</h2>
-            <p>เก็บไอเดียคอนเทนต์ เทรนด์ที่เจอ และแคปชั่นสำเร็จรูปไว้ที่เดียว ติดแท็กประเภทได้ ค้นหา/กรองได้</p>
+            <h2>เช็คลิสต์ฟุตเทจ</h2>
+            <p>เก็บรายการฟุตเทจ/คอนเทนต์ที่ถ่ายมาหรือได้รับมาไว้ที่เดียว ดูได้ว่าชิ้นไหนยังไม่ได้ใช้ตัด ชิ้นไหนตัดไปแล้ว</p>
           </div>
-          <button class="btn btn-sm" id="addIdeaBtn">➕ เพิ่มไอเดีย</button>
+          <button class="btn btn-sm" id="addFootageBtn">➕ เพิ่มฟุตเทจ</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
           <div class="toolbar" style="margin-bottom:0;">
             <div class="field-row">
-              <label>กรองตามแท็ก</label>
-              <select class="form-control" id="ideaFilterTag"><option value="">ทั้งหมด</option></select>
+              <label>กรองตามแบรนด์</label>
+              <select class="form-control" id="footageFilterBrand"><option value="">ทั้งหมด</option></select>
+            </div>
+            <div class="field-row">
+              <label>กรองตามสถานะ</label>
+              <select class="form-control" id="footageFilterStatus"><option value="">ทั้งหมด</option></select>
             </div>
             <div class="field-row" style="flex:1; min-width:220px;">
               <label>ค้นหา</label>
-              <input type="text" class="form-control" id="ideaSearchInput" placeholder="ค้นหาจากเนื้อหา">
+              <input type="text" class="form-control" id="footageSearchInput" placeholder="ค้นหาจากชื่อ/คำอธิบาย">
             </div>
-            <button class="btn btn-outline btn-sm" id="clearIdeaFilterBtn">ล้างตัวกรอง</button>
+            <button class="btn btn-outline btn-sm" id="clearFootageFilterBtn">ล้างตัวกรอง</button>
           </div>
         </div>
-        <div class="grid-3" id="ideasList"></div>
-        <div class="card" id="ideasEmptyMsg" style="display:none;">
-          <div class="empty-mini" id="ideasEmptyMsgText">ยังไม่มีไอเดียในระบบ</div>
+        <div class="grid-3" id="footageList"></div>
+        <div class="card" id="footageEmptyMsg" style="display:none;">
+          <div class="empty-mini" id="footageEmptyMsgText">ยังไม่มีฟุตเทจในระบบ</div>
         </div>
       </div>
 
@@ -1568,34 +1572,38 @@
   </div>
 </div>
 
-<!-- ===== Idea Modal ===== -->
-<div class="modal-overlay" id="ideaModalOverlay">
+<!-- ===== Footage Modal ===== -->
+<div class="modal-overlay" id="footageModalOverlay">
   <div class="modal">
-    <h3 id="ideaModalTitle">เพิ่มไอเดีย</h3>
+    <h3 id="footageModalTitle">เพิ่มฟุตเทจ</h3>
     <div class="field-row">
-      <label>ประเภท</label>
-      <select class="form-control" id="ideaFormType">
-        <option>ไอเดียคอนเทนต์</option>
-        <option>เทรนด์</option>
-        <option>แคปชั่นสำเร็จรูป</option>
-      </select>
+      <label>แบรนด์</label>
+      <select class="form-control" id="footageFormBrand"><option value="">— ไม่ระบุแบรนด์ —</option></select>
     </div>
     <div class="field-row">
-      <label>เนื้อหา</label>
-      <textarea class="form-control" id="ideaFormContent" rows="3" placeholder="รายละเอียดไอเดีย/เทรนด์/แคปชั่น"></textarea>
+      <label>ชื่อ/คำอธิบายสิ่งที่ถ่ายมา</label>
+      <textarea class="form-control" id="footageFormDescription" rows="3" placeholder="เช่น นางแบบถ่ายรีวิวน้ำตบ 5 คลิป"></textarea>
     </div>
     <div class="field-row">
-      <label>ผู้บันทึก</label>
-      <select class="form-control" id="ideaFormAuthor"></select>
+      <label>คนถ่าย/แหล่งที่มา</label>
+      <input type="text" class="form-control" id="footageFormSource" placeholder="เช่น Ning ถ่ายเอง / ได้รับจากนางแบบ">
     </div>
     <div class="field-row">
-      <label>วันที่บันทึก</label>
-      <input type="date" class="form-control" id="ideaFormDate">
+      <label>ลิงก์ไฟล์</label>
+      <input type="text" class="form-control" id="footageFormLink" placeholder="ลิงก์ Drive (ไม่บังคับ)">
     </div>
-    <div class="form-msg" id="ideaFormMsg"></div>
+    <div class="field-row">
+      <label>วันที่ถ่าย/ได้รับ</label>
+      <input type="date" class="form-control" id="footageFormDate">
+    </div>
+    <div class="field-row">
+      <label>สถานะ</label>
+      <select class="form-control" id="footageFormStatus"></select>
+    </div>
+    <div class="form-msg" id="footageFormMsg"></div>
     <div class="modal-actions">
-      <button class="btn btn-outline btn-sm" id="ideaModalCancel">ยกเลิก</button>
-      <button class="btn btn-sm" id="ideaModalSave">บันทึก</button>
+      <button class="btn btn-outline btn-sm" id="footageModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="footageModalSave">บันทึก</button>
     </div>
   </div>
 </div>
@@ -1641,7 +1649,7 @@
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
     dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
-    scripts:'คลังสคริปต์', ideas:'ไอเดีย & เทรนด์', team:'ทีมงาน', attendance:'วันทำงานทีมงาน', summary:'สรุป KPI',
+    scripts:'คลังสคริปต์', footage:'เช็คลิสต์ฟุตเทจ', team:'ทีมงาน', attendance:'วันทำงานทีมงาน', summary:'สรุป KPI',
     activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
 
@@ -1651,9 +1659,9 @@
     'รับทราบ':'chip-shoot', 'กำลังทำ':'chip-script', 'เสร็จ':'chip-done'
   };
   const WORK_TYPES = ['ตัดคลิป','ลงคลิป','ถ่ายฟุตเทจ','ออกกอง','อีเว้นท์','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
-  const IDEA_TYPES = ['ไอเดียคอนเทนต์','เทรนด์','แคปชั่นสำเร็จรูป'];
-  const IDEA_CHIP_CLASS = {
-    'ไอเดียคอนเทนต์':'chip-script', 'เทรนด์':'chip-shoot', 'แคปชั่นสำเร็จรูป':'chip-done'
+  const FOOTAGE_STATUS_LIST = ['ยังไม่ได้ตัด','ตัดแล้ว'];
+  const FOOTAGE_STATUS_CHIP_CLASS = {
+    'ยังไม่ได้ตัด':'chip-shoot', 'ตัดแล้ว':'chip-done'
   };
   const WORKITEM_STATUS_LIST = ['ดำเนินการ','รอตรวจ','แก้ไข','สำเร็จ','Post','ยกเลิก'];
   const WORKITEM_STATUS_CHIP_CLASS = {
@@ -1753,6 +1761,7 @@
       workOrders:[],
       scripts:[],
       ideas:[],
+      footageItems:[],
       sessions:[],
       activityLog:[],
       settings:{ appName:'ContentFlow', logoDataUrl:null },
@@ -1790,6 +1799,8 @@
     });
     if(!Array.isArray(parsed.scripts)) parsed.scripts = [];
     if(!Array.isArray(parsed.ideas)) parsed.ideas = [];
+    if(!Array.isArray(parsed.footageItems)) parsed.footageItems = [];
+    parsed.footageItems.forEach(f => { if(!FOOTAGE_STATUS_LIST.includes(f.status)) f.status = 'ยังไม่ได้ตัด'; });
     if(!Array.isArray(parsed.sessions)) parsed.sessions = [];
     if(!Array.isArray(parsed.activityLog)) parsed.activityLog = [];
     if(!parsed.settings || typeof parsed.settings !== 'object'){
@@ -1940,7 +1951,7 @@
   let editingPlanId = null;
   let editingScriptId = null;
   let focusScriptId = null;
-  let editingIdeaId = null;
+  let editingFootageId = null;
   let pendingLogoDataUrl = undefined;
   let currentMemberDashboardId = null;
   let memberDashboardReturnPage = 'team';
@@ -3241,111 +3252,139 @@
     }
   }
 
-  /* ===== Ideas & trends page ===== */
-  function renderIdeaFormSelectOptions(){
-    const authorSel = document.getElementById('ideaFormAuthor');
-    const activeMembers = data.members.filter(m => isActiveStatus(m.status));
-    authorSel.innerHTML = activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('')
-      || '<option value="">ไม่มีสมาชิกที่ทำงานอยู่</option>';
+  /* ===== Footage checklist page ===== */
+  function renderFootageFormSelectOptions(){
+    const brandSel = document.getElementById('footageFormBrand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = '<option value="">— ไม่ระบุแบรนด์ —</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    if(curBrand === '' || data.brands.some(b => b.id === curBrand)) brandSel.value = curBrand;
+
+    const statusSel = document.getElementById('footageFormStatus');
+    statusSel.innerHTML = FOOTAGE_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
   }
 
-  function renderIdeaFilterOptions(){
-    const sel = document.getElementById('ideaFilterTag');
-    const current = sel.value;
-    sel.innerHTML = '<option value="">ทั้งหมด</option>' + IDEA_TYPES.map(t => `<option value="${t}">${t}</option>`).join('');
-    sel.value = current;
+  function renderFootageFilterOptions(){
+    const brandSel = document.getElementById('footageFilterBrand');
+    const curBrand = brandSel.value;
+    brandSel.innerHTML = '<option value="">ทั้งหมด</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+    brandSel.value = curBrand;
+
+    const statusSel = document.getElementById('footageFilterStatus');
+    const curStatus = statusSel.value;
+    statusSel.innerHTML = '<option value="">ทั้งหมด</option>' + FOOTAGE_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+    statusSel.value = curStatus;
   }
 
-  function openIdeaModal(ideaId){
-    editingIdeaId = ideaId || null;
-    document.getElementById('ideaFormMsg').style.display = 'none';
-    renderIdeaFormSelectOptions();
+  function openFootageModal(footageId){
+    editingFootageId = footageId || null;
+    document.getElementById('footageFormMsg').style.display = 'none';
+    renderFootageFormSelectOptions();
 
-    if(ideaId){
-      const idea = data.ideas.find(x => x.id === ideaId);
-      document.getElementById('ideaModalTitle').textContent = 'แก้ไขไอเดีย';
-      document.getElementById('ideaFormType').value = idea.type;
-      document.getElementById('ideaFormContent').value = idea.content;
-      document.getElementById('ideaFormAuthor').value = idea.authorId;
-      document.getElementById('ideaFormDate').value = idea.recordedDate;
+    if(footageId){
+      const item = data.footageItems.find(x => x.id === footageId);
+      document.getElementById('footageModalTitle').textContent = 'แก้ไขฟุตเทจ';
+      document.getElementById('footageFormBrand').value = item.brandId || '';
+      document.getElementById('footageFormDescription').value = item.description;
+      document.getElementById('footageFormSource').value = item.source || '';
+      document.getElementById('footageFormLink').value = item.fileLink || '';
+      document.getElementById('footageFormDate').value = item.date;
+      document.getElementById('footageFormStatus').value = item.status;
     } else {
-      document.getElementById('ideaModalTitle').textContent = 'เพิ่มไอเดีย';
-      document.getElementById('ideaFormType').value = 'ไอเดียคอนเทนต์';
-      document.getElementById('ideaFormContent').value = '';
-      const firstActive = data.members.find(m => isActiveStatus(m.status));
-      document.getElementById('ideaFormAuthor').value = firstActive ? firstActive.id : '';
-      document.getElementById('ideaFormDate').value = todayISO();
+      document.getElementById('footageModalTitle').textContent = 'เพิ่มฟุตเทจ';
+      document.getElementById('footageFormBrand').value = '';
+      document.getElementById('footageFormDescription').value = '';
+      document.getElementById('footageFormSource').value = '';
+      document.getElementById('footageFormLink').value = '';
+      document.getElementById('footageFormDate').value = todayISO();
+      document.getElementById('footageFormStatus').value = 'ยังไม่ได้ตัด';
     }
-    document.getElementById('ideaModalOverlay').classList.add('open');
+    document.getElementById('footageModalOverlay').classList.add('open');
   }
 
-  function closeIdeaModal(){
-    document.getElementById('ideaModalOverlay').classList.remove('open');
+  function closeFootageModal(){
+    document.getElementById('footageModalOverlay').classList.remove('open');
   }
 
-  function saveIdea(){
-    const type = document.getElementById('ideaFormType').value;
-    const content = document.getElementById('ideaFormContent').value.trim();
-    const authorId = document.getElementById('ideaFormAuthor').value;
-    const recordedDate = document.getElementById('ideaFormDate').value;
-    const msgEl = document.getElementById('ideaFormMsg');
+  function saveFootage(){
+    const brandId = document.getElementById('footageFormBrand').value;
+    const description = document.getElementById('footageFormDescription').value.trim();
+    const source = document.getElementById('footageFormSource').value.trim();
+    const fileLink = document.getElementById('footageFormLink').value.trim();
+    const date = document.getElementById('footageFormDate').value;
+    const status = document.getElementById('footageFormStatus').value;
+    const msgEl = document.getElementById('footageFormMsg');
 
-    if(!content){ msgEl.textContent = 'กรอกเนื้อหาไอเดีย'; msgEl.style.display = 'block'; return; }
-    if(!authorId){ msgEl.textContent = 'ต้องมีสมาชิกที่ทำงานอยู่อย่างน้อย 1 คนเป็นผู้บันทึก'; msgEl.style.display = 'block'; return; }
-    if(!recordedDate){ msgEl.textContent = 'กรุณาเลือกวันที่บันทึก'; msgEl.style.display = 'block'; return; }
+    if(!description){ msgEl.textContent = 'กรอกชื่อ/คำอธิบายสิ่งที่ถ่ายมา'; msgEl.style.display = 'block'; return; }
+    if(!date){ msgEl.textContent = 'กรุณาเลือกวันที่ถ่าย/ได้รับ'; msgEl.style.display = 'block'; return; }
     msgEl.style.display = 'none';
 
-    if(editingIdeaId){
-      const idea = data.ideas.find(x => x.id === editingIdeaId);
-      idea.type = type; idea.content = content; idea.authorId = authorId; idea.recordedDate = recordedDate;
-      logActivity('ไอเดีย & เทรนด์', `แก้ไขไอเดีย (${type})`);
+    if(editingFootageId){
+      const item = data.footageItems.find(x => x.id === editingFootageId);
+      item.brandId = brandId; item.description = description; item.source = source;
+      item.fileLink = fileLink; item.date = date; item.status = status;
+      logActivity('เช็คลิสต์ฟุตเทจ', `แก้ไขฟุตเทจ: ${description}`);
     } else {
-      data.ideas.push({ id: uid(), type, content, authorId, recordedDate });
-      logActivity('ไอเดีย & เทรนด์', `เพิ่มไอเดีย (${type})`);
+      data.footageItems.push({ id: uid(), brandId, description, source, fileLink, date, status });
+      logActivity('เช็คลิสต์ฟุตเทจ', `เพิ่มฟุตเทจ: ${description}`);
     }
     saveData();
-    closeIdeaModal();
-    renderIdeasList();
+    closeFootageModal();
+    renderFootageList();
   }
 
-  function deleteIdea(ideaId){
-    if(!confirm('ลบไอเดียนี้?')) return;
-    const target = data.ideas.find(x => x.id === ideaId);
-    data.ideas = data.ideas.filter(x => x.id !== ideaId);
-    if(target) logActivity('ไอเดีย & เทรนด์', `ลบไอเดีย (${target.type})`);
+  function deleteFootage(footageId){
+    if(!confirm('ลบฟุตเทจนี้?')) return;
+    const target = data.footageItems.find(x => x.id === footageId);
+    data.footageItems = data.footageItems.filter(x => x.id !== footageId);
+    if(target) logActivity('เช็คลิสต์ฟุตเทจ', `ลบฟุตเทจ: ${target.description}`);
     saveData();
-    renderIdeasList();
+    renderFootageList();
   }
 
-  function renderIdeasList(){
-    const tagFilter = document.getElementById('ideaFilterTag').value;
-    const searchTerm = document.getElementById('ideaSearchInput').value.trim().toLowerCase();
-    const container = document.getElementById('ideasList');
-    const emptyMsg = document.getElementById('ideasEmptyMsg');
-    const emptyMsgText = document.getElementById('ideasEmptyMsgText');
+  function toggleFootageStatus(footageId){
+    const item = data.footageItems.find(x => x.id === footageId);
+    if(!item) return;
+    item.status = item.status === 'ตัดแล้ว' ? 'ยังไม่ได้ตัด' : 'ตัดแล้ว';
+    logActivity('เช็คลิสต์ฟุตเทจ', `เปลี่ยนสถานะฟุตเทจ "${item.description}" เป็น ${item.status}`);
+    saveData();
+    renderFootageList();
+  }
 
-    let rows = [...data.ideas].sort((a, b) => b.recordedDate.localeCompare(a.recordedDate));
-    if(tagFilter) rows = rows.filter(i => i.type === tagFilter);
-    if(searchTerm) rows = rows.filter(i => i.content.toLowerCase().includes(searchTerm));
+  function renderFootageList(){
+    const brandFilter = document.getElementById('footageFilterBrand').value;
+    const statusFilter = document.getElementById('footageFilterStatus').value;
+    const searchTerm = document.getElementById('footageSearchInput').value.trim().toLowerCase();
+    const container = document.getElementById('footageList');
+    const emptyMsg = document.getElementById('footageEmptyMsg');
+    const emptyMsgText = document.getElementById('footageEmptyMsgText');
+
+    let rows = [...data.footageItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    if(brandFilter) rows = rows.filter(f => f.brandId === brandFilter);
+    if(statusFilter) rows = rows.filter(f => f.status === statusFilter);
+    if(searchTerm) rows = rows.filter(f => f.description.toLowerCase().includes(searchTerm));
 
     if(rows.length === 0){
       container.innerHTML = '';
-      emptyMsgText.textContent = data.ideas.length === 0 ? 'ยังไม่มีไอเดียในระบบ' : 'ไม่พบไอเดียที่ตรงกับตัวกรอง';
+      emptyMsgText.textContent = data.footageItems.length === 0 ? 'ยังไม่มีฟุตเทจในระบบ' : 'ไม่พบฟุตเทจที่ตรงกับตัวกรอง';
       emptyMsg.style.display = 'block';
       return;
     }
     emptyMsg.style.display = 'none';
 
-    container.innerHTML = rows.map(idea => {
-      const author = data.members.find(m => m.id === idea.authorId);
+    container.innerHTML = rows.map(item => {
+      const brand = data.brands.find(b => b.id === item.brandId);
       return `
         <div class="idea-card">
-          <span class="chip ${IDEA_CHIP_CLASS[idea.type] || 'chip-idea'}">${escapeHtml(idea.type)}</span>
-          <div class="idea-content">${escapeHtml(idea.content)}</div>
-          <div class="idea-meta">บันทึกโดย ${author ? escapeHtml(author.name) : '—'} · ${formatThaiDate(idea.recordedDate)}</div>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <span class="chip ${FOOTAGE_STATUS_CHIP_CLASS[item.status] || 'chip-idea'}">${escapeHtml(item.status)}</span>
+            ${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : ''}
+          </div>
+          <div class="idea-content">${escapeHtml(item.description)}</div>
+          <div class="idea-meta">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">ลิงก์ไฟล์</a>` : ''}</div>
           <div class="idea-actions">
-            <button class="icon-btn" onclick="openIdeaModal('${idea.id}')">แก้ไข</button>
-            <button class="icon-btn danger" onclick="deleteIdea('${idea.id}')">ลบ</button>
+            <button class="icon-btn" onclick="toggleFootageStatus('${item.id}')">${item.status === 'ตัดแล้ว' ? '↩️ ยังไม่ได้ตัด' : '✅ ตัดแล้ว'}</button>
+            <button class="icon-btn" onclick="openFootageModal('${item.id}')">แก้ไข</button>
+            <button class="icon-btn danger" onclick="deleteFootage('${item.id}')">ลบ</button>
           </div>
         </div>
       `;
@@ -6205,18 +6244,20 @@
   });
   document.getElementById('scriptSearchInput').addEventListener('input', renderScriptsList);
 
-  document.getElementById('addIdeaBtn').addEventListener('click', () => openIdeaModal());
-  document.getElementById('ideaModalCancel').addEventListener('click', closeIdeaModal);
-  guardClick(document.getElementById('ideaModalSave'), saveIdea);
-  document.getElementById('ideaModalOverlay').addEventListener('click', (e) => {
-    if(e.target.id === 'ideaModalOverlay') closeIdeaModal();
+  document.getElementById('addFootageBtn').addEventListener('click', () => openFootageModal());
+  document.getElementById('footageModalCancel').addEventListener('click', closeFootageModal);
+  guardClick(document.getElementById('footageModalSave'), saveFootage);
+  document.getElementById('footageModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'footageModalOverlay') closeFootageModal();
   });
-  document.getElementById('ideaFilterTag').addEventListener('change', renderIdeasList);
-  document.getElementById('ideaSearchInput').addEventListener('input', renderIdeasList);
-  document.getElementById('clearIdeaFilterBtn').addEventListener('click', () => {
-    document.getElementById('ideaFilterTag').value = '';
-    document.getElementById('ideaSearchInput').value = '';
-    renderIdeasList();
+  document.getElementById('footageFilterBrand').addEventListener('change', renderFootageList);
+  document.getElementById('footageFilterStatus').addEventListener('change', renderFootageList);
+  document.getElementById('footageSearchInput').addEventListener('input', renderFootageList);
+  document.getElementById('clearFootageFilterBtn').addEventListener('click', () => {
+    document.getElementById('footageFilterBrand').value = '';
+    document.getElementById('footageFilterStatus').value = '';
+    document.getElementById('footageSearchInput').value = '';
+    renderFootageList();
   });
 
   document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
@@ -6278,8 +6319,8 @@
     renderReportTable();
     renderPlanTable();
     renderScriptsList();
-    renderIdeaFilterOptions();
-    renderIdeasList();
+    renderFootageFilterOptions();
+    renderFootageList();
     renderSummaryTable();
     renderSessionsTable();
     renderActivityTable();
