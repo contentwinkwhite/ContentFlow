@@ -409,8 +409,12 @@
   }
   .cover-upload-preview img{width:100%; height:100%; object-fit:cover;}
   .cover-thumb{
-    width:32px; height:42px; border-radius:6px; object-fit:cover; border:1px solid var(--border);
+    width:44px; height:58px; border-radius:6px; object-fit:cover; border:1px solid var(--border);
     vertical-align:middle; cursor:pointer; flex-shrink:0;
+  }
+  .cover-thumb-empty{
+    width:44px; height:58px; border-radius:6px; background:var(--bg); border:1px dashed var(--border);
+    flex-shrink:0;
   }
 
   .clip-grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:14px;}
@@ -806,7 +810,7 @@
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน (1-2)</th><th></th></tr></thead>
+            <thead><tr><th>รูป</th><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน (1-2)</th><th></th></tr></thead>
             <tbody id="workItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
@@ -837,7 +841,7 @@
         <div class="card">
           <div style="font-weight:700; font-size:13px; margin-bottom:10px;">รายงานการทำงาน (ให้คะแนนทีละชิ้น)</div>
           <table class="responsive-collapse">
-            <thead><tr><th>วันที่</th><th>คนทำ</th><th>งาน</th><th>สถานะ</th><th>คะแนน (1-2)</th></tr></thead>
+            <thead><tr><th>รูป</th><th>วันที่</th><th>คนทำ</th><th>งาน</th><th>สถานะ</th><th>คะแนน (1-2)</th></tr></thead>
             <tbody id="scoreWorkItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="scoreWorkItemsEmptyMsg" style="display:none;">ไม่มีงานในเดือนนี้</div>
@@ -1187,7 +1191,7 @@
           </div>
           <div class="card">
             <table class="responsive-collapse">
-              <thead><tr><th>คน</th><th>วันที่</th><th>ประเภทงาน</th><th class="num-cell">จำนวน</th><th>แบรนด์</th><th>หมายเหตุ</th><th></th></tr></thead>
+              <thead><tr><th>รูป</th><th>คน</th><th>วันที่</th><th>ประเภทงาน</th><th class="num-cell">จำนวน</th><th>แบรนด์</th><th>หมายเหตุ</th><th></th></tr></thead>
               <tbody id="reportTableBody"></tbody>
             </table>
             <div class="empty-mini" id="reportEmptyMsg" style="display:none;">ยังไม่มีรีพอร์ตตรงตามตัวกรอง</div>
@@ -3158,8 +3162,11 @@
       const m = data.members.find(x => x.id === r.memberId);
       const name = m ? m.name : '(สมาชิกถูกลบ)';
       const brand = r.brandId ? data.brands.find(b => b.id === r.brandId) : null;
+      const linkedWorkItem = data.workItems.find(w => w.reportId === r.id);
+      const coverUrl = linkedWorkItem ? linkedWorkItem.coverImageDataUrl : '';
       return `
         <tr>
+          <td data-label="รูป">${coverUrl ? `<img src="${coverUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${coverUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
           <td data-label="คน">${avatarHtml(m)}${escapeHtml(name)}</td>
           <td data-label="วันที่">${formatThaiDate(r.date)}</td>
           <td data-label="ประเภทงาน">${escapeHtml(r.workType)}</td>
@@ -5006,15 +5013,11 @@
       const hasNewCover = data.feedPlanItems.some(f => f.workItemId === w.id && f.coverOverrideDataUrl);
       return `
         <tr>
+          <td data-label="รูป">${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
           <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
           <td data-label="งาน">
-            <div style="display:flex; align-items:center; gap:8px;">
-              ${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : ''}
-              <div>
-                <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}</div>
-                <div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
-              </div>
-            </div>
+            <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}</div>
+            <div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
           </td>
           <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
           <td data-label="ผู้รับผิดชอบ">${owner ? `${avatarHtml(owner)}${escapeHtml(owner.name)}` : '—'}</td>
@@ -5093,6 +5096,7 @@
       const owner = data.members.find(m => m.id === w.ownerId);
       return `
         <tr>
+          <td data-label="รูป">${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
           <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
           <td data-label="คนทำ">${owner ? `${avatarHtml(owner)}${escapeHtml(owner.name)}` : '—'}</td>
           <td data-label="งาน">
@@ -5832,6 +5836,8 @@
     listEl.innerHTML = data.brands.map(b => {
       const brandItems = periodItems.filter(w => w.brandId === b.id);
       const counts = countWorkItemBuckets(brandItems);
+      const mainChannel = Array.isArray(b.channels) && b.channels.length ? b.channels[0] : null;
+      const postedMainChannel = brandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).length;
 
       const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
       brandItems.forEach(w => { if((w.status === 'Post' || w.status === 'สำเร็จ') && w.channel) channelNames.add(w.channel); });
@@ -5853,7 +5859,7 @@
             <div class="stat"><div class="stat-num progress">${counts.inProgress}</div><div class="stat-label">กำลังทำ</div></div>
             <div class="stat"><div class="stat-num warning">${counts.pendingReview}</div><div class="stat-label">รอตรวจ</div></div>
             <div class="stat"><div class="stat-num accent">${counts.success}</div><div class="stat-label">สำเร็จ</div></div>
-            <div class="stat"><div class="stat-num success">${counts.posted}</div><div class="stat-label">โพสต์แล้ว</div></div>
+            <div class="stat"><div class="stat-num success">${postedMainChannel}</div><div class="stat-label">โพสต์แล้ว (ช่องหลัก)</div></div>
           </div>
           ${channelRows.length ? `
             <div class="bs-channels">
