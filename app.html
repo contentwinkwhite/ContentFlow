@@ -5853,13 +5853,13 @@
       const clipBrandItems = brandItems.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
       const counts = countWorkItemBuckets(clipBrandItems);
       const mainChannel = Array.isArray(b.channels) && b.channels.length ? b.channels[0] : null;
-      const postedMainChannel = clipBrandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).length;
+      const postedMainChannel = clipBrandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).reduce((s, w) => s + (Number(w.quantity) || 1), 0);
 
       const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
-      brandItems.forEach(w => { if((w.status === 'Post' || w.status === 'สำเร็จ') && w.channel) channelNames.add(w.channel); });
+      clipBrandItems.forEach(w => { if(w.status === 'Post' && w.channel) channelNames.add(w.channel); });
       const channelRows = Array.from(channelNames).map(name => ({
         name,
-        count: brandItems.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
+        count: clipBrandItems.filter(w => w.status === 'Post' && w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
       }));
 
       return `
