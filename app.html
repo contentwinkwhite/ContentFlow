@@ -788,6 +788,13 @@
           </div>
         </div>
         <div class="card" style="margin-bottom:16px;">
+          <div class="field-row" style="margin-bottom:12px;">
+            <label>กรองช่วงเวลาตาม</label>
+            <div class="mode-btns">
+              <button type="button" class="btn btn-sm" id="wiDateModeWork">วันที่ทำงาน</button>
+              <button type="button" class="btn btn-outline btn-sm" id="wiDateModePost">วันที่ลงคลิป</button>
+            </div>
+          </div>
           <div id="wiPeriodFilterSlot" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border);"></div>
           <div class="toolbar" style="margin-bottom:0;">
             <div class="field-row">
@@ -5121,6 +5128,15 @@
     renderScorePage();
   }
 
+  let wiDateFilterMode = 'work';
+
+  function setWiDateMode(mode){
+    wiDateFilterMode = mode;
+    document.getElementById('wiDateModeWork').className = mode === 'work' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+    document.getElementById('wiDateModePost').className = mode === 'post' ? 'btn btn-sm' : 'btn btn-outline btn-sm';
+    renderWorkItemsTable();
+  }
+
   function renderWorkItemsTable(){
     const brandFilter = document.getElementById('wiFilterBrand').value;
     const ownerFilter = document.getElementById('wiFilterOwner').value;
@@ -5130,7 +5146,7 @@
     const emptyMsg = document.getElementById('workItemsEmptyMsg');
 
     let rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    rows = rows.filter(w => periodMatches(w.date, 'wiPeriodFilter'));
+    rows = rows.filter(w => periodMatches(wiDateFilterMode === 'post' ? w.postDate : w.date, 'wiPeriodFilter'));
     if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
     if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
     if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
@@ -6714,12 +6730,14 @@
   document.getElementById('wiFilterOwner').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterStatus').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterSearch').addEventListener('input', renderWorkItemsTable);
+  document.getElementById('wiDateModeWork').addEventListener('click', () => setWiDateMode('work'));
+  document.getElementById('wiDateModePost').addEventListener('click', () => setWiDateMode('post'));
   document.getElementById('wiClearFilterBtn').addEventListener('click', () => {
     document.getElementById('wiFilterBrand').value = '';
     document.getElementById('wiFilterOwner').value = '';
     document.getElementById('wiFilterStatus').value = '';
     document.getElementById('wiFilterSearch').value = '';
-    renderWorkItemsTable();
+    setWiDateMode('work');
   });
 
   document.getElementById('cpFilterBrand').addEventListener('change', renderClipPreviewGrid);
