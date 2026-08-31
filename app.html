@@ -1555,10 +1555,6 @@
     <h3 id="workItemModalTitle">เพิ่มงาน</h3>
 
     <div class="field-row">
-      <label>ชื่อข้อหัว <span style="font-weight:400;color:var(--text-sub);">(ไม่บังคับ แก้ไขได้)</span></label>
-      <input type="text" class="form-control" id="wiFormTitle" placeholder="ตั้งชื่อสั้นๆ ให้งานนี้">
-    </div>
-    <div class="field-row">
       <label>วันที่ *</label>
       <input type="date" class="form-control" id="wiFormDate">
     </div>
@@ -1604,8 +1600,8 @@
       <select class="form-control" id="wiFormChannel"></select>
     </div>
     <div class="field-row">
-      <label>Description</label>
-      <textarea class="form-control" id="wiFormDescription" rows="2" placeholder="รายละเอียดงาน"></textarea>
+      <label>ชื่องาน / รายละเอียด <span style="font-weight:400;color:var(--text-sub);">(ไม่บังคับ — ใช้เป็นทั้งชื่อและรายละเอียดของงานนี้)</span></label>
+      <textarea class="form-control" id="wiFormDescription" rows="2" placeholder="เช่น ตัดคลิปรีวิวมาสก์ 1 ชิ้น"></textarea>
     </div>
     <div class="field-row">
       <label>Status</label>
@@ -4332,7 +4328,6 @@
     if(workItemId){
       const w = data.workItems.find(x => x.id === workItemId);
       document.getElementById('workItemModalTitle').textContent = 'แก้ไขงาน';
-      document.getElementById('wiFormTitle').value = w.title || '';
       document.getElementById('wiFormDate').value = w.date || '';
       document.getElementById('wiFormOwner').value = w.ownerId || '';
       document.getElementById('wiFormBrand').value = w.brandId;
@@ -4344,14 +4339,13 @@
       document.getElementById('wiFormLocation').value = w.location || '';
       populateWorkFormChannelOptions('wiForm', w.channel || '');
       document.getElementById('wiFormChannel').value = w.channel || '';
-      document.getElementById('wiFormDescription').value = w.description || '';
+      document.getElementById('wiFormDescription').value = w.title || w.description || '';
       document.getElementById('wiFormStatus').value = w.status;
       document.getElementById('wiFormImageNote').value = w.imageNote || '';
       document.getElementById('wiFormDriveLink').value = w.driveLink || '';
       updateWiCoverPreview(w.coverImageDataUrl || null);
     } else {
       document.getElementById('workItemModalTitle').textContent = 'เพิ่มงาน';
-      document.getElementById('wiFormTitle').value = '';
       document.getElementById('wiFormDate').value = prefillDate || todayISO();
       const firstActive = data.members.find(m => isActiveStatus(m.status) && isReportableMember(m)) || data.members.find(m => isActiveStatus(m.status) && m.department === 'ทีมงานนอก');
       document.getElementById('wiFormOwner').value = firstActive ? firstActive.id : '';
@@ -4388,7 +4382,6 @@
   }
 
   function saveWorkItem(){
-    const title = document.getElementById('wiFormTitle').value.trim();
     const date = document.getElementById('wiFormDate').value;
     const ownerId = document.getElementById('wiFormOwner').value;
     const brandId = document.getElementById('wiFormBrand').value;
@@ -4398,6 +4391,7 @@
     const location = document.getElementById('wiFormLocation').value.trim();
     const channel = document.getElementById('wiFormChannel').value.trim();
     const description = document.getElementById('wiFormDescription').value.trim();
+    const title = description;
     const status = document.getElementById('wiFormStatus').value;
     const imageNote = document.getElementById('wiFormImageNote').value.trim();
     const driveLink = document.getElementById('wiFormDriveLink').value.trim();
@@ -5186,7 +5180,7 @@
         const report = { id: uid(), memberId: ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
         data.dailyReports.push(report);
         const w = {
-          id: uid(), title: '', date: entry.date, ownerId, brandId: entry.brandId,
+          id: uid(), title: entry.description, date: entry.date, ownerId, brandId: entry.brandId,
           workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
           location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
           postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', revisions: [], reportId: report.id
@@ -5419,7 +5413,7 @@
           <td data-label="รูป">${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
           <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
           <td data-label="งาน">
-            <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}${w.revisions && w.revisions.length ? ` <span class="chip chip-edit revision-badge" style="font-size:10.5px;" onclick="openRevisionHistoryModal('${w.id}')">แก้ไข ${w.revisions.length} ครั้ง</span>` : ''}</div>
+            <div class="li-title">${escapeHtml(w.title || w.description || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}${w.revisions && w.revisions.length ? ` <span class="chip chip-edit revision-badge" style="font-size:10.5px;" onclick="openRevisionHistoryModal('${w.id}')">แก้ไข ${w.revisions.length} ครั้ง</span>` : ''}</div>
             <div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
           </td>
           <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
