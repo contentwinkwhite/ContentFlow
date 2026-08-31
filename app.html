@@ -721,6 +721,10 @@
     <div class="content">
       <div class="page dash-compact" data-page="dashboard">
         <div id="dashPeriodFilterSlot"></div>
+        <div class="field-row" style="max-width:260px; margin-bottom:14px;">
+          <label>กรองตามแบรนด์</label>
+          <select class="form-control" id="dashFilterBrand"><option value="">ทุกแบรนด์</option></select>
+        </div>
         <div class="mini-stat-grid">
           <div class="mini-stat"><div class="label" id="kpiTotalLabel">ชิ้นงานเดือนนี้</div><div class="num accent" id="kpiTotal">0 <small>ชิ้น</small></div></div>
           <div class="mini-stat"><div class="label">งานสั่งเสร็จ</div><div class="num success" id="kpiPublished">0 <small>ชิ้น</small></div></div>
@@ -1137,6 +1141,10 @@
         <div id="summaryMonthView">
           <div class="page-head" style="margin-bottom:12px; align-items:flex-end;">
             <div id="summaryPeriodFilterSlot" style="flex:1;"></div>
+            <div class="field-row" style="margin-bottom:0; max-width:220px;">
+              <label>กรองตามแบรนด์</label>
+              <select class="form-control" id="summaryFilterBrand"><option value="">ทุกแบรนด์</option></select>
+            </div>
             <button class="csv-btn" id="exportCsvBtn">⬇ ออกรายงาน CSV</button>
           </div>
 
@@ -1211,8 +1219,12 @@
           </div>
         </div>
 
-        <div class="page-head no-print" style="margin-bottom:14px;">
+        <div class="page-head no-print" style="margin-bottom:14px; align-items:flex-end;">
           <div id="reportPeriodFilterSlot" style="flex:1;"></div>
+          <div class="field-row" style="margin-bottom:0; max-width:220px;">
+            <label>กรองตามแบรนด์</label>
+            <select class="form-control" id="reportFilterBrand"><option value="">ทุกแบรนด์</option></select>
+          </div>
         </div>
 
         <h2 style="display:none; margin-bottom:14px;" id="reportPrintTitle"></h2>
@@ -5813,7 +5825,9 @@
   }
 
   function renderTeamWorkSummary(){
-    const periodItems = data.workItems.filter(w => dateInDashPeriod(w.date));
+    const dashBrandFilter = document.getElementById('dashFilterBrand').value;
+    let periodItems = data.workItems.filter(w => dateInDashPeriod(w.date));
+    if(dashBrandFilter) periodItems = periodItems.filter(w => w.brandId === dashBrandFilter);
     const totalCounts = countWorkItemBuckets(periodItems);
     document.getElementById('teamWorkInProgress').innerHTML = `${totalCounts.inProgress} <small>งาน</small>`;
     document.getElementById('teamWorkPendingReview').innerHTML = `${totalCounts.pendingReview} <small>งาน</small>`;
@@ -5827,13 +5841,14 @@
 
     const listEl = document.getElementById('brandWorkSummaryList');
     const emptyEl = document.getElementById('brandWorkSummaryEmpty');
-    if(data.brands.length === 0){
+    const brandsToShow = dashBrandFilter ? data.brands.filter(b => b.id === dashBrandFilter) : data.brands;
+    if(brandsToShow.length === 0){
       listEl.innerHTML = '';
       emptyEl.style.display = 'block';
       return;
     }
     emptyEl.style.display = 'none';
-    listEl.innerHTML = data.brands.map(b => {
+    listEl.innerHTML = brandsToShow.map(b => {
       const brandItems = periodItems.filter(w => w.brandId === b.id);
       const clipBrandItems = brandItems.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
       const counts = countWorkItemBuckets(clipBrandItems);
@@ -5874,10 +5889,12 @@
 
   function renderDashboard(){
     updateDashPeriodLabel();
-    const monthReports = data.dailyReports.filter(r => dateInDashPeriod(r.date));
+    const dashBrandFilter = document.getElementById('dashFilterBrand').value;
+    let monthReports = data.dailyReports.filter(r => dateInDashPeriod(r.date));
+    if(dashBrandFilter) monthReports = monthReports.filter(r => r.brandId === dashBrandFilter);
 
     const totalItems = monthReports.reduce((sum, r) => sum + (Number(r.quantity) || 0), 0);
-    const publishedCount = data.workOrders.filter(p => p.status === 'เสร็จ' && dateInDashPeriod(p.deadline)).length;
+    const publishedCount = data.workOrders.filter(p => p.status === 'เสร็จ' && dateInDashPeriod(p.deadline) && (!dashBrandFilter || p.brandId === dashBrandFilter)).length;
     const reportableMemberIds = new Set(data.members.filter(isReportableMember).map(m => m.id));
     const activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m)).length;
     const reportedMemberIds = new Set(monthReports.filter(r => reportableMemberIds.has(r.memberId)).map(r => r.memberId));
@@ -5952,8 +5969,9 @@
 
   /* ===== Monthly summary page ===== */
   function getSummaryRows(){
+    const brandFilter = document.getElementById('summaryFilterBrand').value;
     return data.members.filter(isReportableMember).map(m => {
-      const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && periodMatches(r.date, 'summaryPeriodFilter'));
+      const reportsForMember = data.dailyReports.filter(r => r.memberId === m.id && periodMatches(r.date, 'summaryPeriodFilter') && (!brandFilter || r.brandId === brandFilter));
       const byType = {};
       WORK_TYPES.forEach(t => { byType[t] = 0; });
       let total = 0;
@@ -5993,7 +6011,8 @@
 
     totalEl.innerHTML = `${grandTotal} <small>ชิ้น</small>`;
     if(periodStateSum && periodStateSum.type === 'month' && periodStateSum.month){
-      const prevTotal = data.members.filter(isReportableMember).reduce((sum, m) => sum + data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(prevMonthStr(periodStateSum.month))).reduce((s, r) => s + (Number(r.quantity) || 0), 0), 0);
+      const brandFilterForTrend = document.getElementById('summaryFilterBrand').value;
+      const prevTotal = data.members.filter(isReportableMember).reduce((sum, m) => sum + data.dailyReports.filter(r => r.memberId === m.id && r.date.startsWith(prevMonthStr(periodStateSum.month)) && (!brandFilterForTrend || r.brandId === brandFilterForTrend)).reduce((s, r) => s + (Number(r.quantity) || 0), 0), 0);
       if(prevTotal === 0 && grandTotal === 0){
         trendEl.innerHTML = '';
       } else if(prevTotal === 0){
@@ -6225,8 +6244,13 @@
 
   /* ===== รายงานสรุปผลงาน (สำหรับส่งเจ้านาย) ===== */
   function renderReportPage(){
-    const items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
-    const reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+    const reportBrandFilter = document.getElementById('reportFilterBrand').value;
+    let items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
+    let reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+    if(reportBrandFilter){
+      items = items.filter(w => w.brandId === reportBrandFilter);
+      reports = reports.filter(r => r.brandId === reportBrandFilter);
+    }
 
     const totalQty = reports.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
     document.getElementById('reportKpiTotalQty').innerHTML = `${totalQty} <small>ชิ้น</small>`;
@@ -6336,8 +6360,13 @@
   }
 
   function exportReportCsv(){
-    const items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
-    const reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+    const reportBrandFilter = document.getElementById('reportFilterBrand').value;
+    let items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
+    let reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+    if(reportBrandFilter){
+      items = items.filter(w => w.brandId === reportBrandFilter);
+      reports = reports.filter(r => r.brandId === reportBrandFilter);
+    }
     const lines = [];
     const periodLabelText = periodLabel('reportPeriodFilter');
 
@@ -6729,6 +6758,9 @@
 
   document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
   document.getElementById('exportReportCsvBtn').addEventListener('click', exportReportCsv);
+  document.getElementById('dashFilterBrand').addEventListener('change', renderDashboard);
+  document.getElementById('summaryFilterBrand').addEventListener('change', renderSummaryTable);
+  document.getElementById('reportFilterBrand').addEventListener('change', renderReportPage);
   document.getElementById('printReportBtn').addEventListener('click', printReportPage);
   document.getElementById('exportDayCsvBtn').addEventListener('click', exportDayReportCsv);
   document.getElementById('summaryViewMonthBtn').addEventListener('click', () => showSummaryView('month'));
@@ -6781,7 +6813,18 @@
   });
 
   /* ===== Init ===== */
+  function renderTopBrandFilterOptions(){
+    ['dashFilterBrand', 'summaryFilterBrand', 'reportFilterBrand'].forEach(id => {
+      const sel = document.getElementById(id);
+      if(!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">ทุกแบรนด์</option>' + data.brands.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('');
+      sel.value = cur;
+    });
+  }
+
   function renderEverything(){
+    renderTopBrandFilterOptions();
     renderTeamPage();
     ensureAwBlocks();
     renderFilterMemberOptions();
