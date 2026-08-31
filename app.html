@@ -2850,7 +2850,30 @@
       const brandsHtml = brandKeys.map(bk => {
         const brand = bk ? data.brands.find(b => b.id === bk) : null;
         const brandName = brand ? brand.name : 'ไม่ระบุแบรนด์';
-        const rows = byBrand[bk].map(w => {
+        const brandItems = byBrand[bk];
+        const cardItems = brandItems.filter(w => w.workType === 'ตัดคลิป');
+        const otherItems = brandItems.filter(w => w.workType !== 'ตัดคลิป');
+
+        const cardsHtml = cardItems.length ? `<div class="clip-grid" style="margin-bottom:10px;">${cardItems.map(w => {
+          const hasDrive = !!w.driveLink;
+          return `
+            <div class="clip-card">
+              ${w.coverImageDataUrl
+                ? `<img class="clip-card-img" src="${w.coverImageDataUrl}" alt="" data-id="${w.id}">`
+                : `<div class="clip-card-noimg" data-id="${w.id}">${hasDrive ? '📁 เปิดไดร์ฟ' : 'ไม่มีรูปปก'}</div>`}
+              <div class="clip-card-body">
+                <div class="clip-card-title">${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</div>
+                <div class="li-sub">${w.channel ? escapeHtml(w.channel) : ''}</div>
+                <div class="clip-card-meta">
+                  <span>${w.date ? formatShortDate(w.date) : '—'}</span>
+                  <span class="chip ${WORKITEM_STATUS_CHIP_CLASS[w.status] || ''}">${escapeHtml(w.status || '—')}</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}</div>` : '';
+
+        const rows = otherItems.map(w => {
           const subParts = [formatThaiDate(w.date)];
           if(w.status === 'Post' && w.postDate) subParts.push(`โพสต์ ${formatThaiDate(w.postDate)}`);
           if(w.channel) subParts.push(escapeHtml(w.channel));
@@ -2866,13 +2889,24 @@
           `;
         }).join('');
         return `
-          <div style="font-weight:600; font-size:12.5px; color:var(--text-sub); margin:12px 0 2px;">${escapeHtml(brandName)} · ${byBrand[bk].length} ชิ้น</div>
+          <div style="font-weight:600; font-size:12.5px; color:var(--text-sub); margin:12px 0 6px;">${escapeHtml(brandName)} · ${brandItems.length} ชิ้น</div>
+          ${cardsHtml}
           ${rows}
         `;
       }).join('');
 
       return `<div class="wi-section-label">${escapeHtml(thaiMonthYearLabel(mk))} · ${monthItems.length} ชิ้น</div>${brandsHtml}`;
     }).join('');
+
+    listEl.querySelectorAll('.clip-card-img, .clip-card-noimg').forEach(el => {
+      el.style.cursor = 'pointer';
+      el.addEventListener('click', () => {
+        const w = data.workItems.find(x => x.id === el.dataset.id);
+        if(!w) return;
+        if(w.driveLink) window.open(w.driveLink, '_blank', 'noopener');
+        else if(w.coverImageDataUrl) showImageLightbox(w.coverImageDataUrl);
+      });
+    });
   }
 
   function updateMemberPhotoPreview(photoDataUrl, name){
