@@ -5835,9 +5835,10 @@
     emptyEl.style.display = 'none';
     listEl.innerHTML = data.brands.map(b => {
       const brandItems = periodItems.filter(w => w.brandId === b.id);
-      const counts = countWorkItemBuckets(brandItems);
+      const clipBrandItems = brandItems.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
+      const counts = countWorkItemBuckets(clipBrandItems);
       const mainChannel = Array.isArray(b.channels) && b.channels.length ? b.channels[0] : null;
-      const postedMainChannel = brandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).length;
+      const postedMainChannel = clipBrandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).length;
 
       const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
       brandItems.forEach(w => { if((w.status === 'Post' || w.status === 'สำเร็จ') && w.channel) channelNames.add(w.channel); });
