@@ -6266,7 +6266,16 @@
     document.getElementById('reportPrintTitle').textContent = `รายงานสรุปผลงานทีมคอนเทนต์ · ${periodLabel('reportPeriodFilter')}`;
 
     const pillsEl = document.getElementById('reportStatusPills');
-    const statusCounts = WORKITEM_STATUS_LIST.map(s => ({ status: s, count: items.filter(w => w.status === s).length })).filter(x => x.count > 0);
+    const clipItems = items.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
+    const isMainChannelItem = w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const mainChannel = brand && Array.isArray(brand.channels) && brand.channels.length ? brand.channels[0] : null;
+      return !!mainChannel && w.channel === mainChannel;
+    };
+    const statusCounts = WORKITEM_STATUS_LIST.map(s => ({
+      status: s,
+      count: clipItems.filter(w => w.status === s && (s !== 'Post' || isMainChannelItem(w))).length
+    })).filter(x => x.count > 0);
     pillsEl.innerHTML = statusCounts.length === 0 ? '<div class="empty-mini">ยังไม่มีงานในช่วงที่เลือก</div>' : statusCounts.map(x => `
       <div class="report-status-pill ${(WORKITEM_STATUS_CHIP_CLASS[x.status] || 'chip-idea').replace('chip-', 'rsp-')}">
         <span class="n">${x.count}</span>
@@ -6373,9 +6382,16 @@
     lines.push([csvEscape('รายงานสรุปผลงาน'), csvEscape(periodLabelText)].join(','));
     lines.push('');
 
-    lines.push([csvEscape('แยกตามสถานะ')].join(','));
+    lines.push([csvEscape('แยกตามสถานะ (เฉพาะตัดคลิป/ลงคลิป, Post นับเฉพาะช่องหลัก)')].join(','));
+    const clipItemsCsv = items.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
+    const isMainChannelItemCsv = w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const mainChannel = brand && Array.isArray(brand.channels) && brand.channels.length ? brand.channels[0] : null;
+      return !!mainChannel && w.channel === mainChannel;
+    };
     WORKITEM_STATUS_LIST.forEach(s => {
-      lines.push([csvEscape(s), items.filter(w => w.status === s).length].join(','));
+      const count = clipItemsCsv.filter(w => w.status === s && (s !== 'Post' || isMainChannelItemCsv(w))).length;
+      lines.push([csvEscape(s), count].join(','));
     });
     lines.push('');
 
