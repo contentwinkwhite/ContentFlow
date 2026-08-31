@@ -182,6 +182,32 @@
   .page{display:none;}
   .page.active{display:block;}
 
+  @media print{
+    body *{visibility:hidden;}
+    .page[data-page="report"], .page[data-page="report"] *{visibility:visible;}
+    .page[data-page="report"]{position:absolute; left:0; top:0; width:100%; padding:0; margin:0;}
+    .no-print{display:none !important;}
+    .card{box-shadow:none; border:1px solid #ddd;}
+    #reportPrintTitle{display:block !important; margin-top:0;}
+  }
+
+  .report-status-pills{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:10px;}
+  .report-status-pill{display:flex; flex-direction:column; align-items:flex-start; border-radius:12px; padding:12px 14px;}
+  .report-status-pill .n{font-size:22px; font-weight:700; font-family:'Bai Jamjuree',system-ui,sans-serif; line-height:1.1;}
+  .report-status-pill .l{font-size:12px; font-weight:600; margin-top:2px;}
+  .report-status-pill.rsp-done{background:#e3f6e9; color:var(--success);}
+  .report-status-pill.rsp-idea{background:var(--bg); color:var(--text-sub);}
+  .report-status-pill.rsp-script{background:#e6edfe; color:var(--accent);}
+  .report-status-pill.rsp-shoot{background:#fef3e1; color:var(--warning);}
+  .report-status-pill.rsp-edit{background:#fde8e8; color:var(--danger);}
+  .report-status-pill.rsp-ready{background:#e6edfe; color:var(--accent);}
+  .report-note{display:flex; gap:10px; align-items:flex-start; background:#fdf1e3; border-radius:12px; padding:14px 16px; font-size:13px; color:var(--text);}
+  .report-note b{color:var(--warning);}
+  .report-channel-row{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px;}
+  .report-channel-row:last-child{border-bottom:none;}
+  .report-channel-row .name{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text);}
+  .report-channel-row .val{font-weight:700; color:var(--text); flex-shrink:0; font-family:'Bai Jamjuree',system-ui,sans-serif;}
+
   .card{
     background:var(--card);
     border-radius:var(--radius); box-shadow:var(--shadow);
@@ -321,6 +347,7 @@
   .hr-info-grid .hr-label{font-size:11.5px; color:var(--text-sub); margin-bottom:3px;}
   .hr-info-grid .hr-value{font-size:14px; font-weight:600;}
   @media (max-width:860px){.hr-info-grid{grid-template-columns:1fr;}}
+  @media (max-width:860px){.report-grid2{grid-template-columns:1fr !important;}}
 
   .calendar-weekday-row{
     display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px;
@@ -662,6 +689,7 @@
       <button class="sb-item" data-page="team"><span class="ic">👥</span> ทีมงาน</button>
       <button class="sb-item" data-page="attendance"><span class="ic">🗓️</span> วันทำงานทีมงาน</button>
       <button class="sb-item" data-page="summary"><span class="ic">📈</span> สรุป KPI</button>
+      <button class="sb-item" data-page="report"><span class="ic">🧾</span> รายงานสรุปผลงาน</button>
       <button class="sb-item" data-page="activity"><span class="ic">🕒</span> ประวัติการใช้งาน</button>
     </nav>
     <div class="sb-footer">
@@ -1154,6 +1182,76 @@
             </table>
             <div class="empty-mini" id="reportEmptyMsg" style="display:none;">ยังไม่มีรีพอร์ตตรงตามตัวกรอง</div>
           </div>
+        </div>
+      </div>
+
+      <div class="page" data-page="report">
+        <div class="page-head no-print">
+          <div>
+            <h2>รายงานสรุปผลงาน</h2>
+            <p>สรุปภาพรวมผลงานทั้งทีมช่วงเวลาที่เลือก คำนวณจากรีพอร์ตและงานจริงในระบบเท่านั้น — ไว้ส่งสรุปให้เจ้านาย</p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" id="printReportBtn">🖨️ พิมพ์ / บันทึกเป็น PDF</button>
+            <button class="csv-btn" id="exportReportCsvBtn">⬇ ออกรายงาน CSV</button>
+          </div>
+        </div>
+
+        <div class="page-head no-print" style="margin-bottom:14px;">
+          <div id="reportPeriodFilterSlot" style="flex:1;"></div>
+        </div>
+
+        <h2 style="display:none; margin-bottom:14px;" id="reportPrintTitle"></h2>
+
+        <div class="mini-stat-grid" style="grid-template-columns:repeat(4,1fr);">
+          <div class="mini-stat">
+            <div class="label">ก้อนงานรวม</div>
+            <div class="num accent" id="reportKpiTotalQty">0 <small>ชิ้น</small></div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">รายการงานทั้งหมด</div>
+            <div class="num" id="reportKpiTotalItems">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">คนทำงานที่มีรีพอร์ต</div>
+            <div class="num" id="reportKpiMembers">0</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">แบรนด์ที่มีงาน</div>
+            <div class="num" id="reportKpiBrands">0</div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามสถานะ</div>
+          <div class="report-status-pills" id="reportStatusPills"></div>
+        </div>
+
+        <div class="report-grid2" style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามแบรนด์</div>
+            <div class="bar-list" id="reportBrandList"></div>
+          </div>
+          <div class="card">
+            <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามประเภทงาน</div>
+            <div class="type-chip-row" id="reportTypeList"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">แยกตามคนทำงาน</div>
+          <div class="bar-list" id="reportPersonList"></div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700; font-size:13px; margin-bottom:10px;">ช่องทางที่โพสต์แล้ว</div>
+          <div class="bar-list" id="reportChannelList"></div>
+          <div class="empty-mini" id="reportChannelEmpty" style="display:none;">ยังไม่มีงานที่โพสต์แล้วในช่วงที่เลือก</div>
+        </div>
+
+        <div class="report-note" id="reportDataNote" style="display:none;">
+          <span>⚠️</span>
+          <span id="reportDataNoteText"></span>
         </div>
       </div>
 
@@ -1663,7 +1761,7 @@
   const PAGE_TITLES = {
     dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     scripts:'คลังสคริปต์', footage:'เช็คลิสต์ฟุตเทจ', team:'ทีมงาน', attendance:'วันทำงานทีมงาน', summary:'สรุป KPI',
-    activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
+    report:'รายงานสรุปผลงาน', activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
 
   const WORKORDER_STATUS_LIST = ['รับทราบ','กำลังทำ','เสร็จ'];
@@ -2553,7 +2651,8 @@
   const MEMBER_DASHBOARD_BACK_LABELS = {
     dashboard: '← กลับไปแดชบอร์ด',
     summary: '← กลับไปสรุป KPI',
-    team: '← กลับไปหน้าทีมงาน'
+    team: '← กลับไปหน้าทีมงาน',
+    report: '← กลับไปรายงานสรุปผลงาน'
   };
 
   function openMemberDashboard(memberId, returnPage){
@@ -6002,6 +6101,171 @@
     if(!isMonth) renderReportTable();
   }
 
+  /* ===== รายงานสรุปผลงาน (สำหรับส่งเจ้านาย) ===== */
+  function renderReportPage(){
+    const items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
+    const reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+
+    const totalQty = reports.reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    document.getElementById('reportKpiTotalQty').innerHTML = `${totalQty} <small>ชิ้น</small>`;
+    document.getElementById('reportKpiTotalItems').textContent = items.length;
+
+    const reportableMemberIds = new Set(data.members.filter(isReportableMember).map(m => m.id));
+    const reportedMemberIds = new Set(reports.filter(r => reportableMemberIds.has(r.memberId)).map(r => r.memberId));
+    document.getElementById('reportKpiMembers').textContent = reportedMemberIds.size;
+
+    const brandsWithWork = new Set(reports.filter(r => r.brandId).map(r => r.brandId));
+    document.getElementById('reportKpiBrands').textContent = brandsWithWork.size;
+
+    document.getElementById('reportPrintTitle').textContent = `รายงานสรุปผลงานทีมคอนเทนต์ · ${periodLabel('reportPeriodFilter')}`;
+
+    const pillsEl = document.getElementById('reportStatusPills');
+    const statusCounts = WORKITEM_STATUS_LIST.map(s => ({ status: s, count: items.filter(w => w.status === s).length })).filter(x => x.count > 0);
+    pillsEl.innerHTML = statusCounts.length === 0 ? '<div class="empty-mini">ยังไม่มีงานในช่วงที่เลือก</div>' : statusCounts.map(x => `
+      <div class="report-status-pill ${(WORKITEM_STATUS_CHIP_CLASS[x.status] || 'chip-idea').replace('chip-', 'rsp-')}">
+        <span class="n">${x.count}</span>
+        <span class="l">${escapeHtml(x.status)}</span>
+      </div>
+    `).join('');
+
+    const brandListEl = document.getElementById('reportBrandList');
+    const byBrand = data.brands.map(b => ({
+      id: b.id, name: b.name,
+      total: reports.filter(r => r.brandId === b.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
+    })).filter(x => x.total > 0);
+    const noBrandTotal = reports.filter(r => !r.brandId).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    if(noBrandTotal > 0) byBrand.push({ id: '', name: 'ไม่ระบุแบรนด์', total: noBrandTotal });
+    byBrand.sort((a, b) => b.total - a.total);
+    if(byBrand.length === 0){
+      brandListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในช่วงที่เลือก</div>';
+    } else {
+      const maxBrand = Math.max(...byBrand.map(x => x.total));
+      brandListEl.innerHTML = byBrand.map(x => `
+        <div class="bar-row">
+          <span class="name">${escapeHtml(x.name)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / maxBrand * 100)}%"></div></div>
+          <span class="val">${x.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+
+    document.getElementById('reportTypeList').innerHTML = WORK_TYPES.map(t => {
+      const total = reports.filter(r => r.workType === t).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      return `<span class="type-chip"><span class="n">${total}</span><span class="t">${escapeHtml(t)}</span></span>`;
+    }).join('');
+
+    const personListEl = document.getElementById('reportPersonList');
+    const byPerson = data.members.filter(isReportableMember).map(m => ({
+      id: m.id, name: m.name,
+      total: reports.filter(r => r.memberId === m.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0)
+    })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+    if(byPerson.length === 0){
+      personListEl.innerHTML = '<div class="empty-mini">ยังไม่มีรีพอร์ตในช่วงที่เลือก</div>';
+    } else {
+      const maxPerson = Math.max(...byPerson.map(x => x.total));
+      personListEl.innerHTML = byPerson.map(x => `
+        <div class="bar-row clickable" onclick="openMemberDashboard('${x.id}', 'report')" title="ดูสรุปงานของ ${escapeHtml(x.name)}">
+          <span class="name">${escapeHtml(x.name)}</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${Math.round(x.total / maxPerson * 100)}%"></div></div>
+          <span class="val">${x.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+
+    const channelListEl = document.getElementById('reportChannelList');
+    const channelEmptyEl = document.getElementById('reportChannelEmpty');
+    const channelMap = new Map();
+    items.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).forEach(w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const key = `${brand ? brand.name : 'ไม่ระบุแบรนด์'} · ${w.channel}`;
+      channelMap.set(key, (channelMap.get(key) || 0) + (Number(w.quantity) || 1));
+    });
+    const channelRows = Array.from(channelMap.entries()).map(([name, total]) => ({ name, total })).sort((a, b) => b.total - a.total);
+    if(channelRows.length === 0){
+      channelListEl.innerHTML = '';
+      channelEmptyEl.style.display = 'block';
+    } else {
+      channelEmptyEl.style.display = 'none';
+      channelListEl.innerHTML = channelRows.map(x => `
+        <div class="report-channel-row">
+          <span class="name">${escapeHtml(x.name)}</span>
+          <span class="val">${x.total} ชิ้น</span>
+        </div>
+      `).join('');
+    }
+
+    const attendanceCount = data.attendanceRecords.filter(r => periodMatches(r.date, 'reportPeriodFilter')).length;
+    const scriptsCount = data.scripts.filter(s => periodMatches(s.writtenDate, 'reportPeriodFilter')).length;
+    const noteEl = document.getElementById('reportDataNote');
+    if(attendanceCount === 0 || scriptsCount === 0){
+      const parts = [];
+      if(attendanceCount === 0) parts.push('บันทึกวันทำงานทีมงาน');
+      if(scriptsCount === 0) parts.push('คลังสคริปต์');
+      document.getElementById('reportDataNoteText').innerHTML = `<b>ข้อมูลที่ยังไม่มีในช่วงนี้:</b> ${parts.join(' และ ')} ยังไม่มีการบันทึกเลย`;
+      noteEl.style.display = 'flex';
+    } else {
+      noteEl.style.display = 'none';
+    }
+  }
+
+  function printReportPage(){
+    showPage('report');
+    window.print();
+  }
+
+  function exportReportCsv(){
+    const items = data.workItems.filter(w => periodMatches(w.date, 'reportPeriodFilter'));
+    const reports = data.dailyReports.filter(r => periodMatches(r.date, 'reportPeriodFilter'));
+    const lines = [];
+    const periodLabelText = periodLabel('reportPeriodFilter');
+
+    lines.push([csvEscape('รายงานสรุปผลงาน'), csvEscape(periodLabelText)].join(','));
+    lines.push('');
+
+    lines.push([csvEscape('แยกตามสถานะ')].join(','));
+    WORKITEM_STATUS_LIST.forEach(s => {
+      lines.push([csvEscape(s), items.filter(w => w.status === s).length].join(','));
+    });
+    lines.push('');
+
+    lines.push([csvEscape('แยกตามแบรนด์'), csvEscape('จำนวนชิ้น')].join(','));
+    data.brands.forEach(b => {
+      const total = reports.filter(r => r.brandId === b.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      lines.push([csvEscape(b.name), total].join(','));
+    });
+    const noBrandTotal = reports.filter(r => !r.brandId).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+    lines.push([csvEscape('ไม่ระบุแบรนด์'), noBrandTotal].join(','));
+    lines.push('');
+
+    lines.push([csvEscape('แยกตามประเภทงาน'), csvEscape('จำนวนชิ้น')].join(','));
+    WORK_TYPES.forEach(t => {
+      const total = reports.filter(r => r.workType === t).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      lines.push([csvEscape(t), total].join(','));
+    });
+    lines.push('');
+
+    lines.push([csvEscape('แยกตามคนทำงาน'), csvEscape('จำนวนชิ้น')].join(','));
+    data.members.filter(isReportableMember).forEach(m => {
+      const total = reports.filter(r => r.memberId === m.id).reduce((s, r) => s + (Number(r.quantity) || 0), 0);
+      if(total > 0) lines.push([csvEscape(m.name), total].join(','));
+    });
+    lines.push('');
+
+    lines.push([csvEscape('ช่องทางที่โพสต์แล้ว'), csvEscape('จำนวนชิ้น')].join(','));
+    const channelMap = new Map();
+    items.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).forEach(w => {
+      const brand = data.brands.find(b => b.id === w.brandId);
+      const key = `${brand ? brand.name : 'ไม่ระบุแบรนด์'} · ${w.channel}`;
+      channelMap.set(key, (channelMap.get(key) || 0) + (Number(w.quantity) || 1));
+    });
+    Array.from(channelMap.entries()).forEach(([name, total]) => {
+      lines.push([csvEscape(name), total].join(','));
+    });
+
+    const safeLabel = periodLabelText.replace(/[^\w\dก-๙-]/g, '_');
+    downloadCsv(lines.join('\r\n'), `contentflow-รายงานสรุปผลงาน-${safeLabel}.csv`);
+  }
+
   /* ===== Activity / sessions history page ===== */
   function renderSessionsTable(){
     const tbody = document.getElementById('sessionsTableBody');
@@ -6340,6 +6604,8 @@
   });
 
   document.getElementById('exportCsvBtn').addEventListener('click', exportSummaryCsv);
+  document.getElementById('exportReportCsvBtn').addEventListener('click', exportReportCsv);
+  document.getElementById('printReportBtn').addEventListener('click', printReportPage);
   document.getElementById('exportDayCsvBtn').addEventListener('click', exportDayReportCsv);
   document.getElementById('summaryViewMonthBtn').addEventListener('click', () => showSummaryView('month'));
   document.getElementById('summaryViewDayBtn').addEventListener('click', () => showSummaryView('day'));
@@ -6401,6 +6667,7 @@
     renderFootageFilterOptions();
     renderFootageList();
     renderSummaryTable();
+    renderReportPage();
     renderSessionsTable();
     renderActivityTable();
     renderBrandsList();
@@ -6437,6 +6704,8 @@
     initPeriodFilter('mdPeriodFilter', renderMemberDashboard);
     document.getElementById('summaryPeriodFilterSlot').innerHTML = periodFilterHtml('summaryPeriodFilter');
     initPeriodFilter('summaryPeriodFilter', renderSummaryTable);
+    document.getElementById('reportPeriodFilterSlot').innerHTML = periodFilterHtml('reportPeriodFilter');
+    initPeriodFilter('reportPeriodFilter', renderReportPage);
     document.getElementById('scorePeriodFilterSlot').innerHTML = periodFilterHtml('scorePeriodFilter');
     initPeriodFilter('scorePeriodFilter', renderScorePage);
     document.getElementById('wiPeriodFilterSlot').innerHTML = periodFilterHtml('wiPeriodFilter');
