@@ -802,6 +802,7 @@
               <button type="button" class="btn btn-sm" id="wiDateModeWork">วันที่ทำงาน</button>
               <button type="button" class="btn btn-outline btn-sm" id="wiDateModePost">วันที่ลงคลิป</button>
             </div>
+            <p style="margin:6px 0 0; font-size:12px; color:var(--text-sub);">วันที่ทำงาน = รวมงานที่ทำในช่วงนี้ <strong>หรือ</strong> โพสต์จริงในช่วงนี้ (แม้ทำไว้เดือนอื่น) · วันที่ลงคลิป = เฉพาะที่โพสต์จริงในช่วงนี้เท่านั้น</p>
           </div>
           <div id="wiPeriodFilterSlot" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border);"></div>
           <div class="toolbar" style="margin-bottom:0;">
@@ -5328,7 +5329,9 @@
     const emptyMsg = document.getElementById('workItemsEmptyMsg');
 
     let rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    rows = rows.filter(w => periodMatches(wiDateFilterMode === 'post' ? w.postDate : w.date, 'wiPeriodFilter'));
+    rows = rows.filter(w => wiDateFilterMode === 'post'
+      ? periodMatches(w.postDate, 'wiPeriodFilter')
+      : (periodMatches(w.date, 'wiPeriodFilter') || (w.postDate && periodMatches(w.postDate, 'wiPeriodFilter'))));
     if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
     if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
     if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
