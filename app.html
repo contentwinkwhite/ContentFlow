@@ -818,6 +818,13 @@
               <label>กรองตามสถานะ</label>
               <select class="form-control" id="wiFilterStatus"><option value="">ทั้งหมด</option></select>
             </div>
+            <div class="field-row" style="min-width:200px;">
+              <label>กรองตามประเภทงาน</label>
+              <div class="ms-wrap">
+                <button type="button" class="form-control ms-trigger" id="wiFilterWorkTypeTrigger" onclick="toggleWiWorkTypeDropdown()">ทั้งหมด</button>
+                <div class="ms-dropdown" id="wiFilterWorkTypeDropdown"></div>
+              </div>
+            </div>
             <div class="field-row">
               <label>ค้นหา</label>
               <input type="text" class="form-control" id="wiFilterSearch" placeholder="ค้นหาจากชื่องาน/รายละเอียด/สินค้า">
@@ -830,7 +837,7 @@
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>รูป</th><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>คะแนน (1-2)</th><th></th></tr></thead>
+            <thead><tr><th>รูป</th><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>วันที่โพสต์</th><th>คะแนน (1-2)</th><th></th></tr></thead>
             <tbody id="workItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
@@ -5312,6 +5319,41 @@
   }
 
   let wiDateFilterMode = 'work';
+  let wiWorkTypeFilter = new Set();
+
+  function updateWiWorkTypeTrigger(){
+    const btn = document.getElementById('wiFilterWorkTypeTrigger');
+    if(!btn) return;
+    btn.textContent = wiWorkTypeFilter.size ? `${wiWorkTypeFilter.size} ประเภท: ${Array.from(wiWorkTypeFilter).join(', ')}` : 'ทั้งหมด';
+  }
+
+  function renderWiWorkTypeDropdown(){
+    const dropdown = document.getElementById('wiFilterWorkTypeDropdown');
+    if(!dropdown) return;
+    dropdown.innerHTML = WORK_TYPES.map(t => `
+      <label class="ms-option">
+        <input type="checkbox" value="${t}" ${wiWorkTypeFilter.has(t) ? 'checked' : ''} onchange="toggleWiWorkTypeSelection('${t}', this.checked)">
+        ${escapeHtml(t)}
+      </label>
+    `).join('');
+  }
+
+  function toggleWiWorkTypeSelection(type, checked){
+    if(checked) wiWorkTypeFilter.add(type); else wiWorkTypeFilter.delete(type);
+    updateWiWorkTypeTrigger();
+    renderWorkItemsTable();
+  }
+
+  function toggleWiWorkTypeDropdown(){
+    const dropdown = document.getElementById('wiFilterWorkTypeDropdown');
+    if(!dropdown) return;
+    const willOpen = !dropdown.classList.contains('open');
+    document.querySelectorAll('.ms-dropdown.open').forEach(d => d.classList.remove('open'));
+    if(willOpen){
+      renderWiWorkTypeDropdown();
+      dropdown.classList.add('open');
+    }
+  }
 
   function setWiDateMode(mode){
     wiDateFilterMode = mode;
@@ -5335,6 +5377,7 @@
     if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
     if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
     if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
+    if(wiWorkTypeFilter.size) rows = rows.filter(w => wiWorkTypeFilter.has(w.workType));
     if(searchTerm){
       rows = rows.filter(w => [w.title, w.description, w.product, w.location]
         .some(v => v && v.toLowerCase().includes(searchTerm)));
@@ -5366,8 +5409,8 @@
             <select class="form-control status-select" data-id="${w.id}">
               ${WORKITEM_STATUS_LIST.map(s => `<option value="${s}" ${s === w.status ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
-            ${w.status === 'Post' ? `<div class="li-sub" style="margin-top:4px;">โพสต์ ${w.postDate ? formatThaiDate(w.postDate) : '—'}${w.linkPost ? ` · <a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a>` : ''} · <a href="javascript:void(0)" onclick="openPostDetailsModal('${w.id}')">แก้ไข</a></div>` : ''}
           </td>
+          <td data-label="วันที่โพสต์">${w.status === 'Post' ? `${w.postDate ? formatThaiDate(w.postDate) : '—'}${w.linkPost ? ` · <a href="${escapeHtml(w.linkPost)}" target="_blank" rel="noopener">ลิงก์โพสต์</a>` : ''}<div class="li-sub"><a href="javascript:void(0)" onclick="openPostDetailsModal('${w.id}')">แก้ไข</a></div>` : '—'}</td>
           <td data-label="คะแนน (1-2)">${scoreCellHtml(w, canScore)}</td>
           <td data-label="">
             <div class="action-btns">
@@ -6288,6 +6331,9 @@
     document.getElementById('wiFilterOwner').value = '';
     document.getElementById('wiFilterStatus').value = '';
     document.getElementById('wiFilterSearch').value = '';
+    wiWorkTypeFilter = new Set();
+    updateWiWorkTypeTrigger();
+    renderWiWorkTypeDropdown();
     renderWorkItemsTable();
   }
 
@@ -6922,6 +6968,9 @@
     document.getElementById('wiFilterOwner').value = '';
     document.getElementById('wiFilterStatus').value = '';
     document.getElementById('wiFilterSearch').value = '';
+    wiWorkTypeFilter = new Set();
+    updateWiWorkTypeTrigger();
+    renderWiWorkTypeDropdown();
     setWiDateMode('work');
   });
 
