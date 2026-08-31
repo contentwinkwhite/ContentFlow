@@ -475,8 +475,9 @@
   .tag-chip button{background:none; border:none; cursor:pointer; color:var(--text-sub); font-size:14px; line-height:1; padding:2px 4px; border-radius:50%;}
   .tag-chip button:hover{background:#fde8e8; color:var(--danger);}
   .channel-kpi-row{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
-  .channel-kpi-row .tag-chip{flex:1; min-width:0;}
+  .channel-kpi-row .channel-name-input{flex:1; min-width:0;}
   .channel-kpi-row .channel-kpi-input{width:90px; flex-shrink:0;}
+  .channel-kpi-row .icon-btn{flex-shrink:0;}
 
   .channel-kpi-summary-row{margin-bottom:14px;}
   .channel-kpi-summary-row:last-child{margin-bottom:0;}
@@ -1522,7 +1523,7 @@
       <input type="text" class="form-control" id="brandFormNote" placeholder="รายละเอียดเพิ่มเติม">
     </div>
     <div class="field-row">
-      <label>ช่องทางที่ลงคลิปของแบรนด์นี้ <span style="font-weight:400;color:var(--text-sub);">(เช่น "TikTok หลัก", "TikTok ปั่น 1", "Shopee") · ใส่ตัวเลข KPI/เดือนต่อช่องได้ (ไม่บังคับ)</span></label>
+      <label>ช่องทางที่ลงคลิปของแบรนด์นี้ <span style="font-weight:400;color:var(--text-sub);">(เช่น "TikTok หลัก", "TikTok ปั่น 1", "Shopee") · แก้ชื่อช่องได้ตรงนี้เลย (งานเก่าย้ายตามชื่อใหม่ให้อัตโนมัติ) · ใส่ตัวเลข KPI/เดือนต่อช่องได้ (ไม่บังคับ)</span></label>
       <div id="brandChannelsList"></div>
       <div style="display:flex; gap:6px; margin-top:8px;">
         <input type="text" class="form-control" id="brandChannelInput" placeholder="เพิ่มชื่อช่องทาง แล้วกด Enter">
@@ -2176,6 +2177,7 @@
   let calendarMonthStr = null;
   let pendingBrandChannels = [];
   let pendingBrandChannelKpi = {};
+  let pendingChannelRenames = [];
   let editingProductRef = null;
   let pendingBrandLogoDataUrl = undefined;
   let pendingWiCoverDataUrl = undefined;
@@ -3872,8 +3874,9 @@
     }
     list.innerHTML = pendingBrandChannels.map((c, i) => `
       <div class="channel-kpi-row">
-        <span class="tag-chip">${escapeHtml(c)}<button type="button" onclick="removeBrandChannel(${i})">✕</button></span>
+        <input type="text" class="form-control channel-name-input" value="${escapeHtml(c)}" onchange="renameBrandChannel(${i}, this.value)">
         <input type="number" min="0" class="form-control channel-kpi-input" placeholder="KPI/เดือน" value="${pendingBrandChannelKpi[c] || ''}" onchange="updateBrandChannelKpi(${i}, this.value)">
+        <button type="button" class="icon-btn" onclick="removeBrandChannel(${i})">✕</button>
       </div>
     `).join('');
   }
@@ -3884,6 +3887,24 @@
     const num = Number(value);
     if(!num || num <= 0) delete pendingBrandChannelKpi[channel];
     else pendingBrandChannelKpi[channel] = num;
+  }
+
+  function renameBrandChannel(index, newValue){
+    const oldName = pendingBrandChannels[index];
+    const trimmed = newValue.trim();
+    if(!oldName || !trimmed || trimmed === oldName){ renderBrandChannelsList(); return; }
+    if(pendingBrandChannels.includes(trimmed)){
+      alert(`มีช่องทางชื่อ "${trimmed}" อยู่แล้ว`);
+      renderBrandChannelsList();
+      return;
+    }
+    pendingBrandChannels[index] = trimmed;
+    if(pendingBrandChannelKpi[oldName] !== undefined){
+      pendingBrandChannelKpi[trimmed] = pendingBrandChannelKpi[oldName];
+      delete pendingBrandChannelKpi[oldName];
+    }
+    pendingChannelRenames.push({ from: oldName, to: trimmed });
+    renderBrandChannelsList();
   }
 
   function addBrandChannel(){
@@ -3921,6 +3942,7 @@
   function openBrandModal(brandId){
     editingBrandId = brandId || null;
     pendingBrandLogoDataUrl = undefined;
+    pendingChannelRenames = [];
     document.getElementById('brandFormMsg').style.display = 'none';
     document.getElementById('brandChannelInput').value = '';
     document.getElementById('brandFormLogoFile').value = '';
@@ -3970,6 +3992,13 @@
       const b = data.brands.find(x => x.id === editingBrandId);
       b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.channels = channels; b.channelKpi = channelKpi;
       if(pendingBrandLogoDataUrl !== undefined) b.logoDataUrl = pendingBrandLogoDataUrl;
+      if(pendingChannelRenames.length){
+        pendingChannelRenames.forEach(({ from, to }) => {
+          data.workItems.forEach(w => { if(w.brandId === editingBrandId && w.channel === from) w.channel = to; });
+          data.feedPlanItems.forEach(f => { if(f.brandId === editingBrandId && f.channel === from) f.channel = to; });
+        });
+        logActivity('แบรนด์', `เปลี่ยนชื่อช่องทาง: ${pendingChannelRenames.map(r => `"${r.from}" → "${r.to}"`).join(', ')}`);
+      }
       logActivity('แบรนด์', `แก้ไขแบรนด์: ${name}`);
     } else {
       data.brands.push({ id: uid(), name, tiktokChannel, note, products: [], channels, channelKpi, logoDataUrl: pendingBrandLogoDataUrl || null });
