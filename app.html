@@ -4659,6 +4659,15 @@
           <div class="field-row"><label>จำนวน *</label><input type="number" min="1" class="form-control" id="aw_${id}_quantity" value="1" style="width:90px;"></div>
           <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
         </div>
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row"><label>สถานะ * <span style="font-weight:400;color:var(--text-sub);">(ต้องเลือก "สำเร็จ" หรือ "Post" ถึงจะนับเป็นงานที่ลงคลิปแล้ว)</span></label>
+            <select class="form-control" id="aw_${id}_status" onchange="onAwStatusChange('${id}')">
+              <option value="สำเร็จ">สำเร็จ</option>
+              <option value="Post">Post</option>
+            </select>
+          </div>
+          <div class="field-row" id="aw_${id}_linkpost_row" style="display:none;"><label>ลิงค์โพสต์ *</label><input type="text" class="form-control" id="aw_${id}_linkpost" placeholder="ลิงก์โพสต์"></div>
+        </div>
       `;
     }
     if(type === 'ออกกอง' || type === 'อีเว้นท์'){
@@ -5128,7 +5137,17 @@
         entry.channel = document.getElementById(`aw_${id}_channel`).value;
         entry.quantity = Number(document.getElementById(`aw_${id}_quantity`).value);
         entry.description = document.getElementById(`aw_${id}_description`).value.trim();
+        entry.status = document.getElementById(`aw_${id}_status`).value;
         if(!entry.quantity || entry.quantity < 1){ msgEl.textContent = `งานที่ ${num}: จำนวนชิ้นต้องมากกว่า 0`; msgEl.style.display = 'block'; return; }
+        if(entry.status !== 'สำเร็จ' && entry.status !== 'Post'){ msgEl.textContent = `งานที่ ${num}: ต้องเลือกสถานะ "สำเร็จ" หรือ "Post" งานลงคลิปถึงจะนับ`; msgEl.style.display = 'block'; return; }
+        if(entry.status === 'Post'){
+          if(!brandId){ msgEl.textContent = `งานที่ ${num}: ต้องเลือกแบรนด์ก่อนถึงจะเปลี่ยนสถานะเป็น Post ได้ (ใช้เลือกช่องทางที่ลง)`; msgEl.style.display = 'block'; return; }
+          if(!entry.channel){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องเลือกช่องทางที่ลง`; msgEl.style.display = 'block'; return; }
+          const linkPostEl = document.getElementById(`aw_${id}_linkpost`);
+          entry.linkPost = linkPostEl ? linkPostEl.value.trim() : '';
+          if(!entry.linkPost){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องใส่ลิงค์โพสต์`; msgEl.style.display = 'block'; return; }
+          entry.postDate = date;
+        }
       } else if(workType === 'ออกกอง' || workType === 'อีเว้นท์'){
         entry.location = document.getElementById(`aw_${id}_location`).value.trim();
         entry.description = document.getElementById(`aw_${id}_description`).value.trim();
