@@ -794,6 +794,10 @@
               <label>กรองตามสถานะ</label>
               <select class="form-control" id="wiFilterStatus"><option value="">ทั้งหมด</option></select>
             </div>
+            <div class="field-row">
+              <label>ค้นหา</label>
+              <input type="text" class="form-control" id="wiFilterSearch" placeholder="ค้นหาจากชื่องาน/รายละเอียด/สินค้า">
+            </div>
             <button class="btn btn-outline btn-sm" id="wiClearFilterBtn">ล้างตัวกรอง</button>
             <button class="csv-btn" id="exportWorkItemsCsvBtn">⬇ ออกรายงาน CSV</button>
             <input type="file" accept=".csv" id="importWorkItemsFile" style="display:none;">
@@ -4940,6 +4944,7 @@
     const brandFilter = document.getElementById('wiFilterBrand').value;
     const ownerFilter = document.getElementById('wiFilterOwner').value;
     const statusFilter = document.getElementById('wiFilterStatus').value;
+    const searchTerm = document.getElementById('wiFilterSearch').value.trim().toLowerCase();
     const tbody = document.getElementById('workItemsTableBody');
     const emptyMsg = document.getElementById('workItemsEmptyMsg');
 
@@ -4948,6 +4953,10 @@
     if(brandFilter) rows = rows.filter(w => w.brandId === brandFilter);
     if(ownerFilter) rows = rows.filter(w => w.ownerId === ownerFilter);
     if(statusFilter) rows = rows.filter(w => w.status === statusFilter);
+    if(searchTerm){
+      rows = rows.filter(w => [w.title, w.description, w.product, w.location]
+        .some(v => v && v.toLowerCase().includes(searchTerm)));
+    }
 
     if(rows.length === 0){
       tbody.innerHTML = '';
@@ -5891,6 +5900,7 @@
     document.getElementById('wiFilterBrand').value = brandId;
     document.getElementById('wiFilterOwner').value = '';
     document.getElementById('wiFilterStatus').value = '';
+    document.getElementById('wiFilterSearch').value = '';
     renderWorkItemsTable();
   }
 
@@ -6489,10 +6499,12 @@
   document.getElementById('wiFilterBrand').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterOwner').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterStatus').addEventListener('change', renderWorkItemsTable);
+  document.getElementById('wiFilterSearch').addEventListener('input', renderWorkItemsTable);
   document.getElementById('wiClearFilterBtn').addEventListener('click', () => {
     document.getElementById('wiFilterBrand').value = '';
     document.getElementById('wiFilterOwner').value = '';
     document.getElementById('wiFilterStatus').value = '';
+    document.getElementById('wiFilterSearch').value = '';
     renderWorkItemsTable();
   });
 
