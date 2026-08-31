@@ -474,6 +474,21 @@
   .tag-chip{display:inline-flex; align-items:center; gap:6px; background:var(--bg); border:1px solid var(--border); border-radius:999px; padding:5px 6px 5px 12px; font-size:12.5px; font-weight:600; color:var(--text);}
   .tag-chip button{background:none; border:none; cursor:pointer; color:var(--text-sub); font-size:14px; line-height:1; padding:2px 4px; border-radius:50%;}
   .tag-chip button:hover{background:#fde8e8; color:var(--danger);}
+  .channel-kpi-row{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .channel-kpi-row .tag-chip{flex:1; min-width:0;}
+  .channel-kpi-row .channel-kpi-input{width:90px; flex-shrink:0;}
+
+  .channel-kpi-summary-row{margin-bottom:14px;}
+  .channel-kpi-summary-row:last-child{margin-bottom:0;}
+  .channel-kpi-summary-head{display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:6px;}
+  .channel-kpi-summary-name{font-size:13px; font-weight:600; color:var(--text);}
+  .channel-kpi-summary-num{font-family:'Bai Jamjuree',sans-serif; font-size:14px; font-weight:700; color:var(--text); white-space:nowrap;}
+  .channel-kpi-summary-num small{font-family:'Anuphan',sans-serif; font-weight:400; font-size:11.5px; color:var(--text-sub);}
+  .kpi-bar-track{height:8px; border-radius:999px; background:var(--bg); border:1px solid var(--border); overflow:hidden;}
+  .kpi-bar-fill{height:100%; border-radius:999px; transition:width .3s ease;}
+  .kpi-bar-fill.success{background:var(--success);}
+  .kpi-bar-fill.accent{background:var(--accent);}
+  .kpi-bar-fill.warning{background:var(--warning);}
 
   .aw-block{border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:12px; background:var(--bg);}
   .aw-block-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
@@ -751,6 +766,15 @@
           </div>
           <div class="brand-summary-grid" id="brandWorkSummaryList"></div>
           <div class="empty-mini" id="brandWorkSummaryEmpty" style="display:none;">ยังไม่มีแบรนด์ในระบบ ไปเพิ่มที่หน้า "งานที่บริษัทรับผิดชอบ" ก่อน</div>
+        </div>
+
+        <div class="card" style="margin-bottom:14px;">
+          <div class="page-head" style="margin-bottom:8px;">
+            <div style="font-weight:700; font-size:13px;">เป้าหมาย KPI ต่อช่องทาง</div>
+            <button class="icon-btn" onclick="showPage('brands')">🏢 ตั้งค่า KPI</button>
+          </div>
+          <div id="channelKpiList"></div>
+          <div class="empty-mini" id="channelKpiEmpty" style="display:none;">ยังไม่มีช่องทางไหนตั้งค่า KPI ไว้ — ไปตั้งได้ที่หน้า "งานที่บริษัทรับผิดชอบ" ตอนแก้ไขแบรนด์</div>
         </div>
 
         <div class="grid-2" style="margin-bottom:14px;">
@@ -1498,8 +1522,8 @@
       <input type="text" class="form-control" id="brandFormNote" placeholder="รายละเอียดเพิ่มเติม">
     </div>
     <div class="field-row">
-      <label>ช่องทางที่ลงคลิปของแบรนด์นี้ <span style="font-weight:400;color:var(--text-sub);">(เช่น "TikTok หลัก", "TikTok ปั่น 1", "Shopee")</span></label>
-      <div class="tag-list" id="brandChannelsList"></div>
+      <label>ช่องทางที่ลงคลิปของแบรนด์นี้ <span style="font-weight:400;color:var(--text-sub);">(เช่น "TikTok หลัก", "TikTok ปั่น 1", "Shopee") · ใส่ตัวเลข KPI/เดือนต่อช่องได้ (ไม่บังคับ)</span></label>
+      <div id="brandChannelsList"></div>
       <div style="display:flex; gap:6px; margin-top:8px;">
         <input type="text" class="form-control" id="brandChannelInput" placeholder="เพิ่มชื่อช่องทาง แล้วกด Enter">
         <button type="button" class="btn btn-outline btn-sm" id="brandChannelAddBtn">เพิ่ม</button>
@@ -2037,6 +2061,7 @@
     parsed.brands.forEach(b => {
       if(!Array.isArray(b.products)) b.products = [];
       if(!Array.isArray(b.channels)) b.channels = [];
+      if(!b.channelKpi || typeof b.channelKpi !== 'object') b.channelKpi = {};
     });
     parsed.members.forEach(m => {
       if(m.status === 'active') m.status = 'ประจำ';
@@ -2150,6 +2175,7 @@
   let editingWorkItemId = null;
   let calendarMonthStr = null;
   let pendingBrandChannels = [];
+  let pendingBrandChannelKpi = {};
   let editingProductRef = null;
   let pendingBrandLogoDataUrl = undefined;
   let pendingWiCoverDataUrl = undefined;
@@ -3845,8 +3871,19 @@
       return;
     }
     list.innerHTML = pendingBrandChannels.map((c, i) => `
-      <span class="tag-chip">${escapeHtml(c)}<button type="button" onclick="removeBrandChannel(${i})">✕</button></span>
+      <div class="channel-kpi-row">
+        <span class="tag-chip">${escapeHtml(c)}<button type="button" onclick="removeBrandChannel(${i})">✕</button></span>
+        <input type="number" min="0" class="form-control channel-kpi-input" placeholder="KPI/เดือน" value="${pendingBrandChannelKpi[c] || ''}" onchange="updateBrandChannelKpi(${i}, this.value)">
+      </div>
     `).join('');
+  }
+
+  function updateBrandChannelKpi(index, value){
+    const channel = pendingBrandChannels[index];
+    if(!channel) return;
+    const num = Number(value);
+    if(!num || num <= 0) delete pendingBrandChannelKpi[channel];
+    else pendingBrandChannelKpi[channel] = num;
   }
 
   function addBrandChannel(){
@@ -3866,6 +3903,7 @@
         || data.feedPlanItems.some(f => f.brandId === editingBrandId && f.channel === channel);
       if(inUse && !confirm(`ช่องทาง "${channel}" มีงาน/แผนที่ผูกอยู่แล้ว ถ้าลบออกจากรายชื่อ งานเก่าจะยังเก็บชื่อช่องทางนี้ไว้ แต่จะเลือกช่องทางนี้ใหม่ในฟอร์มไม่ได้อีก ต้องการลบไหม?`)) return;
     }
+    if(channel) delete pendingBrandChannelKpi[channel];
     pendingBrandChannels.splice(index, 1);
     renderBrandChannelsList();
   }
@@ -3893,6 +3931,7 @@
       document.getElementById('brandFormChannel').value = b.tiktokChannel || '';
       document.getElementById('brandFormNote').value = b.note || '';
       pendingBrandChannels = Array.isArray(b.channels) ? [...b.channels] : [];
+      pendingBrandChannelKpi = b.channelKpi ? { ...b.channelKpi } : {};
       updateBrandLogoPreview(b.logoDataUrl || null, b.name);
     } else {
       document.getElementById('brandModalTitle').textContent = 'เพิ่มแบรนด์';
@@ -3900,6 +3939,7 @@
       document.getElementById('brandFormChannel').value = '';
       document.getElementById('brandFormNote').value = '';
       pendingBrandChannels = [];
+      pendingBrandChannelKpi = {};
       updateBrandLogoPreview(null, '');
     }
     renderBrandChannelsList();
@@ -3923,14 +3963,16 @@
     }
     msgEl.style.display = 'none';
     const channels = [...pendingBrandChannels];
+    const channelKpi = {};
+    channels.forEach(c => { if(pendingBrandChannelKpi[c]) channelKpi[c] = pendingBrandChannelKpi[c]; });
 
     if(editingBrandId){
       const b = data.brands.find(x => x.id === editingBrandId);
-      b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.channels = channels;
+      b.name = name; b.tiktokChannel = tiktokChannel; b.note = note; b.channels = channels; b.channelKpi = channelKpi;
       if(pendingBrandLogoDataUrl !== undefined) b.logoDataUrl = pendingBrandLogoDataUrl;
       logActivity('แบรนด์', `แก้ไขแบรนด์: ${name}`);
     } else {
-      data.brands.push({ id: uid(), name, tiktokChannel, note, products: [], channels, logoDataUrl: pendingBrandLogoDataUrl || null });
+      data.brands.push({ id: uid(), name, tiktokChannel, note, products: [], channels, channelKpi, logoDataUrl: pendingBrandLogoDataUrl || null });
       logActivity('แบรนด์', `เพิ่มแบรนด์: ${name}`);
     }
     saveData();
@@ -6342,6 +6384,53 @@
 
     renderUpcomingList();
     renderTeamWorkSummary();
+    renderChannelKpiList();
+  }
+
+  function channelPostedCount(brandId, channel){
+    return data.workItems
+      .filter(w => w.brandId === brandId && w.channel === channel && (w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป'))
+      .filter(w => (w.status === 'Post' && periodMatches(w.postDate, 'dashPeriodFilter'))
+        || (w.status === 'สำเร็จ' && periodMatches(w.date, 'dashPeriodFilter')))
+      .reduce((s, w) => s + (Number(w.quantity) || 1), 0);
+  }
+
+  function renderChannelKpiList(){
+    const listEl = document.getElementById('channelKpiList');
+    const emptyEl = document.getElementById('channelKpiEmpty');
+    const dashBrandFilter = document.getElementById('dashFilterBrand').value;
+    const brandsToShow = dashBrandFilter ? data.brands.filter(b => b.id === dashBrandFilter) : data.brands;
+
+    const rows = [];
+    brandsToShow.forEach(b => {
+      if(!b.channelKpi) return;
+      (b.channels || []).forEach(c => {
+        const kpi = Number(b.channelKpi[c]);
+        if(!kpi || kpi <= 0) return;
+        const actual = channelPostedCount(b.id, c);
+        rows.push({ brandName: b.name, channel: c, kpi, actual });
+      });
+    });
+
+    if(rows.length === 0){
+      listEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = rows.map(r => {
+      const pct = Math.min(100, Math.round((r.actual / r.kpi) * 100));
+      const barClass = r.actual >= r.kpi ? 'success' : (pct >= 50 ? 'accent' : 'warning');
+      return `
+        <div class="channel-kpi-summary-row">
+          <div class="channel-kpi-summary-head">
+            <span class="channel-kpi-summary-name">${escapeHtml(r.brandName)} · ${escapeHtml(r.channel)}</span>
+            <span class="channel-kpi-summary-num">${r.actual} / ${r.kpi} <small>โพสต์</small></span>
+          </div>
+          <div class="kpi-bar-track"><div class="kpi-bar-fill ${barClass}" style="width:${pct}%;"></div></div>
+        </div>
+      `;
+    }).join('');
   }
 
   function goToBrandWork(brandId){
