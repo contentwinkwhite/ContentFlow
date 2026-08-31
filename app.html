@@ -1111,7 +1111,7 @@
         <div class="card" style="margin-bottom:16px;">
           <div style="font-weight:700; font-size:13px; margin-bottom:10px;">สรุปรายคน</div>
           <table class="responsive-collapse">
-            <thead><tr><th>คน</th><th class="num-cell">มาสาย</th><th class="num-cell">ลา</th><th class="num-cell">ขาด</th></tr></thead>
+            <thead><tr><th>คน</th><th class="num-cell">มาสาย</th><th class="num-cell">ลาป่วย</th><th class="num-cell">ลากิจ</th><th class="num-cell">พักร้อน</th><th class="num-cell">ขาด</th></tr></thead>
             <tbody id="attendanceSummaryTableBody"></tbody>
           </table>
           <div class="empty-mini" id="attendanceSummaryEmptyMsg" style="display:none;">ไม่มีสมาชิกทีมที่ใช้งานอยู่</div>
@@ -1399,7 +1399,11 @@
     </div>
     <div class="field-row">
       <label>สถานะ *</label>
-      <select class="form-control" id="atFormStatus"></select>
+      <select class="form-control" id="atFormStatus" onchange="onAtFormStatusChange()"></select>
+    </div>
+    <div class="field-row" id="atFormLeaveTypeRow" style="display:none;">
+      <label>ประเภทการลา *</label>
+      <select class="form-control" id="atFormLeaveType"></select>
     </div>
     <div class="field-row">
       <label>หมายเหตุ (ไม่บังคับ)</label>
@@ -1589,7 +1593,7 @@
       <input type="text" class="form-control" id="wiFormImageNote" placeholder="ลิงก์รูป หรือคำอธิบายภาพ">
     </div>
     <div class="field-row">
-      <label>รูปหน้าปก (ไม่บังคับ — ใช้กับหน้าแพลนหน้าช่อง)</label>
+      <label>ปกส่งงาน (ไม่บังคับ — ใช้กับหน้าแพลนหน้าช่อง)</label>
       <div class="cover-upload-row">
         <span class="cover-upload-preview" id="wiFormCoverPreview"></span>
         <input type="file" accept="image/*" class="form-control" id="wiFormCoverFile">
@@ -1620,6 +1624,21 @@
     <div class="field-row">
       <label>ลิงก์โพสต์ *</label>
       <input type="text" class="form-control" id="postFormLink" placeholder="https://...">
+    </div>
+    <div class="field-row">
+      <label>ปกโพสต์ (ไม่บังคับ)</label>
+      <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin-bottom:8px;">
+        <input type="checkbox" id="postFormCoverSame" onchange="onPostFormCoverSameChange()"> ใช้รูปเดียวกับปกส่งงาน
+      </label>
+      <div id="postFormCoverSamePreviewRow" style="display:none; margin-bottom:8px;">
+        <span class="cover-upload-preview" id="postFormCoverSamePreview"></span>
+      </div>
+      <div class="cover-upload-row" id="postFormCoverUploadRow">
+        <span class="cover-upload-preview" id="postFormCoverPreview"></span>
+        <input type="file" accept="image/*" class="form-control" id="postFormCoverFile" onchange="handlePostFormCoverFileChange(this)">
+        <button type="button" class="icon-btn" onclick="removePostFormCoverImage()">ลบรูป</button>
+      </div>
+      <input type="hidden" id="postFormCoverData" value="">
     </div>
     <div class="form-msg" id="postFormMsg"></div>
     <div class="modal-actions">
@@ -1818,6 +1837,7 @@
   function isReportableMember(m){ return m.department !== 'ผู้จัดการ' && m.department !== 'ผู้บริหาร' && m.department !== 'ทีมงานนอก'; }
 
   const ATTENDANCE_STATUS_LIST = ['มาสาย', 'ลา', 'ขาด'];
+  const LEAVE_TYPE_LIST = ['ลาป่วย', 'ลากิจ', 'พักร้อน'];
   const ATTENDANCE_STATUS_CHIP_CLASS = { 'มาสาย':'chip-shoot', 'ลา':'chip-script', 'ขาด':'chip-edit' };
 
   /* <เดาให้ — แก้ได้> วันสำคัญ/วันนักขัตฤกษ์ไทย — เฉพาะวันที่ตายตัวทุกปี (ไม่รวมวันหยุดตามจันทรคติ เช่น วันมาฆบูชา/วิสาขบูชา เพราะวันเปลี่ยนทุกปีและต้องอ้างอิงปฏิทินจันทรคติ) แก้ไข/เพิ่มรายการได้ตามต้องการ */
@@ -1948,6 +1968,7 @@
     if(!Array.isArray(parsed.workItems)) parsed.workItems = [];
     parsed.workItems.forEach(w => { if(w.score === undefined) w.score = null; });
     if(!Array.isArray(parsed.attendanceRecords)) parsed.attendanceRecords = [];
+    parsed.attendanceRecords.forEach(r => { if(r.leaveType === undefined) r.leaveType = ''; });
     if(!Array.isArray(parsed.calendarEvents)) parsed.calendarEvents = [];
     if(!Array.isArray(parsed.feedPlanItems)) parsed.feedPlanItems = [];
     parsed.feedPlanItems.forEach(f => {
@@ -2007,6 +2028,7 @@
         if(w.linkPost === undefined) w.linkPost = '';
         if(w.channel === undefined) w.channel = '';
         if(w.coverImageDataUrl === undefined) w.coverImageDataUrl = '';
+        if(w.postCoverImageDataUrl === undefined) w.postCoverImageDataUrl = '';
         if(oldStatusMap[w.status]) w.status = oldStatusMap[w.status];
         else if(!validNewStatuses.includes(w.status)) w.status = 'ดำเนินการ';
         delete w.month; delete w.startDate; delete w.deadline; delete w.linkRef;
@@ -2543,6 +2565,8 @@
     memberSel.innerHTML = pickableMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
     const statusSel = document.getElementById('atFormStatus');
     statusSel.innerHTML = ATTENDANCE_STATUS_LIST.map(s => `<option value="${s}">${escapeHtml(s)}</option>`).join('');
+    const leaveTypeSel = document.getElementById('atFormLeaveType');
+    leaveTypeSel.innerHTML = LEAVE_TYPE_LIST.map(s => `<option value="${s}">${escapeHtml(s)}</option>`).join('');
 
     if(recordId){
       const rec = data.attendanceRecords.find(r => r.id === recordId);
@@ -2550,6 +2574,7 @@
       document.getElementById('atFormDate').value = rec.date;
       memberSel.value = rec.memberId;
       statusSel.value = rec.status;
+      leaveTypeSel.value = rec.leaveType || LEAVE_TYPE_LIST[0];
       document.getElementById('atFormNote').value = rec.note || '';
       document.getElementById('attendanceDeleteBtn').style.display = '';
     } else {
@@ -2558,10 +2583,17 @@
       const currentId = getCurrentUserId();
       memberSel.value = (currentId && pickableMembers.some(m => m.id === currentId)) ? currentId : (pickableMembers[0] ? pickableMembers[0].id : '');
       statusSel.value = ATTENDANCE_STATUS_LIST[0];
+      leaveTypeSel.value = LEAVE_TYPE_LIST[0];
       document.getElementById('atFormNote').value = '';
       document.getElementById('attendanceDeleteBtn').style.display = 'none';
     }
+    onAtFormStatusChange();
     document.getElementById('attendanceModalOverlay').classList.add('open');
+  }
+
+  function onAtFormStatusChange(){
+    const row = document.getElementById('atFormLeaveTypeRow');
+    if(row) row.style.display = document.getElementById('atFormStatus').value === 'ลา' ? '' : 'none';
   }
 
   function closeAttendanceModal(){
@@ -2573,6 +2605,7 @@
     const date = document.getElementById('atFormDate').value;
     const memberId = document.getElementById('atFormMember').value;
     const status = document.getElementById('atFormStatus').value;
+    const leaveType = status === 'ลา' ? document.getElementById('atFormLeaveType').value : '';
     const note = document.getElementById('atFormNote').value.trim();
     const msgEl = document.getElementById('atFormMsg');
     if(!date){ msgEl.textContent = 'กรุณาเลือกวันที่'; msgEl.style.display = 'block'; return; }
@@ -2580,18 +2613,19 @@
     msgEl.style.display = 'none';
 
     const member = data.members.find(m => m.id === memberId);
+    const statusLabel = status === 'ลา' && leaveType ? `${status} (${leaveType})` : status;
     if(editingAttendanceId){
       const rec = data.attendanceRecords.find(r => r.id === editingAttendanceId);
-      Object.assign(rec, { date, memberId, status, note });
-      logActivity('วันทำงานทีมงาน', `แก้ไขบันทึก: ${member.name} ${formatShortDate(date)} — ${status}`);
+      Object.assign(rec, { date, memberId, status, leaveType, note });
+      logActivity('วันทำงานทีมงาน', `แก้ไขบันทึก: ${member.name} ${formatShortDate(date)} — ${statusLabel}`);
     } else {
       const existing = data.attendanceRecords.find(r => r.memberId === memberId && r.date === date);
       if(existing){
-        Object.assign(existing, { status, note });
-        logActivity('วันทำงานทีมงาน', `อัปเดตบันทึกเดิม: ${member.name} ${formatShortDate(date)} — ${status}`);
+        Object.assign(existing, { status, leaveType, note });
+        logActivity('วันทำงานทีมงาน', `อัปเดตบันทึกเดิม: ${member.name} ${formatShortDate(date)} — ${statusLabel}`);
       } else {
-        data.attendanceRecords.push({ id: uid(), date, memberId, status, note });
-        logActivity('วันทำงานทีมงาน', `บันทึกวันทำงาน: ${member.name} ${formatShortDate(date)} — ${status}`);
+        data.attendanceRecords.push({ id: uid(), date, memberId, status, leaveType, note });
+        logActivity('วันทำงานทีมงาน', `บันทึกวันทำงาน: ${member.name} ${formatShortDate(date)} — ${statusLabel}`);
       }
     }
     saveData();
@@ -2626,15 +2660,26 @@
       summaryEmpty.style.display = 'none';
       const rows = activeMembers.map(m => {
         const myRecords = periodRecords.filter(r => r.memberId === m.id);
-        const counts = { 'มาสาย': 0, 'ลา': 0, 'ขาด': 0 };
-        myRecords.forEach(r => { if(counts[r.status] !== undefined) counts[r.status]++; });
+        const counts = { 'มาสาย': 0, 'ลาป่วย': 0, 'ลากิจ': 0, 'พักร้อน': 0, 'ขาด': 0 };
+        myRecords.forEach(r => {
+          if(r.status === 'ลา'){
+            if(counts[r.leaveType] !== undefined) counts[r.leaveType]++;
+          } else if(counts[r.status] !== undefined){
+            counts[r.status]++;
+          }
+        });
         return { member: m, counts };
-      }).sort((a, b) => (b.counts['ขาด'] + b.counts['ลา'] + b.counts['มาสาย']) - (a.counts['ขาด'] + a.counts['ลา'] + a.counts['มาสาย']));
+      }).sort((a, b) => {
+        const total = c => c['ขาด'] + c['ลาป่วย'] + c['ลากิจ'] + c['พักร้อน'] + c['มาสาย'];
+        return total(b.counts) - total(a.counts);
+      });
       summaryBody.innerHTML = rows.map(r => `
         <tr>
           <td data-label="คน">${avatarHtml(r.member)}${escapeHtml(r.member.name)}</td>
           <td class="num-cell" data-label="มาสาย">${r.counts['มาสาย']}</td>
-          <td class="num-cell" data-label="ลา">${r.counts['ลา']}</td>
+          <td class="num-cell" data-label="ลาป่วย">${r.counts['ลาป่วย']}</td>
+          <td class="num-cell" data-label="ลากิจ">${r.counts['ลากิจ']}</td>
+          <td class="num-cell" data-label="พักร้อน">${r.counts['พักร้อน']}</td>
           <td class="num-cell" data-label="ขาด">${r.counts['ขาด']}</td>
         </tr>
       `).join('');
@@ -2655,7 +2700,7 @@
         <tr>
           <td data-label="วันที่">${r.date ? formatShortDate(r.date) : '—'}</td>
           <td data-label="คน">${member ? `${avatarHtml(member)}${escapeHtml(member.name)}` : '—'}</td>
-          <td data-label="สถานะ"><span class="chip ${ATTENDANCE_STATUS_CHIP_CLASS[r.status] || ''}">${escapeHtml(r.status || '—')}</span></td>
+          <td data-label="สถานะ"><span class="chip ${ATTENDANCE_STATUS_CHIP_CLASS[r.status] || ''}">${escapeHtml(r.status === 'ลา' && r.leaveType ? `ลา (${r.leaveType})` : (r.status || '—'))}</span></td>
           <td data-label="หมายเหตุ">${r.note ? escapeHtml(r.note) : '—'}</td>
           <td data-label="">
             <div class="action-btns">
@@ -4534,7 +4579,7 @@
         </div>
         <div class="toolbar" style="margin-top:10px;">
           <div class="field-row">
-            <label>รูปหน้าปก (ไม่บังคับ — ใช้กับหน้าแพลนหน้าช่อง)</label>
+            <label>ปกส่งงาน (ไม่บังคับ — ใช้กับหน้าแพลนหน้าช่อง)</label>
             <div class="cover-upload-row">
               <span class="cover-upload-preview" id="aw_${id}_cover_preview"></span>
               <input type="file" accept="image/*" class="form-control" id="aw_${id}_cover_file" onchange="handleAwCoverFileChange('${id}', this)">
@@ -4548,6 +4593,20 @@
           <div class="field-row"><label id="aw_${id}_drivelink_label">ไดร์ฟงาน (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_drivelink" placeholder="ลิงก์ไดรฟ์งาน"></div>
           <div class="field-row" id="aw_${id}_channel_row" style="display:none;"><label>ช่องทางที่ลง *</label><select class="form-control" id="aw_${id}_channel"></select></div>
           <div class="field-row" id="aw_${id}_linkpost_row" style="display:none;"><label>ลิงค์โพสต์ *</label><input type="text" class="form-control" id="aw_${id}_linkpost" placeholder="ลิงก์โพสต์"></div>
+        </div>
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row" id="aw_${id}_postcover_row" style="display:none;">
+            <label>ปกโพสต์ (ไม่บังคับ)</label>
+            <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin-bottom:8px;">
+              <input type="checkbox" id="aw_${id}_postcover_same" checked onchange="onAwPostCoverSameChange('${id}')"> ใช้รูปเดียวกับปกส่งงาน
+            </label>
+            <div class="cover-upload-row" id="aw_${id}_postcover_upload_row" style="display:none;">
+              <span class="cover-upload-preview" id="aw_${id}_postcover_preview"></span>
+              <input type="file" accept="image/*" class="form-control" id="aw_${id}_postcover_file" onchange="handleAwPostCoverFileChange('${id}', this)">
+              <button type="button" class="icon-btn" onclick="removeAwPostCoverImage('${id}')">ลบรูป</button>
+            </div>
+            <input type="hidden" id="aw_${id}_postcover_data" value="">
+          </div>
         </div>
       `;
     }
@@ -4639,6 +4698,35 @@
       channelRow.style.display = status === 'Post' ? '' : 'none';
       if(status === 'Post') populateAwBlockChannel(id);
     }
+    const postcoverRow = document.getElementById(`aw_${id}_postcover_row`);
+    if(postcoverRow) postcoverRow.style.display = status === 'Post' ? '' : 'none';
+  }
+
+  function onAwPostCoverSameChange(id){
+    const same = document.getElementById(`aw_${id}_postcover_same`).checked;
+    const row = document.getElementById(`aw_${id}_postcover_upload_row`);
+    if(row) row.style.display = same ? 'none' : '';
+  }
+
+  function handleAwPostCoverFileChange(id, inputEl){
+    const file = inputEl.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ inputEl.value = ''; return; }
+    compressImageFile(file, 480, (dataUrl) => {
+      const dataEl = document.getElementById(`aw_${id}_postcover_data`);
+      if(dataEl) dataEl.value = dataUrl;
+      const preview = document.getElementById(`aw_${id}_postcover_preview`);
+      if(preview) preview.innerHTML = `<img src="${dataUrl}" alt="">`;
+    }, () => { inputEl.value = ''; });
+  }
+
+  function removeAwPostCoverImage(id){
+    const dataEl = document.getElementById(`aw_${id}_postcover_data`);
+    if(dataEl) dataEl.value = '';
+    const fileEl = document.getElementById(`aw_${id}_postcover_file`);
+    if(fileEl) fileEl.value = '';
+    const preview = document.getElementById(`aw_${id}_postcover_preview`);
+    if(preview) preview.innerHTML = '';
   }
 
   function populateWorkFormChannelOptions(prefix, forceValue){
@@ -4826,7 +4914,7 @@
       const entry = {
         date, workType, ownerIds, brandId, quantity: 1,
         description: '', location: '', imageNote: '', driveLink: '', channel: '', coverImageDataUrl: '',
-        status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: ''
+        status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: '', postCoverImageDataUrl: ''
       };
 
       if(workType === 'ตัดคลิป'){
@@ -4851,6 +4939,9 @@
           if(!entry.channel){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องเลือกช่องทางที่ลง`; msgEl.style.display = 'block'; return; }
           if(!entry.linkPost){ msgEl.textContent = `งานที่ ${num}: สถานะ Post ต้องใส่ลิงค์โพสต์`; msgEl.style.display = 'block'; return; }
           entry.postDate = date;
+          const postCoverSameEl = document.getElementById(`aw_${id}_postcover_same`);
+          const postCoverSame = postCoverSameEl ? postCoverSameEl.checked : true;
+          entry.postCoverImageDataUrl = postCoverSame ? entry.coverImageDataUrl : (document.getElementById(`aw_${id}_postcover_data`).value || '');
         }
       } else if(workType === 'ลงคลิป'){
         entry.channel = document.getElementById(`aw_${id}_channel`).value;
@@ -4881,7 +4972,7 @@
           id: uid(), title: '', date: entry.date, ownerId, brandId: entry.brandId,
           workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
           location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
-          postDate: entry.postDate, linkPost: entry.linkPost, reportId: report.id
+          postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', reportId: report.id
         };
         data.workItems.push(w);
       });
@@ -4959,7 +5050,42 @@
     document.getElementById('postFormMsg').style.display = 'none';
     document.getElementById('postFormDate').value = w.postDate || todayISO();
     document.getElementById('postFormLink').value = w.linkPost || '';
+
+    const hasSubmissionCover = !!w.coverImageDataUrl;
+    const hasDistinctPostCover = !!w.postCoverImageDataUrl && w.postCoverImageDataUrl !== w.coverImageDataUrl;
+    document.getElementById('postFormCoverSame').checked = hasSubmissionCover && !hasDistinctPostCover;
+    document.getElementById('postFormCoverData').value = hasDistinctPostCover ? w.postCoverImageDataUrl : '';
+    updatePostFormCoverPreview(hasDistinctPostCover ? w.postCoverImageDataUrl : '');
+    document.getElementById('postFormCoverSamePreview').innerHTML = hasSubmissionCover ? `<img src="${w.coverImageDataUrl}" alt="">` : '';
+    onPostFormCoverSameChange();
+
     document.getElementById('postDetailsModalOverlay').classList.add('open');
+  }
+
+  function onPostFormCoverSameChange(){
+    const same = document.getElementById('postFormCoverSame').checked;
+    document.getElementById('postFormCoverSamePreviewRow').style.display = same ? '' : 'none';
+    document.getElementById('postFormCoverUploadRow').style.display = same ? 'none' : '';
+  }
+
+  function updatePostFormCoverPreview(dataUrl){
+    document.getElementById('postFormCoverPreview').innerHTML = dataUrl ? `<img src="${dataUrl}" alt="">` : '';
+  }
+
+  function handlePostFormCoverFileChange(inputEl){
+    const file = inputEl.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){ inputEl.value = ''; return; }
+    compressImageFile(file, 480, (dataUrl) => {
+      document.getElementById('postFormCoverData').value = dataUrl;
+      updatePostFormCoverPreview(dataUrl);
+    }, () => { inputEl.value = ''; });
+  }
+
+  function removePostFormCoverImage(){
+    document.getElementById('postFormCoverData').value = '';
+    document.getElementById('postFormCoverFile').value = '';
+    updatePostFormCoverPreview('');
   }
 
   function closePostDetailsModal(){
@@ -4979,6 +5105,8 @@
     w.status = 'Post';
     w.postDate = postDate;
     w.linkPost = linkPost;
+    const sameCover = document.getElementById('postFormCoverSame').checked;
+    w.postCoverImageDataUrl = sameCover ? (w.coverImageDataUrl || '') : document.getElementById('postFormCoverData').value;
     logActivity('รายงานการทำงาน', `บันทึกข้อมูลการโพสต์: ${w.title || w.product}`);
     saveData();
     document.getElementById('postDetailsModalOverlay').classList.remove('open');
