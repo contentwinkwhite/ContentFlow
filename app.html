@@ -402,6 +402,14 @@
   }
   .avatar-upload-preview img{width:100%; height:100%; object-fit:cover;}
 
+  .revision-check-box{background:var(--pop); border-radius:12px; padding:12px 14px; width:100%;}
+  .revision-note{font-size:12.5px; color:var(--text);}
+  .revision-note-confirmed{color:var(--success); font-weight:600;}
+  .revision-candidate-list{display:flex; flex-direction:column; gap:8px;}
+  .revision-candidate-row{display:flex; align-items:center; gap:10px; background:var(--card); border-radius:10px; padding:8px;}
+  .revision-candidate-info{flex:1; min-width:0;}
+  .revision-badge{cursor:pointer;}
+
   .cover-upload-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .cover-upload-preview{
     width:42px; height:56px; border-radius:8px; background:var(--bg); border:1px solid var(--border);
@@ -1655,6 +1663,17 @@
   </div>
 </div>
 
+<!-- ===== Revision History Modal ===== -->
+<div class="modal-overlay" id="revisionHistoryModalOverlay">
+  <div class="modal" style="max-height:85vh; overflow-y:auto;">
+    <h3>ประวัติการแก้ไข</h3>
+    <div id="revisionHistoryList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="revisionHistoryModalClose">ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Content Plan Modal ===== -->
 <div class="modal-overlay" id="planModalOverlay">
   <div class="modal">
@@ -2036,6 +2055,7 @@
         if(w.channel === undefined) w.channel = '';
         if(w.coverImageDataUrl === undefined) w.coverImageDataUrl = '';
         if(w.postCoverImageDataUrl === undefined) w.postCoverImageDataUrl = '';
+        if(!Array.isArray(w.revisions)) w.revisions = [];
         if(oldStatusMap[w.status]) w.status = oldStatusMap[w.status];
         else if(!validNewStatuses.includes(w.status)) w.status = 'ดำเนินการ';
         delete w.month; delete w.startDate; delete w.deadline; delete w.linkRef;
@@ -4576,12 +4596,18 @@
       return `
         <div class="toolbar" style="margin-top:10px;">
           <div class="field-row"><label>แบรนด์ (ไม่บังคับ)</label><select class="form-control" id="aw_${id}_brand" onchange="onAwBlockBrandChange('${id}')"></select></div>
-          <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน"></div>
+          <div class="field-row" style="flex:1; min-width:180px;"><label>รายละเอียด (ไม่บังคับ)</label><input type="text" class="form-control" id="aw_${id}_description" placeholder="รายละเอียดงาน" onblur="checkAwRevisionMatch('${id}')"></div>
           <div class="field-row"><label>จำนวน *</label><input type="number" min="1" class="form-control" id="aw_${id}_quantity" value="1" style="width:90px;"></div>
           <div class="field-row"><label>สถานะ</label>
             <select class="form-control" id="aw_${id}_status" onchange="onAwStatusChange('${id}')">
               ${WORKITEM_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('')}
             </select>
+          </div>
+        </div>
+        <div class="toolbar" style="margin-top:10px;">
+          <div class="field-row" id="aw_${id}_revision_row" style="display:none; flex:1; min-width:280px;">
+            <div id="aw_${id}_revision_box" class="revision-check-box"></div>
+            <input type="hidden" id="aw_${id}_revision_of" value="">
           </div>
         </div>
         <div class="toolbar" style="margin-top:10px;">
@@ -4762,9 +4788,120 @@
     if(channels.includes(cur)) sel.value = cur;
   }
 
+  const REVISION_KEYWORDS = ['แก้ไข', 'แก้งาน'];
+
+  function dateStrDaysAgo(days){
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function normalizeForMatch(text){
+    text = text || '';
+    ['แก้ไข', 'แก้งาน', 'แก้คลิป', 'แก้'].forEach(k => { text = text.split(k).join(''); });
+    text = text.replace(/[^\wก-๙]/g, '');
+    return text.toLowerCase();
+  }
+
+  function bigramSet(s){
+    const arr = [];
+    for(let i = 0; i < s.length - 1; i++) arr.push(s.slice(i, i + 2));
+    return arr;
+  }
+
+  function textSimilarity(a, b){
+    if(!a || !b) return 0;
+    if(a === b) return 1;
+    const ga = bigramSet(a), gb = bigramSet(b);
+    if(ga.length === 0 || gb.length === 0) return 0;
+    const counts = {};
+    gb.forEach(g => { counts[g] = (counts[g] || 0) + 1; });
+    let overlap = 0;
+    ga.forEach(g => { if(counts[g] > 0){ overlap++; counts[g]--; } });
+    return (2 * overlap) / (ga.length + gb.length);
+  }
+
+  function findRevisionCandidates(brandId, description){
+    const norm = normalizeForMatch(description);
+    if(!norm || !brandId) return [];
+    const cutoff = dateStrDaysAgo(60);
+    const candidates = data.workItems.filter(w => w.brandId === brandId && w.workType === 'ตัดคลิป' && w.date && w.date >= cutoff);
+    return candidates.map(w => ({
+      item: w,
+      score: textSimilarity(norm, normalizeForMatch(w.title || w.description || w.product || ''))
+    })).filter(x => x.score >= 0.3).sort((a, b) => b.score - a.score).slice(0, 5);
+  }
+
+  function checkAwRevisionMatch(id){
+    const descEl = document.getElementById(`aw_${id}_description`);
+    const brandEl = document.getElementById(`aw_${id}_brand`);
+    const row = document.getElementById(`aw_${id}_revision_row`);
+    const box = document.getElementById(`aw_${id}_revision_box`);
+    const hiddenEl = document.getElementById(`aw_${id}_revision_of`);
+    if(!descEl || !row || !box || !hiddenEl) return;
+
+    const description = descEl.value.trim();
+    const brandId = brandEl ? brandEl.value : '';
+    const hasKeyword = REVISION_KEYWORDS.some(k => description.includes(k));
+
+    if(hiddenEl.value){
+      // already confirmed a selection — keep showing the confirmed state unless description/brand changed away from having a keyword
+      if(!hasKeyword){ hiddenEl.value = ''; row.style.display = 'none'; box.innerHTML = ''; }
+      return;
+    }
+
+    if(!hasKeyword || !brandId){
+      row.style.display = 'none';
+      box.innerHTML = '';
+      return;
+    }
+
+    const candidates = findRevisionCandidates(brandId, description);
+    row.style.display = '';
+    if(candidates.length === 0){
+      box.innerHTML = `<div class="revision-note">ไม่พบงานเดิมที่คล้ายกันในรอบ 60 วันที่ผ่านมา จะบันทึกเป็นงานใหม่ตามปกติ</div>`;
+      return;
+    }
+    box.innerHTML = `
+      <div class="revision-note" style="margin-bottom:8px;">พบงานที่อาจเป็นงานเดียวกัน ${candidates.length} รายการ — งานนี้เป็นการแก้ไขงานไหนหรือเปล่า?</div>
+      <div class="revision-candidate-list">
+        ${candidates.map(c => `
+          <div class="revision-candidate-row">
+            ${c.item.coverImageDataUrl ? `<img src="${c.item.coverImageDataUrl}" alt="" class="cover-thumb">` : `<div class="cover-thumb-empty"></div>`}
+            <div class="revision-candidate-info">
+              <div class="li-title">${escapeHtml(c.item.title || c.item.product || '(ไม่มีชื่อ)')}</div>
+              <div class="li-sub">${formatShortDate(c.item.date)}${c.item.revisions && c.item.revisions.length ? ` · แก้ไขแล้ว ${c.item.revisions.length} ครั้ง` : ''}</div>
+            </div>
+            <button type="button" class="btn btn-sm" onclick="selectAwRevisionTarget('${id}', '${c.item.id}')">ใช่ งานนี้</button>
+          </div>
+        `).join('')}
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="dismissAwRevisionCheck('${id}')">ไม่ใช่ เป็นงานใหม่จริง</button>
+    `;
+  }
+
+  function selectAwRevisionTarget(id, workItemId){
+    const target = data.workItems.find(w => w.id === workItemId);
+    if(!target) return;
+    document.getElementById(`aw_${id}_revision_of`).value = workItemId;
+    document.getElementById(`aw_${id}_revision_box`).innerHTML = `
+      <div class="revision-note revision-note-confirmed">
+        ✓ จะบันทึกเป็นการแก้ไขของ "${escapeHtml(target.title || target.product || '(ไม่มีชื่อ)')}" (${formatShortDate(target.date)}) — ไม่นับเป็นชิ้นงานใหม่
+        <button type="button" class="icon-btn" onclick="checkAwRevisionMatch('${id}')" style="margin-left:8px;">เปลี่ยน</button>
+      </div>
+    `;
+  }
+
+  function dismissAwRevisionCheck(id){
+    document.getElementById(`aw_${id}_revision_of`).value = '';
+    document.getElementById(`aw_${id}_revision_row`).style.display = 'none';
+    document.getElementById(`aw_${id}_revision_box`).innerHTML = '';
+  }
+
   function onAwBlockBrandChange(id){
     const statusEl = document.getElementById(`aw_${id}_status`);
     if(statusEl && statusEl.value === 'Post') populateAwBlockChannel(id);
+    checkAwRevisionMatch(id);
   }
 
   function handleAwCoverFileChange(id, inputEl){
@@ -4795,6 +4932,33 @@
     overlay.innerHTML = `<img src="${dataUrl}" style="max-width:90vw;max-height:90vh;border-radius:8px;">`;
     overlay.onclick = () => overlay.remove();
     document.body.appendChild(overlay);
+  }
+
+  function openRevisionHistoryModal(workItemId){
+    const w = data.workItems.find(x => x.id === workItemId);
+    if(!w) return;
+    const listEl = document.getElementById('revisionHistoryList');
+    const revisions = [...(w.revisions || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    listEl.innerHTML = `
+      <div class="li-sub" style="margin-bottom:10px;">งานต้นฉบับ: <strong>${escapeHtml(w.title || w.product || '(ไม่มีชื่อ)')}</strong> · ${formatThaiDate(w.date)}</div>
+      ${revisions.map(r => {
+        const who = data.members.find(m => m.id === r.createdBy);
+        return `
+          <div class="list-item">
+            ${r.coverImageDataUrl ? `<img src="${r.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${r.coverImageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}
+            <div style="flex:1; min-width:0;">
+              <div class="li-title">${formatThaiDate(r.date)}${who ? ' · ' + escapeHtml(who.name) : ''}</div>
+              <div class="li-sub">${r.description ? escapeHtml(r.description) : 'ไม่มีรายละเอียด'}${r.driveLink ? ` · <a href="${escapeHtml(r.driveLink)}" target="_blank" rel="noopener">ไดร์ฟ</a>` : ''}</div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    `;
+    document.getElementById('revisionHistoryModalOverlay').classList.add('open');
+  }
+
+  function closeRevisionHistoryModal(){
+    document.getElementById('revisionHistoryModalOverlay').classList.remove('open');
   }
 
   function removeAwCoverImage(id){
@@ -4921,10 +5085,12 @@
       const entry = {
         date, workType, ownerIds, brandId, quantity: 1,
         description: '', location: '', imageNote: '', driveLink: '', channel: '', coverImageDataUrl: '',
-        status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: '', postCoverImageDataUrl: ''
+        status: WORKITEM_STATUS_LIST[0], postDate: '', linkPost: '', postCoverImageDataUrl: '', revisionOf: ''
       };
 
       if(workType === 'ตัดคลิป'){
+        const revisionOfEl = document.getElementById(`aw_${id}_revision_of`);
+        entry.revisionOf = revisionOfEl ? revisionOfEl.value : '';
         entry.description = document.getElementById(`aw_${id}_description`).value.trim();
         entry.quantity = Number(document.getElementById(`aw_${id}_quantity`).value);
         entry.status = document.getElementById(`aw_${id}_status`).value;
@@ -4972,6 +5138,23 @@
     msgEl.style.display = 'none';
 
     entries.forEach(entry => {
+      const ownerNames = entry.ownerIds.map(oid => { const m = data.members.find(x => x.id === oid); return m ? m.name : ''; }).filter(Boolean).join(', ');
+
+      if(entry.revisionOf){
+        const target = data.workItems.find(w => w.id === entry.revisionOf);
+        if(target){
+          if(!Array.isArray(target.revisions)) target.revisions = [];
+          entry.ownerIds.forEach(ownerId => {
+            target.revisions.push({
+              id: uid(), date: entry.date, description: entry.description, coverImageDataUrl: entry.coverImageDataUrl,
+              driveLink: entry.driveLink, createdBy: ownerId, createdAt: nowISO()
+            });
+          });
+          logActivity('รายงานการทำงาน', `แก้ไขงาน: "${target.title || target.product || target.description}" (${ownerNames}) — ไม่นับเป็นชิ้นงานใหม่`);
+        }
+        return;
+      }
+
       entry.ownerIds.forEach(ownerId => {
         const report = { id: uid(), memberId: ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
         data.dailyReports.push(report);
@@ -4979,11 +5162,10 @@
           id: uid(), title: '', date: entry.date, ownerId, brandId: entry.brandId,
           workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
           location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
-          postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', reportId: report.id
+          postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', revisions: [], reportId: report.id
         };
         data.workItems.push(w);
       });
-      const ownerNames = entry.ownerIds.map(oid => { const m = data.members.find(x => x.id === oid); return m ? m.name : ''; }).filter(Boolean).join(', ');
       logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น (${ownerNames})`);
     });
 
@@ -5172,7 +5354,7 @@
           <td data-label="รูป">${w.coverImageDataUrl ? `<img src="${w.coverImageDataUrl}" alt="" class="cover-thumb" onclick="showImageLightbox('${w.coverImageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
           <td data-label="วันที่">${w.date ? formatShortDate(w.date) : '—'}</td>
           <td data-label="งาน">
-            <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}</div>
+            <div class="li-title">${escapeHtml(w.title || w.product || w.location || '(ไม่มีชื่อ)')}${hasNewCover ? ` <span class="chip chip-outline" style="font-size:10.5px;">หน้าปกใหม่</span>` : ''}${w.revisions && w.revisions.length ? ` <span class="chip chip-edit revision-badge" style="font-size:10.5px;" onclick="openRevisionHistoryModal('${w.id}')">แก้ไข ${w.revisions.length} ครั้ง</span>` : ''}</div>
             <div class="li-sub">${w.workType ? escapeHtml(w.workType) + ' ' + (w.quantity || 1) + ' ชิ้น' : ''}${w.product ? ' · ' + escapeHtml(w.product) : ''}${w.location ? ' · ' + escapeHtml(w.location) : ''}${w.channel ? ' · 📍' + escapeHtml(w.channel) : ''}</div>
           </td>
           <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
@@ -6754,6 +6936,11 @@
   guardClick(document.getElementById('postDetailsModalSave'), savePostDetails);
   document.getElementById('postDetailsModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'postDetailsModalOverlay') closePostDetailsModal();
+  });
+
+  document.getElementById('revisionHistoryModalClose').addEventListener('click', closeRevisionHistoryModal);
+  document.getElementById('revisionHistoryModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'revisionHistoryModalOverlay') closeRevisionHistoryModal();
   });
 
   document.getElementById('openManageTeamBtn').addEventListener('click', openManageTeamModal);
