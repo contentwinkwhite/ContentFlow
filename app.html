@@ -6220,13 +6220,18 @@
     let periodItems = data.workItems.filter(w => dateInDashPeriod(w.date));
     if(dashBrandFilter) periodItems = periodItems.filter(w => w.brandId === dashBrandFilter);
     const totalCounts = countWorkItemBuckets(periodItems);
+
+    let postedPeriodItems = data.workItems.filter(w => w.status === 'Post' && periodMatches(w.postDate, 'dashPeriodFilter'));
+    if(dashBrandFilter) postedPeriodItems = postedPeriodItems.filter(w => w.brandId === dashBrandFilter);
+
     document.getElementById('teamWorkInProgress').innerHTML = `${totalCounts.inProgress} <small>งาน</small>`;
     document.getElementById('teamWorkPendingReview').innerHTML = `${totalCounts.pendingReview} <small>งาน</small>`;
     document.getElementById('teamWorkSuccess').innerHTML = `${totalCounts.success} <small>งาน</small>`;
-    document.getElementById('teamWorkPosted').innerHTML = `${totalCounts.posted} <small>งาน</small>`;
+    document.getElementById('teamWorkPosted').innerHTML = `${postedPeriodItems.length} <small>งาน</small>`;
 
     const postedChannels = new Set(
-      periodItems.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).map(w => `${w.brandId}::${w.channel}`)
+      periodItems.filter(w => w.status === 'สำเร็จ' && w.channel).map(w => `${w.brandId}::${w.channel}`)
+        .concat(postedPeriodItems.filter(w => w.channel).map(w => `${w.brandId}::${w.channel}`))
     );
     document.getElementById('dashChannelCount').innerHTML = `${postedChannels.size} <small>ช่อง</small>`;
 
@@ -6244,13 +6249,14 @@
       const clipBrandItems = brandItems.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
       const counts = countWorkItemBuckets(clipBrandItems);
       const mainChannel = Array.isArray(b.channels) && b.channels.length ? b.channels[0] : null;
-      const postedMainChannel = clipBrandItems.filter(w => w.status === 'Post' && w.channel === mainChannel).reduce((s, w) => s + (Number(w.quantity) || 1), 0);
+      const brandPostedClipItems = postedPeriodItems.filter(w => w.brandId === b.id && (w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป'));
+      const postedMainChannel = brandPostedClipItems.filter(w => w.channel === mainChannel).reduce((s, w) => s + (Number(w.quantity) || 1), 0);
 
       const channelNames = new Set(Array.isArray(b.channels) ? b.channels : []);
-      clipBrandItems.forEach(w => { if(w.status === 'Post' && w.channel) channelNames.add(w.channel); });
+      brandPostedClipItems.forEach(w => { if(w.channel) channelNames.add(w.channel); });
       const channelRows = Array.from(channelNames).map(name => ({
         name,
-        count: clipBrandItems.filter(w => w.status === 'Post' && w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
+        count: brandPostedClipItems.filter(w => w.channel === name).reduce((s, w) => s + (Number(w.quantity) || 1), 0)
       }));
 
       return `
@@ -6666,9 +6672,11 @@
       const mainChannel = brand && Array.isArray(brand.channels) && brand.channels.length ? brand.channels[0] : null;
       return !!mainChannel && w.channel === mainChannel;
     };
+    let postedClipItems = data.workItems.filter(w => (w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป') && w.status === 'Post' && periodMatches(w.postDate, 'reportPeriodFilter'));
+    if(reportBrandFilter) postedClipItems = postedClipItems.filter(w => w.brandId === reportBrandFilter);
     const statusCounts = WORKITEM_STATUS_LIST.map(s => ({
       status: s,
-      count: clipItems.filter(w => w.status === s && (s !== 'Post' || isMainChannelItem(w))).length
+      count: s === 'Post' ? postedClipItems.filter(isMainChannelItem).length : clipItems.filter(w => w.status === s).length
     })).filter(x => x.count > 0);
     pillsEl.innerHTML = statusCounts.length === 0 ? '<div class="empty-mini">ยังไม่มีงานในช่วงที่เลือก</div>' : statusCounts.map(x => `
       <div class="report-status-pill ${(WORKITEM_STATUS_CHIP_CLASS[x.status] || 'chip-idea').replace('chip-', 'rsp-')}">
@@ -6724,7 +6732,7 @@
     const channelListEl = document.getElementById('reportChannelList');
     const channelEmptyEl = document.getElementById('reportChannelEmpty');
     const channelMap = new Map();
-    items.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).forEach(w => {
+    items.filter(w => w.status === 'สำเร็จ' && w.channel).concat(postedClipItems.filter(w => w.channel)).forEach(w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const key = `${brand ? brand.name : 'ไม่ระบุแบรนด์'} · ${w.channel}`;
       channelMap.set(key, (channelMap.get(key) || 0) + (Number(w.quantity) || 1));
@@ -6776,15 +6784,17 @@
     lines.push([csvEscape('รายงานสรุปผลงาน'), csvEscape(periodLabelText)].join(','));
     lines.push('');
 
-    lines.push([csvEscape('แยกตามสถานะ (เฉพาะตัดคลิป/ลงคลิป, Post นับเฉพาะช่องหลัก)')].join(','));
+    lines.push([csvEscape('แยกตามสถานะ (เฉพาะตัดคลิป/ลงคลิป, Post นับเฉพาะช่องหลักและต้องมีวันที่โพสต์ในช่วงที่เลือก)')].join(','));
     const clipItemsCsv = items.filter(w => w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป');
     const isMainChannelItemCsv = w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const mainChannel = brand && Array.isArray(brand.channels) && brand.channels.length ? brand.channels[0] : null;
       return !!mainChannel && w.channel === mainChannel;
     };
+    let postedClipItemsCsv = data.workItems.filter(w => (w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป') && w.status === 'Post' && periodMatches(w.postDate, 'reportPeriodFilter'));
+    if(reportBrandFilter) postedClipItemsCsv = postedClipItemsCsv.filter(w => w.brandId === reportBrandFilter);
     WORKITEM_STATUS_LIST.forEach(s => {
-      const count = clipItemsCsv.filter(w => w.status === s && (s !== 'Post' || isMainChannelItemCsv(w))).length;
+      const count = s === 'Post' ? postedClipItemsCsv.filter(isMainChannelItemCsv).length : clipItemsCsv.filter(w => w.status === s).length;
       lines.push([csvEscape(s), count].join(','));
     });
     lines.push('');
@@ -6814,7 +6824,9 @@
 
     lines.push([csvEscape('ช่องทางที่โพสต์แล้ว'), csvEscape('จำนวนชิ้น')].join(','));
     const channelMap = new Map();
-    items.filter(w => (w.status === 'Post' || w.status === 'สำเร็จ') && w.channel).forEach(w => {
+    let postedChannelItemsCsv = data.workItems.filter(w => w.status === 'Post' && periodMatches(w.postDate, 'reportPeriodFilter'));
+    if(reportBrandFilter) postedChannelItemsCsv = postedChannelItemsCsv.filter(w => w.brandId === reportBrandFilter);
+    items.filter(w => w.status === 'สำเร็จ' && w.channel).concat(postedChannelItemsCsv.filter(w => w.channel)).forEach(w => {
       const brand = data.brands.find(b => b.id === w.brandId);
       const key = `${brand ? brand.name : 'ไม่ระบุแบรนด์'} · ${w.channel}`;
       channelMap.set(key, (channelMap.get(key) || 0) + (Number(w.quantity) || 1));
