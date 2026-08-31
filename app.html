@@ -6390,8 +6390,7 @@
   function channelPostedCount(brandId, channel){
     return data.workItems
       .filter(w => w.brandId === brandId && w.channel === channel && (w.workType === 'ตัดคลิป' || w.workType === 'ลงคลิป'))
-      .filter(w => (w.status === 'Post' && periodMatches(w.postDate, 'dashPeriodFilter'))
-        || (w.status === 'สำเร็จ' && periodMatches(w.date, 'dashPeriodFilter')))
+      .filter(w => w.status === 'Post' && periodMatches(w.postDate, 'dashPeriodFilter'))
       .reduce((s, w) => s + (Number(w.quantity) || 1), 0);
   }
 
