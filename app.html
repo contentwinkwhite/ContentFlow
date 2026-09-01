@@ -1804,6 +1804,14 @@
       <input type="text" class="form-control" id="footageFormLink" placeholder="ลิงก์ Drive (ไม่บังคับ)">
     </div>
     <div class="field-row">
+      <label>รูปภาพ (ไม่บังคับ)</label>
+      <div class="cover-upload-row">
+        <span class="cover-upload-preview" id="footageFormImagePreview"></span>
+        <input type="file" accept="image/*" class="form-control" id="footageFormImageFile">
+        <button type="button" class="icon-btn" id="footageFormImageResetBtn">ลบรูป</button>
+      </div>
+    </div>
+    <div class="field-row">
       <label>วันที่ถ่าย/ได้รับ</label>
       <input type="date" class="form-control" id="footageFormDate">
     </div>
@@ -2012,7 +2020,10 @@
     if(!Array.isArray(parsed.scripts)) parsed.scripts = [];
     if(!Array.isArray(parsed.ideas)) parsed.ideas = [];
     if(!Array.isArray(parsed.footageItems)) parsed.footageItems = [];
-    parsed.footageItems.forEach(f => { if(!FOOTAGE_STATUS_LIST.includes(f.status)) f.status = 'ยังไม่ได้ตัด'; });
+    parsed.footageItems.forEach(f => {
+      if(!FOOTAGE_STATUS_LIST.includes(f.status)) f.status = 'ยังไม่ได้ตัด';
+      if(f.imageDataUrl === undefined) f.imageDataUrl = '';
+    });
     if(!Array.isArray(parsed.sessions)) parsed.sessions = [];
     if(!Array.isArray(parsed.activityLog)) parsed.activityLog = [];
     if(!parsed.settings || typeof parsed.settings !== 'object'){
@@ -2168,6 +2179,7 @@
   let editingScriptId = null;
   let focusScriptId = null;
   let editingFootageId = null;
+  let pendingFootageImageDataUrl = undefined;
   let pendingLogoDataUrl = undefined;
   let currentMemberDashboardId = null;
   let memberDashboardReturnPage = 'team';
@@ -3627,10 +3639,17 @@
     statusSel.value = curStatus;
   }
 
+  function updateFootageImagePreview(dataUrl){
+    const preview = document.getElementById('footageFormImagePreview');
+    preview.innerHTML = dataUrl ? `<img src="${dataUrl}" alt="">` : '';
+  }
+
   function openFootageModal(footageId){
     editingFootageId = footageId || null;
     document.getElementById('footageFormMsg').style.display = 'none';
     renderFootageFormSelectOptions();
+    pendingFootageImageDataUrl = undefined;
+    document.getElementById('footageFormImageFile').value = '';
 
     if(footageId){
       const item = data.footageItems.find(x => x.id === footageId);
@@ -3641,6 +3660,7 @@
       document.getElementById('footageFormLink').value = item.fileLink || '';
       document.getElementById('footageFormDate').value = item.date;
       document.getElementById('footageFormStatus').value = item.status;
+      updateFootageImagePreview(item.imageDataUrl || null);
     } else {
       document.getElementById('footageModalTitle').textContent = 'เพิ่มฟุตเทจ';
       document.getElementById('footageFormBrand').value = '';
@@ -3649,6 +3669,7 @@
       document.getElementById('footageFormLink').value = '';
       document.getElementById('footageFormDate').value = todayISO();
       document.getElementById('footageFormStatus').value = 'ยังไม่ได้ตัด';
+      updateFootageImagePreview(null);
     }
     document.getElementById('footageModalOverlay').classList.add('open');
   }
@@ -3674,9 +3695,10 @@
       const item = data.footageItems.find(x => x.id === editingFootageId);
       item.brandId = brandId; item.description = description; item.source = source;
       item.fileLink = fileLink; item.date = date; item.status = status;
+      if(pendingFootageImageDataUrl !== undefined) item.imageDataUrl = pendingFootageImageDataUrl;
       logActivity('เช็คลิสต์ฟุตเทจ', `แก้ไขฟุตเทจ: ${description}`);
     } else {
-      data.footageItems.push({ id: uid(), brandId, description, source, fileLink, date, status });
+      data.footageItems.push({ id: uid(), brandId, description, source, fileLink, date, status, imageDataUrl: pendingFootageImageDataUrl || '' });
       logActivity('เช็คลิสต์ฟุตเทจ', `เพิ่มฟุตเทจ: ${description}`);
     }
     saveData();
@@ -3705,7 +3727,7 @@
       data.footageItems.push({
         id: uid(), brandId: '',
         description: count > 1 ? `คลิปที่ ${i}/${count} (จากลิงก์เดียวกัน)` : '',
-        source: '', fileLink: link, date, status: 'ยังไม่ได้ตัด'
+        source: '', fileLink: link, date, status: 'ยังไม่ได้ตัด', imageDataUrl: ''
       });
     }
     logActivity('เช็คลิสต์ฟุตเทจ', count > 1 ? `วางลิงก์ด่วน แยก ${count} คลิป: ${link}` : `วางลิงก์ด่วน: ${link}`);
@@ -3757,8 +3779,13 @@
             <span class="chip ${FOOTAGE_STATUS_CHIP_CLASS[item.status] || 'chip-idea'}">${escapeHtml(item.status)}</span>
             ${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : ''}
           </div>
-          <div class="idea-content">${descHtml}</div>
-          <div class="idea-meta">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">ลิงก์ไฟล์</a>` : ''}</div>
+          <div style="display:flex; gap:10px; align-items:flex-start;">
+            ${item.imageDataUrl ? `<img src="${item.imageDataUrl}" alt="" class="cover-thumb" style="flex-shrink:0; cursor:pointer;" onclick="showImageLightbox('${item.imageDataUrl}')">` : ''}
+            <div style="flex:1; min-width:0;">
+              <div class="idea-content">${descHtml}</div>
+              <div class="idea-meta">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">ลิงก์ไฟล์</a>` : ''}</div>
+            </div>
+          </div>
           <div class="idea-actions">
             <button class="icon-btn" onclick="toggleFootageStatus('${item.id}')">${item.status === 'ตัดแล้ว' ? '↩️ ยังไม่ได้ตัด' : '✅ ตัดแล้ว'}</button>
             <button class="icon-btn" onclick="openFootageModal('${item.id}')">แก้ไข</button>
@@ -7286,6 +7313,29 @@
   document.getElementById('addFootageBtn').addEventListener('click', () => openFootageModal());
   document.getElementById('footageModalCancel').addEventListener('click', closeFootageModal);
   guardClick(document.getElementById('footageModalSave'), saveFootage);
+  document.getElementById('footageFormImageFile').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    const msgEl = document.getElementById('footageFormMsg');
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      msgEl.textContent = 'กรุณาเลือกไฟล์รูปภาพ';
+      msgEl.style.display = 'block';
+      return;
+    }
+    msgEl.style.display = 'none';
+    compressImageFile(file, 480, (dataUrl) => {
+      pendingFootageImageDataUrl = dataUrl;
+      updateFootageImagePreview(dataUrl);
+    }, () => {
+      msgEl.textContent = 'อ่านไฟล์รูปภาพไม่สำเร็จ ลองไฟล์อื่น';
+      msgEl.style.display = 'block';
+    });
+  });
+  document.getElementById('footageFormImageResetBtn').addEventListener('click', () => {
+    pendingFootageImageDataUrl = null;
+    document.getElementById('footageFormImageFile').value = '';
+    updateFootageImagePreview(null);
+  });
   document.getElementById('footageModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'footageModalOverlay') closeFootageModal();
   });
