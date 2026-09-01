@@ -1055,9 +1055,12 @@
             <button class="btn btn-outline btn-sm" id="clearFootageFilterBtn">ล้างตัวกรอง</button>
           </div>
         </div>
-        <div class="grid-3" id="footageList"></div>
-        <div class="card" id="footageEmptyMsg" style="display:none;">
-          <div class="empty-mini" id="footageEmptyMsgText">ยังไม่มีฟุตเทจในระบบ</div>
+        <div class="card">
+          <table class="responsive-collapse">
+            <thead><tr><th>#</th><th>รูป</th><th>รหัส</th><th>ชื่อ/คำอธิบาย</th><th>แบรนด์</th><th>สถานะ</th><th>ผู้รับผิดชอบตัด</th><th></th></tr></thead>
+            <tbody id="footageList"></tbody>
+          </table>
+          <div class="empty-mini" id="footageEmptyMsg" style="display:none;"><span id="footageEmptyMsgText">ยังไม่มีฟุตเทจในระบบ</span></div>
         </div>
       </div>
 
@@ -1792,12 +1795,20 @@
       <select class="form-control" id="footageFormBrand"><option value="">— ไม่ระบุแบรนด์ —</option></select>
     </div>
     <div class="field-row">
+      <label>รหัส (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="footageFormCode" placeholder="เช่น เลขไฟล์จากกล้อง">
+    </div>
+    <div class="field-row">
       <label>ชื่อ/คำอธิบายสิ่งที่ถ่ายมา</label>
       <textarea class="form-control" id="footageFormDescription" rows="3" placeholder="เช่น นางแบบถ่ายรีวิวน้ำตบ 5 คลิป"></textarea>
     </div>
     <div class="field-row">
       <label>คนถ่าย/แหล่งที่มา</label>
       <input type="text" class="form-control" id="footageFormSource" placeholder="เช่น Ning ถ่ายเอง / ได้รับจากนางแบบ">
+    </div>
+    <div class="field-row">
+      <label>ผู้รับผิดชอบตัด (ไม่บังคับ)</label>
+      <select class="form-control" id="footageFormAssignee"><option value="">— ไม่ระบุ —</option></select>
     </div>
     <div class="field-row">
       <label>ลิงก์ไฟล์</label>
@@ -1878,9 +1889,9 @@
     'รับทราบ':'chip-shoot', 'กำลังทำ':'chip-script', 'เสร็จ':'chip-done'
   };
   const WORK_TYPES = ['ตัดคลิป','ลงคลิป','ถ่ายฟุตเทจ','ออกกอง','อีเว้นท์','พากย์เสียง','เขียนสคริปต์','อื่นๆ'];
-  const FOOTAGE_STATUS_LIST = ['ยังไม่ได้ตัด','ตัดแล้ว'];
+  const FOOTAGE_STATUS_LIST = ['ยังไม่ได้ตัด','กำลังตัด','ตัดแล้ว'];
   const FOOTAGE_STATUS_CHIP_CLASS = {
-    'ยังไม่ได้ตัด':'chip-shoot', 'ตัดแล้ว':'chip-done'
+    'ยังไม่ได้ตัด':'chip-shoot', 'กำลังตัด':'chip-edit', 'ตัดแล้ว':'chip-done'
   };
   const WORKITEM_STATUS_LIST = ['ดำเนินการ','รอตรวจ','แก้ไข','สำเร็จ','Post','ยกเลิก'];
   const WORKITEM_STATUS_CHIP_CLASS = {
@@ -2023,6 +2034,8 @@
     parsed.footageItems.forEach(f => {
       if(!FOOTAGE_STATUS_LIST.includes(f.status)) f.status = 'ยังไม่ได้ตัด';
       if(f.imageDataUrl === undefined) f.imageDataUrl = '';
+      if(f.code === undefined) f.code = '';
+      if(f.assigneeId === undefined) f.assigneeId = '';
     });
     if(!Array.isArray(parsed.sessions)) parsed.sessions = [];
     if(!Array.isArray(parsed.activityLog)) parsed.activityLog = [];
@@ -3625,6 +3638,16 @@
 
     const statusSel = document.getElementById('footageFormStatus');
     statusSel.innerHTML = FOOTAGE_STATUS_LIST.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    const assigneeSel = document.getElementById('footageFormAssignee');
+    const curAssignee = assigneeSel.value;
+    let activeMembers = data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m));
+    if(curAssignee && !activeMembers.some(m => m.id === curAssignee)){
+      const legacy = data.members.find(m => m.id === curAssignee);
+      if(legacy) activeMembers = activeMembers.concat(legacy);
+    }
+    assigneeSel.innerHTML = '<option value="">— ไม่ระบุ —</option>' + activeMembers.map(m => `<option value="${m.id}">${escapeHtml(m.name)}</option>`).join('');
+    if(activeMembers.some(m => m.id === curAssignee)) assigneeSel.value = curAssignee;
   }
 
   function renderFootageFilterOptions(){
@@ -3655,8 +3678,10 @@
       const item = data.footageItems.find(x => x.id === footageId);
       document.getElementById('footageModalTitle').textContent = 'แก้ไขฟุตเทจ';
       document.getElementById('footageFormBrand').value = item.brandId || '';
+      document.getElementById('footageFormCode').value = item.code || '';
       document.getElementById('footageFormDescription').value = item.description;
       document.getElementById('footageFormSource').value = item.source || '';
+      document.getElementById('footageFormAssignee').value = item.assigneeId || '';
       document.getElementById('footageFormLink').value = item.fileLink || '';
       document.getElementById('footageFormDate').value = item.date;
       document.getElementById('footageFormStatus').value = item.status;
@@ -3664,8 +3689,10 @@
     } else {
       document.getElementById('footageModalTitle').textContent = 'เพิ่มฟุตเทจ';
       document.getElementById('footageFormBrand').value = '';
+      document.getElementById('footageFormCode').value = '';
       document.getElementById('footageFormDescription').value = '';
       document.getElementById('footageFormSource').value = '';
+      document.getElementById('footageFormAssignee').value = '';
       document.getElementById('footageFormLink').value = '';
       document.getElementById('footageFormDate').value = todayISO();
       document.getElementById('footageFormStatus').value = 'ยังไม่ได้ตัด';
@@ -3680,8 +3707,10 @@
 
   function saveFootage(){
     const brandId = document.getElementById('footageFormBrand').value;
+    const code = document.getElementById('footageFormCode').value.trim();
     const description = document.getElementById('footageFormDescription').value.trim();
     const source = document.getElementById('footageFormSource').value.trim();
+    const assigneeId = document.getElementById('footageFormAssignee').value;
     const fileLink = document.getElementById('footageFormLink').value.trim();
     const date = document.getElementById('footageFormDate').value;
     const status = document.getElementById('footageFormStatus').value;
@@ -3693,12 +3722,12 @@
 
     if(editingFootageId){
       const item = data.footageItems.find(x => x.id === editingFootageId);
-      item.brandId = brandId; item.description = description; item.source = source;
-      item.fileLink = fileLink; item.date = date; item.status = status;
+      item.brandId = brandId; item.code = code; item.description = description; item.source = source;
+      item.assigneeId = assigneeId; item.fileLink = fileLink; item.date = date; item.status = status;
       if(pendingFootageImageDataUrl !== undefined) item.imageDataUrl = pendingFootageImageDataUrl;
       logActivity('เช็คลิสต์ฟุตเทจ', `แก้ไขฟุตเทจ: ${description}`);
     } else {
-      data.footageItems.push({ id: uid(), brandId, description, source, fileLink, date, status, imageDataUrl: pendingFootageImageDataUrl || '' });
+      data.footageItems.push({ id: uid(), brandId, code, description, source, assigneeId, fileLink, date, status, imageDataUrl: pendingFootageImageDataUrl || '' });
       logActivity('เช็คลิสต์ฟุตเทจ', `เพิ่มฟุตเทจ: ${description}`);
     }
     saveData();
@@ -3725,9 +3754,9 @@
     const date = todayISO();
     for(let i = 1; i <= count; i++){
       data.footageItems.push({
-        id: uid(), brandId: '',
+        id: uid(), brandId: '', code: '',
         description: count > 1 ? `คลิปที่ ${i}/${count} (จากลิงก์เดียวกัน)` : '',
-        source: '', fileLink: link, date, status: 'ยังไม่ได้ตัด', imageDataUrl: ''
+        source: '', assigneeId: '', fileLink: link, date, status: 'ยังไม่ได้ตัด', imageDataUrl: ''
       });
     }
     logActivity('เช็คลิสต์ฟุตเทจ', count > 1 ? `วางลิงก์ด่วน แยก ${count} คลิป: ${link}` : `วางลิงก์ด่วน: ${link}`);
@@ -3735,15 +3764,6 @@
     input.value = '';
     countInput.value = '1';
     input.focus();
-    renderFootageList();
-  }
-
-  function toggleFootageStatus(footageId){
-    const item = data.footageItems.find(x => x.id === footageId);
-    if(!item) return;
-    item.status = item.status === 'ตัดแล้ว' ? 'ยังไม่ได้ตัด' : 'ตัดแล้ว';
-    logActivity('เช็คลิสต์ฟุตเทจ', `เปลี่ยนสถานะฟุตเทจ "${item.description}" เป็น ${item.status}`);
-    saveData();
     renderFootageList();
   }
 
@@ -3768,32 +3788,68 @@
     }
     emptyMsg.style.display = 'none';
 
-    container.innerHTML = rows.map(item => {
+    container.innerHTML = rows.map((item, i) => {
       const brand = data.brands.find(b => b.id === item.brandId);
+      const assignee = data.members.find(m => m.id === item.assigneeId);
       const descHtml = item.description
         ? escapeHtml(item.description)
         : `<span style="color:var(--warning);">⚠️ ยังไม่ได้กรอกรายละเอียด — กดแก้ไข</span>`;
       return `
-        <div class="idea-card">
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-            <span class="chip ${FOOTAGE_STATUS_CHIP_CLASS[item.status] || 'chip-idea'}">${escapeHtml(item.status)}</span>
-            ${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : ''}
-          </div>
-          <div style="display:flex; gap:10px; align-items:flex-start;">
-            ${item.imageDataUrl ? `<img src="${item.imageDataUrl}" alt="" class="cover-thumb" style="flex-shrink:0; cursor:pointer;" onclick="showImageLightbox('${item.imageDataUrl}')">` : ''}
-            <div style="flex:1; min-width:0;">
-              <div class="idea-content">${descHtml}</div>
-              <div class="idea-meta">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">ลิงก์ไฟล์</a>` : ''}</div>
+        <tr>
+          <td data-label="#">${i + 1}</td>
+          <td data-label="รูป">${item.imageDataUrl ? `<img src="${item.imageDataUrl}" alt="" class="cover-thumb" style="cursor:pointer;" onclick="showImageLightbox('${item.imageDataUrl}')">` : `<div class="cover-thumb-empty"></div>`}</td>
+          <td data-label="รหัส">${item.code ? escapeHtml(item.code) : '—'}</td>
+          <td data-label="ชื่อ/คำอธิบาย">
+            <div class="li-title">${descHtml}</div>
+            <div class="li-sub">${item.source ? escapeHtml(item.source) + ' · ' : ''}${formatThaiDate(item.date)}${item.fileLink ? ` · <a href="${escapeHtml(item.fileLink)}" target="_blank" rel="noopener">🎥 ลิงก์ไฟล์</a>` : ''}</div>
+          </td>
+          <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
+          <td data-label="สถานะ">
+            <select class="form-control footage-status-select" data-id="${item.id}">
+              ${FOOTAGE_STATUS_LIST.map(s => `<option value="${s}" ${s === item.status ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </td>
+          <td data-label="ผู้รับผิดชอบตัด">
+            <select class="form-control footage-assignee-select" data-id="${item.id}">
+              <option value="">— ไม่ระบุ —</option>
+              ${data.members.filter(m => isActiveStatus(m.status) && isReportableMember(m)).concat(assignee && !isActiveStatus(assignee.status) ? [assignee] : []).map(m => `<option value="${m.id}" ${m.id === item.assigneeId ? 'selected' : ''}>${escapeHtml(m.name)}</option>`).join('')}
+            </select>
+          </td>
+          <td data-label="">
+            <div class="action-btns">
+              <button class="icon-btn" onclick="openFootageModal('${item.id}')">แก้ไข</button>
+              <button class="icon-btn danger" onclick="deleteFootage('${item.id}')">ลบ</button>
             </div>
-          </div>
-          <div class="idea-actions">
-            <button class="icon-btn" onclick="toggleFootageStatus('${item.id}')">${item.status === 'ตัดแล้ว' ? '↩️ ยังไม่ได้ตัด' : '✅ ตัดแล้ว'}</button>
-            <button class="icon-btn" onclick="openFootageModal('${item.id}')">แก้ไข</button>
-            <button class="icon-btn danger" onclick="deleteFootage('${item.id}')">ลบ</button>
-          </div>
-        </div>
+          </td>
+        </tr>
       `;
     }).join('');
+
+    container.querySelectorAll('.footage-status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updateFootageStatus(e.target.dataset.id, e.target.value));
+    });
+    container.querySelectorAll('.footage-assignee-select').forEach(sel => {
+      sel.addEventListener('change', (e) => updateFootageAssignee(e.target.dataset.id, e.target.value));
+    });
+  }
+
+  function updateFootageStatus(footageId, status){
+    const item = data.footageItems.find(x => x.id === footageId);
+    if(!item) return;
+    item.status = status;
+    logActivity('เช็คลิสต์ฟุตเทจ', `เปลี่ยนสถานะฟุตเทจ "${item.description}" เป็น ${status}`);
+    saveData();
+    renderFootageList();
+  }
+
+  function updateFootageAssignee(footageId, assigneeId){
+    const item = data.footageItems.find(x => x.id === footageId);
+    if(!item) return;
+    item.assigneeId = assigneeId;
+    const m = data.members.find(x => x.id === assigneeId);
+    logActivity('เช็คลิสต์ฟุตเทจ', `มอบหมายฟุตเทจ "${item.description}" ให้ ${m ? m.name : '— ไม่ระบุ —'}`);
+    saveData();
+    renderFootageList();
   }
 
   /* ===== Brands ===== */
