@@ -862,7 +862,7 @@
         </div>
         <div class="card">
           <table class="responsive-collapse">
-            <thead><tr><th>รูป</th><th>วันที่</th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>วันที่โพสต์</th><th>คะแนน (1-2)</th><th></th></tr></thead>
+            <thead><tr><th>รูป</th><th><span onclick="toggleWiDateSort()" style="cursor:pointer; user-select:none; white-space:nowrap;">วันที่ <span id="wiDateSortArrow">▼</span></span></th><th>งาน</th><th>แบรนด์</th><th>ผู้รับผิดชอบ</th><th>สถานะ</th><th>วันที่โพสต์</th><th>คะแนน (1-2)</th><th></th></tr></thead>
             <tbody id="workItemsTableBody"></tbody>
           </table>
           <div class="empty-mini" id="workItemsEmptyMsg" style="display:none;">ยังไม่มีงานในระบบ กด "เพิ่มงาน" เพื่อเริ่มบันทึก</div>
@@ -5486,6 +5486,12 @@
   }
 
   let wiDateFilterMode = 'work';
+  let wiDateSortDir = 'desc';
+
+  function toggleWiDateSort(){
+    wiDateSortDir = wiDateSortDir === 'desc' ? 'asc' : 'desc';
+    renderWorkItemsTable();
+  }
   let wiWorkTypeFilter = new Set();
 
   function updateWiWorkTypeTrigger(){
@@ -5536,8 +5542,12 @@
     const searchTerm = document.getElementById('wiFilterSearch').value.trim().toLowerCase();
     const tbody = document.getElementById('workItemsTableBody');
     const emptyMsg = document.getElementById('workItemsEmptyMsg');
+    const sortArrow = document.getElementById('wiDateSortArrow');
+    if(sortArrow) sortArrow.textContent = wiDateSortDir === 'desc' ? '▼' : '▲';
 
-    let rows = [...data.workItems].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    let rows = [...data.workItems].sort((a, b) => wiDateSortDir === 'desc'
+      ? (b.date || '').localeCompare(a.date || '')
+      : (a.date || '').localeCompare(b.date || ''));
     rows = rows.filter(w => wiDateFilterMode === 'post'
       ? periodMatches(w.postDate, 'wiPeriodFilter')
       : (periodMatches(w.date, 'wiPeriodFilter') || (w.postDate && periodMatches(w.postDate, 'wiPeriodFilter'))));
