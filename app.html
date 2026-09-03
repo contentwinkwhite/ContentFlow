@@ -1947,9 +1947,12 @@
     el.addEventListener('click', () => {
       if(el.disabled) return;
       el.disabled = true;
-      try { handler(); } finally {
-        setTimeout(() => { el.disabled = false; }, cooldownMs || 700);
-      }
+      const release = () => { setTimeout(() => { el.disabled = false; }, cooldownMs || 700); };
+      let result;
+      try { result = handler(); }
+      catch(e){ release(); throw e; }
+      if(result && typeof result.finally === 'function') result.finally(release);
+      else release();
     });
   }
 
@@ -2176,6 +2179,30 @@
     }
   }
 
+  async function saveDataAppend(applyFn){
+    if(!isDataLoaded) return false;
+    try {
+      for(let attempt = 0; attempt < 3; attempt++){
+        const remote = await fetchRemoteData();
+        const fresh = migrateData(remote.payload);
+        applyFn(fresh);
+        const result = await pushRemoteData(fresh, remote.updatedAt, false);
+        if(!result.conflict){
+          data = fresh;
+          lastKnownUpdatedAt = result.updatedAt;
+          hideSyncBanner();
+          return true;
+        }
+        // someone else saved between our fetch and push — retry with a fresh fetch (rare)
+      }
+      showSyncBanner('บันทึกไม่สำเร็จ เพราะมีคนแก้ไขข้อมูลพร้อมกันหลายรอบติดกัน กด "รีเฟรชข้อมูล" แล้วลองบันทึกใหม่');
+      return false;
+    } catch(e){
+      showSyncBanner('บันทึกไม่สำเร็จ เช็คอินเทอร์เน็ตแล้วลองใหม่ (การเปลี่ยนแปลงล่าสุดอาจยังไม่ถูกบันทึก)');
+      return false;
+    }
+  }
+
   async function refreshFromRemote(){
     try {
       const remote = await fetchRemoteData();
@@ -2370,11 +2397,12 @@
   }
 
   /* ===== Activity log ===== */
-  function logActivity(module, action){
+  function logActivity(module, action, targetData){
+    const d = targetData || data;
     const memberId = getCurrentUserId();
     if(!memberId) return;
-    data.activityLog.push({ id: uid(), memberId, timestamp: nowISO(), module, action });
-    renderActivityTable();
+    d.activityLog.push({ id: uid(), memberId, timestamp: nowISO(), module, action });
+    if(d === data) renderActivityTable();
   }
 
   /* ===== Branding (logo + app name) ===== */
@@ -5228,7 +5256,7 @@
     else refreshAwBlockBrandOptions();
   }
 
-  function saveNewWorkEntry(){
+  async function saveNewWorkEntry(){
     const msgEl = document.getElementById('awFormMsg');
     const currentUserId = getCurrentUserId();
     if(!currentUserId){ msgEl.textContent = 'ไม่พบผู้ใช้ที่ล็อกอินอยู่ กรุณาล็อกอินใหม่'; msgEl.style.display = 'block'; return; }
@@ -5312,39 +5340,46 @@
     if(entries.length === 0){ msgEl.textContent = 'ยังไม่มีงานให้บันทึก'; msgEl.style.display = 'block'; return; }
     msgEl.style.display = 'none';
 
-    entries.forEach(entry => {
-      const ownerNames = entry.ownerIds.map(oid => { const m = data.members.find(x => x.id === oid); return m ? m.name : ''; }).filter(Boolean).join(', ');
+    const ok = await saveDataAppend((d) => {
+      entries.forEach(entry => {
+        const ownerNames = entry.ownerIds.map(oid => { const m = d.members.find(x => x.id === oid); return m ? m.name : ''; }).filter(Boolean).join(', ');
 
-      if(entry.revisionOf){
-        const target = data.workItems.find(w => w.id === entry.revisionOf);
-        if(target){
-          if(!Array.isArray(target.revisions)) target.revisions = [];
-          entry.ownerIds.forEach(ownerId => {
-            target.revisions.push({
-              id: uid(), date: entry.date, description: entry.description, coverImageDataUrl: entry.coverImageDataUrl,
-              driveLink: entry.driveLink, createdBy: ownerId, createdAt: nowISO()
+        if(entry.revisionOf){
+          const target = d.workItems.find(w => w.id === entry.revisionOf);
+          if(target){
+            if(!Array.isArray(target.revisions)) target.revisions = [];
+            entry.ownerIds.forEach(ownerId => {
+              target.revisions.push({
+                id: uid(), date: entry.date, description: entry.description, coverImageDataUrl: entry.coverImageDataUrl,
+                driveLink: entry.driveLink, createdBy: ownerId, createdAt: nowISO()
+              });
             });
-          });
-          logActivity('รายงานการทำงาน', `แก้ไขงาน: "${target.title || target.product || target.description}" (${ownerNames}) — ไม่นับเป็นชิ้นงานใหม่`);
+            logActivity('รายงานการทำงาน', `แก้ไขงาน: "${target.title || target.product || target.description}" (${ownerNames}) — ไม่นับเป็นชิ้นงานใหม่`, d);
+          }
+          return;
         }
-        return;
-      }
 
-      entry.ownerIds.forEach(ownerId => {
-        const report = { id: uid(), memberId: ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
-        data.dailyReports.push(report);
-        const w = {
-          id: uid(), title: entry.description, date: entry.date, ownerId, brandId: entry.brandId,
-          workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
-          location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
-          postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', revisions: [], reportId: report.id
-        };
-        data.workItems.push(w);
+        entry.ownerIds.forEach(ownerId => {
+          const report = { id: uid(), memberId: ownerId, date: entry.date, workType: entry.workType, quantity: entry.quantity, contentPlanId: null, brandId: entry.brandId, note: entry.description };
+          d.dailyReports.push(report);
+          const w = {
+            id: uid(), title: entry.description, date: entry.date, ownerId, brandId: entry.brandId,
+            workType: entry.workType, quantity: entry.quantity, product: '', description: entry.description,
+            location: entry.location, channel: entry.channel, coverImageDataUrl: entry.coverImageDataUrl, status: entry.status, imageNote: entry.imageNote, driveLink: entry.driveLink,
+            postDate: entry.postDate, linkPost: entry.linkPost, postCoverImageDataUrl: entry.postCoverImageDataUrl || '', revisions: [], reportId: report.id
+          };
+          d.workItems.push(w);
+        });
+        logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น (${ownerNames})`, d);
       });
-      logActivity('รายงานการทำงาน', `เพิ่มงาน: ${entry.workType} ${entry.quantity} ชิ้น (${ownerNames})`);
     });
 
-    saveData();
+    if(!ok){
+      msgEl.textContent = 'บันทึกไม่สำเร็จ ลองกดบันทึกอีกครั้ง';
+      msgEl.style.display = 'block';
+      return;
+    }
+
     resetAwBlocks();
 
     renderWorkItemsTable();
@@ -5354,6 +5389,7 @@
     renderSummaryTable();
     renderCalendar();
     renderFeedPlan();
+    renderActivityTable();
   }
 
   function updateWorkItemStatus(workItemId, newStatus){
