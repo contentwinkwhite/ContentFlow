@@ -808,6 +808,7 @@
           <div style="font-weight:600; font-size:13.5px; margin-bottom:14px;">บันทึกงานวันนี้ <span style="font-weight:400;color:var(--text-sub);">(กด "เพิ่มงาน" ได้เรื่อยๆ ถ้าทำหลายอย่างในวันเดียวกัน แล้วกดบันทึกทั้งหมดทีเดียว)</span></div>
           <div id="awBlockList"></div>
           <button type="button" class="btn btn-outline btn-sm" id="awAddBlockBtn" style="margin-top:6px;">＋ เพิ่มงาน</button>
+          <button type="button" class="btn btn-outline btn-sm" id="openLinePasteBtn" style="margin-top:6px;">📋 วางข้อความจากไลน์</button>
           <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--border);">
             <button class="btn btn-sm" id="saveAwFormBtn">💾 บันทึกทั้งหมด</button>
             <div class="form-msg" id="awFormMsg"></div>
@@ -1573,6 +1574,22 @@
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="importResultCancel">ยกเลิก</button>
       <button class="btn btn-sm" id="importResultConfirm">ยืนยันนำเข้า</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== วางข้อความจากไลน์ — แปลงเป็นบล็อกงาน ===== -->
+<div class="modal-overlay" id="linePasteModalOverlay">
+  <div class="modal" style="max-width:640px; max-height:85vh; overflow-y:auto;">
+    <h3>วางข้อความจากไลน์</h3>
+    <p style="font-size:12.5px; color:var(--text-sub); margin:-6px 0 12px;">วางข้อความรีพอร์ตที่คั่นด้วย Tab (ก๊อปจากไลน์/ชีตมาได้เลย) ระบบจะแปลงเป็นบล็อกงานเพิ่มเข้าฟอร์ม "บันทึกงานวันนี้" ให้ตรวจ/แก้อีกทีก่อนกดบันทึกทั้งหมด</p>
+    <div class="field-row">
+      <textarea class="form-control" id="linePasteText" rows="10" placeholder="วางข้อความตรงนี้..." style="font-family:monospace; font-size:12.5px;"></textarea>
+    </div>
+    <div class="form-msg" id="linePasteMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="linePasteModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="linePasteModalConvert">แปลงข้อมูล</button>
     </div>
   </div>
 </div>
@@ -5256,6 +5273,231 @@
     else refreshAwBlockBrandOptions();
   }
 
+  /* ===== วางข้อความจากไลน์ — แปลงข้อความคั่น Tab เป็นบล็อกงานในฟอร์ม "บันทึกงานวันนี้" ===== */
+  const THAI_DAY_NAMES = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','พฤหัส','ศุกร์','เสาร์'];
+
+  function openLinePasteModal(){
+    document.getElementById('linePasteText').value = '';
+    document.getElementById('linePasteMsg').style.display = 'none';
+    document.getElementById('linePasteModalOverlay').classList.add('open');
+  }
+  function closeLinePasteModal(){
+    document.getElementById('linePasteModalOverlay').classList.remove('open');
+  }
+
+  function unquoteLinePasteCell(s){
+    s = (s || '').trim();
+    if(s.length >= 2 && s.startsWith('"') && s.endsWith('"')) s = s.slice(1, -1).replace(/""/g, '"');
+    return s.trim();
+  }
+
+  function mergeQuotedMultilineRows(text){
+    const rawLines = text.split('\n');
+    const merged = [];
+    let buffer = null;
+    const countQuotes = (s) => (s.match(/"/g) || []).length;
+    for(const line of rawLines){
+      if(buffer === null){
+        if(countQuotes(line) % 2 !== 0) buffer = line;
+        else merged.push(line);
+      } else {
+        buffer += '\n' + line;
+        if(countQuotes(buffer) % 2 === 0){ merged.push(buffer); buffer = null; }
+      }
+    }
+    if(buffer !== null) merged.push(buffer);
+    return merged;
+  }
+
+  function parseLinePasteDate(raw){
+    const m = (raw || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if(!m) return null;
+    let d = Number(m[1]), mo = Number(m[2]), y = Number(m[3]);
+    if(y < 100) y = 2000 + y;
+    if(mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  const LINE_PASTE_NAME_ALIASES = {
+    'นิว': 'New', 'โอปอ': 'Opor', 'การ์ตูน': 'Cartoon', 'แป้ง': 'Pang', 'นิ้ง': 'Ning', 'ดิว': 'Dew'
+  };
+
+  function matchMemberByRawName(raw){
+    const clean = (raw || '').replace(/\(.*?\)/g, '').trim();
+    if(!clean) return null;
+    let m = data.members.find(x => x.name.trim() === clean);
+    if(m) return m;
+    const alias = LINE_PASTE_NAME_ALIASES[clean];
+    if(alias){
+      m = data.members.find(x => x.name.trim() === alias);
+      if(m) return m;
+    }
+    m = data.members.find(x => clean.includes(x.name.trim()) || x.name.trim().includes(clean));
+    return m || null;
+  }
+
+  function matchBrandByRawName(raw){
+    const clean = (raw || '').trim();
+    if(!clean) return null;
+    let b = data.brands.find(x => x.name.trim().toLowerCase() === clean.toLowerCase());
+    if(b) return b;
+    b = data.brands.find(x => clean.toLowerCase().includes(x.name.trim().toLowerCase()) || x.name.trim().toLowerCase().includes(clean.toLowerCase()));
+    return b || null;
+  }
+
+  function parseLinePasteDataRow(cells, fallbackPersonName){
+    const nonEmpty = cells.map(c => (c || '').trim());
+    const brandRaw = (nonEmpty[0] || '').replace(/^[*\-•]\s*/, '').trim();
+    const rest = nonEmpty.slice(1).filter(c => c !== '');
+
+    let statusIdx = -1;
+    for(let i = rest.length - 1; i >= 0; i--){
+      if(WORKITEM_STATUS_LIST.some(s => s.toLowerCase() === rest[i].toLowerCase())){ statusIdx = i; break; }
+    }
+    const status = statusIdx >= 0 ? WORKITEM_STATUS_LIST.find(s => s.toLowerCase() === rest[statusIdx].toLowerCase()) : '';
+
+    const linkIdx = rest.findIndex(c => /^https?:\/\//i.test(c));
+    const link = linkIdx >= 0 ? rest[linkIdx] : '';
+
+    let personIdx = -1, personMatch = null;
+    for(let i = rest.length - 1; i >= 0; i--){
+      if(i === statusIdx || i === linkIdx) continue;
+      const m = matchMemberByRawName(rest[i]);
+      if(m){ personIdx = i; personMatch = m; break; }
+    }
+
+    const description = rest.filter((c, i) => i !== statusIdx && i !== linkIdx && i !== personIdx).join(' ').trim();
+
+    let personRaw = personIdx >= 0 ? rest[personIdx] : '';
+    if(!personMatch && fallbackPersonName){
+      personMatch = matchMemberByRawName(fallbackPersonName);
+      personRaw = personRaw || fallbackPersonName;
+    }
+
+    const brandMatch = matchBrandByRawName(brandRaw);
+    const warnings = [];
+    if(brandRaw && !brandMatch) warnings.push(`ไม่พบแบรนด์ "${brandRaw}" ในระบบ — เลือกเองในฟอร์ม`);
+    if(!personMatch) warnings.push(`ไม่พบชื่อคน${personRaw ? ' "' + personRaw + '"' : ''} — เลือกเองในฟอร์ม`);
+
+    return {
+      brandId: brandMatch ? brandMatch.id : '', description, driveLink: link,
+      status: status || WORKITEM_STATUS_LIST[0], personId: personMatch ? personMatch.id : '', warnings
+    };
+  }
+
+  function parseLinePasteText(text){
+    const lines = mergeQuotedMultilineRows(text);
+    const entries = [];
+    const skipped = [];
+    let currentDate = null;
+    let currentPersonHeader = '';
+
+    for(let i = 0; i < lines.length; i++){
+      const rawLine = lines[i].replace(/\r$/, '');
+      if(!rawLine.trim()) continue;
+      if(/^[-=_*\s]{3,}$/.test(rawLine.trim())) continue;
+
+      const personHeaderMatch = rawLine.trim().match(/^📌\s*(.+)$/);
+      if(personHeaderMatch){ currentPersonHeader = personHeaderMatch[1].trim(); continue; }
+
+      const cells = rawLine.split('\t').map(unquoteLinePasteCell);
+      const first = cells[0] || '';
+      const dateVal = parseLinePasteDate(first);
+
+      if(dateVal){
+        currentDate = dateVal;
+        const contentCells = cells.slice(2);
+        if(contentCells.some(c => c !== '')){
+          entries.push(Object.assign({ date: currentDate }, parseLinePasteDataRow(contentCells, currentPersonHeader)));
+        }
+        continue;
+      }
+
+      const stripped = first.replace(/^[*\-•]\s*/, '');
+      if(/พากย์เสียง\s*\d+\s*คลิป/.test(stripped)){
+        const block = [rawLine];
+        let j = i + 1;
+        while(j < lines.length && /^\s+[*\-•]/.test(lines[j])){ block.push(lines[j]); j++; }
+        skipped.push({ reason: 'พากย์เสียงรวมหลายคน/หลายคลิป — ต้องกรอกเองทีละคน', text: block.join('\n') });
+        i = j - 1;
+        continue;
+      }
+
+      if(!currentDate){
+        skipped.push({ reason: 'ไม่พบวันที่กำกับบรรทัดนี้', text: rawLine });
+        continue;
+      }
+
+      entries.push(Object.assign({ date: currentDate }, parseLinePasteDataRow(cells, currentPersonHeader)));
+    }
+
+    return { entries, skipped };
+  }
+
+  function isAwBlockEffectivelyEmpty(id){
+    if(document.getElementById(`aw_${id}_type`).value !== 'ตัดคลิป') return false;
+    const desc = (document.getElementById(`aw_${id}_description`) || {}).value || '';
+    const brand = (document.getElementById(`aw_${id}_brand`) || {}).value || '';
+    const drive = (document.getElementById(`aw_${id}_drivelink`) || {}).value || '';
+    return !desc.trim() && !brand && !drive.trim();
+  }
+
+  function applyLinePasteEntries(){
+    const text = document.getElementById('linePasteText').value;
+    const msgEl = document.getElementById('linePasteMsg');
+    if(!text.trim()){ msgEl.textContent = 'กรุณาวางข้อความก่อน'; msgEl.style.display = 'block'; return; }
+
+    const { entries, skipped } = parseLinePasteText(text);
+    if(entries.length === 0){
+      msgEl.textContent = 'แปลงข้อมูลไม่ได้ ตรวจรูปแบบข้อความอีกครั้ง (ต้องมีวันที่นำหน้าแต่ละกลุ่ม)';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    closeLinePasteModal();
+    showPage('workplan');
+
+    if(awBlocks.length === 1 && isAwBlockEffectivelyEmpty(awBlocks[0])){
+      const staleId = awBlocks[0];
+      awBlocks = [];
+      delete awPeopleSelections[staleId];
+      const staleEl = document.getElementById(`aw_${staleId}_wrap`);
+      if(staleEl) staleEl.remove();
+    }
+
+    entries.forEach(entry => {
+      addAwBlock();
+      const id = awBlocks[awBlocks.length - 1];
+      document.getElementById(`aw_${id}_date`).value = entry.date;
+      const brandEl = document.getElementById(`aw_${id}_brand`);
+      if(brandEl && entry.brandId) brandEl.value = entry.brandId;
+      const descEl = document.getElementById(`aw_${id}_description`);
+      if(descEl) descEl.value = entry.description.replace(/\s*\n\s*/g, ' ').trim();
+      const statusEl = document.getElementById(`aw_${id}_status`);
+      if(statusEl) statusEl.value = entry.status;
+      onAwStatusChange(id);
+      const driveEl = document.getElementById(`aw_${id}_drivelink`);
+      if(driveEl) driveEl.value = entry.driveLink;
+      if(entry.personId){
+        awPeopleSelections[id] = [entry.personId];
+        updateAwPeopleTrigger(id);
+      }
+      checkAwRevisionMatch(id);
+    });
+
+    const warnCount = entries.reduce((n, e) => n + e.warnings.length, 0);
+    let summary = `แปลงสำเร็จ ${entries.length} งาน — ตรวจสอบและกดบันทึกทั้งหมดด้านล่าง`;
+    if(warnCount) summary += ` (มี ${warnCount} จุดที่ระบบจับคู่แบรนด์/ชื่อคนไม่ได้ — เช็คแต่ละบล็อกแล้วเลือกเอง)`;
+    if(skipped.length){
+      const reasons = [...new Set(skipped.map(s => s.reason))];
+      summary += ` · ข้ามไป ${skipped.length} ส่วน (${reasons.join(', ')}) — กรุณาเพิ่มเอง`;
+    }
+    const formMsgEl = document.getElementById('awFormMsg');
+    formMsgEl.textContent = summary;
+    formMsgEl.style.display = 'block';
+    formMsgEl.style.color = (warnCount || skipped.length) ? 'var(--warning)' : '';
+  }
+
   async function saveNewWorkEntry(){
     const msgEl = document.getElementById('awFormMsg');
     const currentUserId = getCurrentUserId();
@@ -7228,6 +7470,12 @@
   });
   document.getElementById('awAddBlockBtn').addEventListener('click', addAwBlock);
   guardClick(document.getElementById('saveAwFormBtn'), saveNewWorkEntry);
+  document.getElementById('openLinePasteBtn').addEventListener('click', openLinePasteModal);
+  document.getElementById('linePasteModalCancel').addEventListener('click', closeLinePasteModal);
+  document.getElementById('linePasteModalConvert').addEventListener('click', applyLinePasteEntries);
+  document.getElementById('linePasteModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'linePasteModalOverlay') closeLinePasteModal();
+  });
   document.getElementById('wiFilterBrand').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterOwner').addEventListener('change', renderWorkItemsTable);
   document.getElementById('wiFilterStatus').addEventListener('change', renderWorkItemsTable);
