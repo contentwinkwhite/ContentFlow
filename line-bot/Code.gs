@@ -44,6 +44,16 @@ function doPost(e) {
  */
 
 function handleEvent_(event) {
+  // จับ groupId ของกลุ่มไว้อัตโนมัติตั้งแต่อีเวนต์แรกที่เจอ (ใช้ตอน push แจ้งเตือนงานเสี่ยงรายวัน)
+  // ทำก่อนเช็คชนิดข้อความ เพื่อให้จับได้แม้เป็นอีเวนต์อื่นที่ไม่ใช่ข้อความข้อความ (join/sticker ฯลฯ)
+  if (event.source && event.source.type === 'group' && event.source.groupId) {
+    const props = PropertiesService.getScriptProperties();
+    if (!props.getProperty('LINE_GROUP_ID')) {
+      props.setProperty('LINE_GROUP_ID', event.source.groupId);
+      console.log('บันทึก LINE_GROUP_ID อัตโนมัติ: ' + event.source.groupId);
+    }
+  }
+
   if (event.type !== 'message' || event.message.type !== 'text') return;
   const replyToken = event.replyToken;
   const userId = event.source && event.source.userId;
@@ -68,12 +78,110 @@ function handleEvent_(event) {
     replyText_(replyToken, 'ยกเลิกแล้ว ไม่มีอะไรถูกบันทึก');
     return;
   }
+  if (trimmed === 'เช็คงานเสี่ยง') {
+    replyText_(replyToken, buildAtRiskMessage_());
+    return;
+  }
 
   // เฉพาะข้อความที่มีตัวคั่น Tab เท่านั้นถึงจะพยายามแปลงเป็นรีพอร์ต — กันบอทตอบแชทเล่นปกติในกลุ่ม
   // (มือถือพิมพ์ Tab ไม่ได้อยู่แล้ว ข้อความที่มี Tab จริงคือก๊อปมาจากชีต/ปั้นตามแพทเทิร์นเท่านั้น)
   if (text.indexOf('\t') === -1) return; // เงียบไว้ ไม่ใช่รูปแบบรีพอร์ต ไม่ใช่คำสั่งที่รู้จัก
 
   handleReportPaste_(userId, text, replyToken);
+}
+
+/* ============================================================
+ * งานเสี่ยงไม่ทันเดดไลน์ — เช็คตามคำสั่ง "เช็คงานเสี่ยง" และแจ้งเตือนอัตโนมัติรายวัน
+ * (พอร์ตกติกาเดียวกับ getWorkOrderRisk() ในฝั่งแอป app.html)
+ * ============================================================ */
+function daysBetweenDates_(fromStr, toStr) {
+  const a = new Date(fromStr + 'T00:00:00');
+  const b = new Date(toStr + 'T00:00:00');
+  return Math.round((b - a) / 86400000);
+}
+
+function todayBangkokISO_() {
+  return Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
+}
+
+function getWorkOrderRisk_(order, today) {
+  if (order.status === 'เสร็จ') return 'ok';
+  if (!order.deadline) return 'ok';
+  const subtaskOverdue = (order.subtasks || []).some(function (s) { return !s.done && s.dueDate && s.dueDate < today; });
+  if (subtaskOverdue) return 'overdue';
+  if (order.deadline < today) return 'overdue';
+  const daysLeft = daysBetweenDates_(today, order.deadline);
+  if (daysLeft >= 0 && daysLeft <= 3) return 'urgent';
+  return 'ok';
+}
+
+function formatThaiDate_(dateStr) {
+  const monthNames = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const parts = (dateStr || '').split('-').map(Number);
+  if (parts.length !== 3) return dateStr || '';
+  return parts[2] + ' ' + monthNames[parts[1] - 1] + ' ' + (parts[0] + 543);
+}
+
+function workOrderRiskReasonText_(order, today) {
+  const overdueSubtask = (order.subtasks || []).find(function (s) { return !s.done && s.dueDate && s.dueDate < today; });
+  if (overdueSubtask) return 'ยังไม่เสร็จ "' + overdueSubtask.label + '" (ครบกำหนด ' + formatThaiDate_(overdueSubtask.dueDate) + ') — กำหนดส่งงาน ' + formatThaiDate_(order.deadline);
+  if (order.deadline < today) return 'เลยกำหนดส่ง ' + formatThaiDate_(order.deadline) + ' แล้ว ยังไม่เสร็จ';
+  const daysLeft = daysBetweenDates_(today, order.deadline);
+  return 'เหลือ ' + daysLeft + ' วันถึงกำหนดส่ง (' + formatThaiDate_(order.deadline) + ') สถานะยังเป็น "' + order.status + '"';
+}
+
+function buildAtRiskMessage_() {
+  const payload = fetchSupabasePayload_();
+  const workOrders = payload.workOrders || [];
+  const today = todayBangkokISO_();
+  const risky = workOrders.filter(function (o) { return getWorkOrderRisk_(o, today) !== 'ok'; })
+    .sort(function (a, b) { return a.deadline < b.deadline ? -1 : 1; });
+
+  if (risky.length === 0) return '✅ ไม่มีงานเสี่ยงไม่ทันเดดไลน์ตอนนี้';
+
+  let msg = '🚨 มีงานเสี่ยงไม่ทันเดดไลน์ ' + risky.length + ' รายการ:\n\n';
+  risky.forEach(function (o, i) {
+    const risk = getWorkOrderRisk_(o, today);
+    msg += (i + 1) + '. ' + o.title + (risk === 'overdue' ? ' (เลยกำหนด)' : ' (ใกล้ถึงกำหนด)') + '\n   ' + workOrderRiskReasonText_(o, today) + '\n';
+  });
+  msg += '\nเข้าไปดู/อัปเดตในแอป ContentFlow ได้เลย';
+  return msg;
+}
+
+// เรียกโดย time-driven trigger รายวัน (ตั้งค่าครั้งเดียวผ่าน setupDailyTrigger) — แจ้งเข้ากลุ่มเฉพาะตอนมีงานเสี่ยงจริง
+// (ไม่ส่งข้อความ "ไม่มีอะไรน่าห่วง" ทุกวัน กันข้อความรบกวนกลุ่ม — อยากเช็คเองพิมพ์ "เช็คงานเสี่ยง" ได้ตลอดเวลา)
+function checkAtRiskAndNotify() {
+  const groupId = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID');
+  if (!groupId) { console.log('ยังไม่มี LINE_GROUP_ID (ยังไม่มีใครพิมพ์อะไรในกลุ่มเลยตั้งแต่ติดตั้งบอท) ข้ามการแจ้งเตือนรอบนี้'); return; }
+
+  const payload = fetchSupabasePayload_();
+  const workOrders = payload.workOrders || [];
+  const today = todayBangkokISO_();
+  const riskyCount = workOrders.filter(function (o) { return getWorkOrderRisk_(o, today) !== 'ok'; }).length;
+  if (riskyCount === 0) { console.log('ไม่มีงานเสี่ยงวันนี้ ไม่ต้องแจ้ง'); return; }
+
+  pushText_(groupId, buildAtRiskMessage_());
+}
+
+// รันครั้งเดียวตอนติดตั้ง (เลือกฟังก์ชันนี้จากดรอปดาวน์ Run แล้วกดรัน) — ตั้งเวลาเช็คงานเสี่ยงทุกวัน 9 โมงเช้า
+function setupDailyTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'checkAtRiskAndNotify') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('checkAtRiskAndNotify').timeBased().everyDays(1).atHour(9).inTimezone('Asia/Bangkok').create();
+  console.log('ตั้งเวลาแจ้งเตือนงานเสี่ยงทุกวัน 9:00 น. เรียบร้อย');
+}
+
+function pushText_(to, text) {
+  const token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
+    method: 'post',
+    headers: { Authorization: 'Bearer ' + token },
+    contentType: 'application/json',
+    payload: JSON.stringify({ to: to, messages: [{ type: 'text', text: String(text).slice(0, 4900) }] }),
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) console.error('push ข้อความไม่สำเร็จ: ' + res.getResponseCode() + ' ' + res.getContentText());
 }
 
 /* ============================================================

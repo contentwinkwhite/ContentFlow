@@ -377,6 +377,16 @@
     .calendar-cell{min-height:56px; padding:4px;}
     .calendar-item{font-size:9px; padding:1px 4px;}
   }
+  @media (max-width:480px){
+    .calendar-cell{min-height:46px; padding:3px; gap:2px;}
+    .calendar-day-num{font-size:11px;}
+    .calendar-item{
+      font-size:0; padding:0; width:8px; height:8px; min-width:8px; min-height:8px;
+      border-radius:50%; margin:0 auto; display:block; overflow:visible;
+    }
+    .calendar-more{font-size:8px; text-align:center;}
+    .calendar-holiday{font-size:8px;}
+  }
 
   table{width:100%; border-collapse:collapse; font-size:13.5px;}
   th{
@@ -706,6 +716,7 @@
     </div>
     <nav class="sb-menu" id="sbMenu">
       <button class="sb-item" data-page="dashboard"><span class="ic">📊</span> แดชบอร์ด</button>
+      <button class="sb-item" data-page="calendar"><span class="ic">📅</span> ปฏิทิน</button>
       <button class="sb-item" data-page="workplan"><span class="ic">📋</span> รายงานการทำงาน</button>
       <button class="sb-item" data-page="scorework"><span class="ic">⭐</span> ให้คะแนนงาน</button>
       <button class="sb-item" data-page="clippreview"><span class="ic">🎬</span> พรีวิวคลิป</button>
@@ -981,6 +992,34 @@
         </div>
       </div>
 
+      <div class="page" data-page="calendar">
+        <div class="page-head">
+          <div>
+            <h2>ปฏิทิน</h2>
+            <p>ภาพรวมทั้งเดือน — งานที่สั่งไว้ วันสำคัญ/วันนักขัตฤกษ์ และเหตุการณ์ที่เพิ่มเอง คลิกวันที่ว่างเพื่อเพิ่มเหตุการณ์ คลิกชิปที่มีอยู่แล้วเพื่อแก้ไข</p>
+          </div>
+          <button class="btn btn-sm" id="calendarAddEventBtn">➕ เพิ่มเหตุการณ์</button>
+        </div>
+        <div id="calendarRiskBanner"></div>
+        <div class="card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <button class="icon-btn" id="calendarPrevBtn">‹ เดือนก่อน</button>
+            <div id="calendarMonthLabel" style="font-weight:700; font-size:16px;"></div>
+            <button class="icon-btn" id="calendarNextBtn">เดือนถัดไป ›</button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:6px;">
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">อา</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">จ</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">อ</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">พ</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">พฤ</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">ศ</div>
+            <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">ส</div>
+          </div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </div>
+
       <div class="page" data-page="plan">
         <div class="page-head">
           <div>
@@ -989,6 +1028,7 @@
           </div>
           <button class="btn btn-sm" id="addPlanBtn">➕ เพิ่มงาน</button>
         </div>
+        <div id="planRiskBanner"></div>
         <div class="card">
           <table class="responsive-collapse">
             <thead><tr><th>หัวข้อ/รายละเอียดงาน</th><th>ใครสั่ง</th><th>แบรนด์</th><th>ประเภทงาน</th><th>กำหนดส่ง</th><th>สถานะ</th><th>สคริปต์</th><th></th></tr></thead>
@@ -1755,10 +1795,43 @@
       <label>หมายเหตุ (ไม่บังคับ)</label>
       <input type="text" class="form-control" id="planFormNote" placeholder="รายละเอียดเพิ่มเติม">
     </div>
+    <div class="wi-section-label">งานย่อยที่ต้องทำก่อน (ไม่บังคับ)</div>
+    <p style="font-size:12px; color:var(--text-sub); margin:-4px 0 10px;">เช่น "จองคิว/นัดนักแสดง" — ถ้าตั้งวันครบกำหนดของงานย่อยแล้วเลยวันไปโดยยังไม่เสร็จ ระบบจะแจ้งเตือนว่างานนี้เสี่ยงไม่ทัน</p>
+    <div id="planSubtasksList" style="margin-bottom:10px;"></div>
+    <div class="toolbar">
+      <div class="field-row" style="flex:1; min-width:180px;"><input type="text" class="form-control" id="planSubtaskNewLabel" placeholder="ชื่องานย่อย เช่น จองคิวนักแสดง"></div>
+      <div class="field-row"><input type="date" class="form-control" id="planSubtaskNewDate" style="width:150px;"></div>
+      <div class="field-row"><button type="button" class="btn btn-outline btn-sm" id="planSubtaskAddBtn">＋ เพิ่ม</button></div>
+    </div>
     <div class="form-msg" id="planFormMsg"></div>
     <div class="modal-actions">
       <button class="btn btn-outline btn-sm" id="planModalCancel">ยกเลิก</button>
       <button class="btn btn-sm" id="planModalSave">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Calendar Event Modal ===== -->
+<div class="modal-overlay" id="calendarEventModalOverlay">
+  <div class="modal">
+    <h3 id="calendarEventModalTitle">เพิ่มเหตุการณ์</h3>
+    <div class="field-row">
+      <label>วันที่ *</label>
+      <input type="date" class="form-control" id="ceFormDate">
+    </div>
+    <div class="field-row">
+      <label>ชื่อเหตุการณ์ *</label>
+      <input type="text" class="form-control" id="ceFormTitle" placeholder="เช่น ประชุมทีม, ไลฟ์สด, เดดไลน์แคมเปญ">
+    </div>
+    <div class="field-row">
+      <label>หมายเหตุ (ไม่บังคับ)</label>
+      <input type="text" class="form-control" id="ceFormNote" placeholder="รายละเอียดเพิ่มเติม">
+    </div>
+    <div class="form-msg" id="ceFormMsg"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="calendarEventDeleteBtn" style="display:none; margin-right:auto; color:var(--danger); border-color:var(--danger);">ลบ</button>
+      <button class="btn btn-outline btn-sm" id="calendarEventModalCancel">ยกเลิก</button>
+      <button class="btn btn-sm" id="calendarEventModalSave">บันทึก</button>
     </div>
   </div>
 </div>
@@ -1895,7 +1968,7 @@
   };
   const SUPABASE_ROW_URL = `${SUPABASE_URL}/rest/v1/contentflow_data?id=eq.main`;
   const PAGE_TITLES = {
-    dashboard:'แดชบอร์ด', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
+    dashboard:'แดชบอร์ด', calendar:'ปฏิทิน', workplan:'รายงานการทำงาน', scorework:'ให้คะแนนงาน', clippreview:'พรีวิวคลิป', brands:'งานที่บริษัทรับผิดชอบ', products:'สินค้า', plan:'สั่งงาน',
     scripts:'คลังสคริปต์', footage:'เช็คลิสต์ฟุตเทจ', team:'ทีมงาน', attendance:'วันทำงานทีมงาน', summary:'สรุป KPI',
     report:'รายงานสรุปผลงาน', activity:'ประวัติการใช้งาน', memberDashboard:'แดชบอร์ดรายคน'
   };
@@ -2047,6 +2120,7 @@
       if(w.jobType === undefined) w.jobType = 'อื่นๆ';
       if(w.note === undefined) w.note = '';
       if(!WORKORDER_STATUS_LIST.includes(w.status)) w.status = 'รับทราบ';
+      if(!Array.isArray(w.subtasks)) w.subtasks = [];
     });
     if(!Array.isArray(parsed.scripts)) parsed.scripts = [];
     if(!Array.isArray(parsed.ideas)) parsed.ideas = [];
@@ -3377,6 +3451,47 @@
     platformSel.innerHTML = WORKORDER_TYPE_LIST.map(p => `<option value="${p}">${p}</option>`).join('');
   }
 
+  let planFormSubtasks = [];
+
+  function renderPlanSubtasksUI(){
+    const el = document.getElementById('planSubtasksList');
+    if(planFormSubtasks.length === 0){
+      el.innerHTML = `<div class="li-sub">ยังไม่มีงานย่อย</div>`;
+      return;
+    }
+    el.innerHTML = planFormSubtasks.map((s, i) => `
+      <div class="list-item" style="padding:6px 0;">
+        <input type="checkbox" ${s.done ? 'checked' : ''} onchange="togglePlanSubtaskDone(${i})">
+        <div style="flex:1; min-width:0; ${s.done ? 'text-decoration:line-through; color:var(--text-sub);' : ''}">
+          ${escapeHtml(s.label)}${s.dueDate ? ` <span class="li-sub">— ครบกำหนด ${formatThaiDate(s.dueDate)}</span>` : ''}
+        </div>
+        <button type="button" class="icon-btn danger" onclick="removePlanSubtaskRow(${i})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function addPlanSubtaskRow(){
+    const labelEl = document.getElementById('planSubtaskNewLabel');
+    const dateEl = document.getElementById('planSubtaskNewDate');
+    const label = labelEl.value.trim();
+    if(!label) return;
+    planFormSubtasks.push({ id: uid(), label, done: false, dueDate: dateEl.value || '' });
+    labelEl.value = '';
+    dateEl.value = '';
+    renderPlanSubtasksUI();
+  }
+
+  function togglePlanSubtaskDone(idx){
+    if(!planFormSubtasks[idx]) return;
+    planFormSubtasks[idx].done = !planFormSubtasks[idx].done;
+    renderPlanSubtasksUI();
+  }
+
+  function removePlanSubtaskRow(idx){
+    planFormSubtasks.splice(idx, 1);
+    renderPlanSubtasksUI();
+  }
+
   function openPlanModal(planId){
     editingPlanId = planId || null;
     document.getElementById('planFormMsg').style.display = 'none';
@@ -3392,6 +3507,7 @@
       document.getElementById('planFormDate').value = p.deadline;
       document.getElementById('planFormStatus').value = p.status;
       document.getElementById('planFormNote').value = p.note || '';
+      planFormSubtasks = (p.subtasks || []).map(s => Object.assign({}, s));
     } else {
       document.getElementById('planModalTitle').textContent = 'เพิ่มงาน';
       document.getElementById('planFormTopic').value = '';
@@ -3401,7 +3517,11 @@
       document.getElementById('planFormDate').value = todayISO();
       document.getElementById('planFormStatus').value = 'รับทราบ';
       document.getElementById('planFormNote').value = '';
+      planFormSubtasks = [];
     }
+    document.getElementById('planSubtaskNewLabel').value = '';
+    document.getElementById('planSubtaskNewDate').value = '';
+    renderPlanSubtasksUI();
     document.getElementById('planModalOverlay').classList.add('open');
   }
 
@@ -3418,6 +3538,7 @@
     const status = document.getElementById('planFormStatus').value;
     const note = document.getElementById('planFormNote').value.trim();
     const msgEl = document.getElementById('planFormMsg');
+    const subtasks = planFormSubtasks;
 
     if(!title){ msgEl.textContent = 'กรอกหัวข้อ/รายละเอียดงาน'; msgEl.style.display = 'block'; return; }
     if(!deadline){ msgEl.textContent = 'กรุณาเลือกกำหนดส่ง'; msgEl.style.display = 'block'; return; }
@@ -3426,10 +3547,10 @@
     if(editingPlanId){
       const p = data.workOrders.find(x => x.id === editingPlanId);
       p.title = title; p.requestedBy = requestedBy; p.brandId = brandId;
-      p.jobType = jobType; p.deadline = deadline; p.status = status; p.note = note;
+      p.jobType = jobType; p.deadline = deadline; p.status = status; p.note = note; p.subtasks = subtasks;
       logActivity('สั่งงาน', `แก้ไขงาน: ${title}`);
     } else {
-      data.workOrders.push({ id: uid(), title, requestedBy, brandId, jobType, deadline, status, note });
+      data.workOrders.push({ id: uid(), title, requestedBy, brandId, jobType, deadline, status, note, subtasks });
       logActivity('สั่งงาน', `เพิ่มงาน: ${title}`);
     }
     saveData();
@@ -3468,7 +3589,67 @@
     renderCalendar();
   }
 
+  function daysBetweenDates(fromStr, toStr){
+    const a = new Date(fromStr + 'T00:00:00');
+    const b = new Date(toStr + 'T00:00:00');
+    return Math.round((b - a) / 86400000);
+  }
+
+  const WORKORDER_RISK_DAYS_URGENT = 3;
+
+  function getWorkOrderRisk(order){
+    if(order.status === 'เสร็จ') return 'ok';
+    if(!order.deadline) return 'ok';
+    const today = todayISO();
+    const subtaskOverdue = (order.subtasks || []).some(s => !s.done && s.dueDate && s.dueDate < today);
+    if(subtaskOverdue) return 'overdue';
+    if(order.deadline < today) return 'overdue';
+    const daysLeft = daysBetweenDates(today, order.deadline);
+    if(daysLeft >= 0 && daysLeft <= WORKORDER_RISK_DAYS_URGENT) return 'urgent';
+    return 'ok';
+  }
+
+  function getAtRiskWorkOrders(){
+    return data.workOrders.filter(o => getWorkOrderRisk(o) !== 'ok').sort((a, b) => a.deadline.localeCompare(b.deadline));
+  }
+
+  function workOrderRiskReasonText(order){
+    const today = todayISO();
+    const overdueSubtask = (order.subtasks || []).find(s => !s.done && s.dueDate && s.dueDate < today);
+    if(overdueSubtask) return `ยังไม่เสร็จ "${escapeHtml(overdueSubtask.label)}" (ครบกำหนด ${formatThaiDate(overdueSubtask.dueDate)}) — กำหนดส่งงาน ${formatThaiDate(order.deadline)}`;
+    if(order.deadline < today) return `เลยกำหนดส่ง ${formatThaiDate(order.deadline)} แล้ว ยังไม่เสร็จ`;
+    const daysLeft = daysBetweenDates(today, order.deadline);
+    return `เหลือ ${daysLeft} วันถึงกำหนดส่ง (${formatThaiDate(order.deadline)}) สถานะยังเป็น "${escapeHtml(order.status)}"`;
+  }
+
+  function renderAtRiskBanner(containerId){
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    const risky = getAtRiskWorkOrders();
+    if(risky.length === 0){ el.innerHTML = ''; return; }
+    el.innerHTML = `
+      <div class="card" style="border:1px solid #fecaca; background:#fef2f2; margin-bottom:16px;">
+        <div style="font-weight:700; color:var(--danger); margin-bottom:8px;">🚨 มีงานเสี่ยงไม่ทันเดดไลน์ ${risky.length} รายการ</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${risky.map(o => {
+            const risk = getWorkOrderRisk(o);
+            return `
+              <div class="list-item" style="cursor:pointer;" onclick="openPlanModal('${o.id}')">
+                <div style="flex:1; min-width:0;">
+                  <div class="li-title">${escapeHtml(o.title)}</div>
+                  <div class="li-sub" style="color:${risk === 'overdue' ? 'var(--danger)' : 'var(--warning)'};">${workOrderRiskReasonText(o)}</div>
+                </div>
+                <span class="chip ${risk === 'overdue' ? 'chip-edit' : 'chip-shoot'}">${risk === 'overdue' ? 'เลยกำหนด' : 'ใกล้ถึงกำหนด'}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }
+
   function renderPlanTable(){
+    renderAtRiskBanner('planRiskBanner');
     const tbody = document.getElementById('planTableBody');
     const emptyMsg = document.getElementById('planEmptyMsg');
     const rows = [...data.workOrders].sort((a, b) => a.deadline.localeCompare(b.deadline));
@@ -3482,13 +3663,15 @@
 
     tbody.innerHTML = rows.map(p => {
       const brand = p.brandId ? data.brands.find(b => b.id === p.brandId) : null;
+      const risk = getWorkOrderRisk(p);
+      const riskBadge = risk === 'overdue' ? ' <span title="เลยกำหนดส่งแล้ว">🚨</span>' : (risk === 'urgent' ? ' <span title="ใกล้ถึงกำหนดส่ง">⏰</span>' : '');
       return `
         <tr>
           <td data-label="หัวข้อ/รายละเอียดงาน">${escapeHtml(p.title)}</td>
           <td data-label="ใครสั่ง">${p.requestedBy ? escapeHtml(p.requestedBy) : '—'}</td>
           <td data-label="แบรนด์">${brand ? `<span class="chip chip-outline">${escapeHtml(brand.name)}</span>` : '—'}</td>
           <td data-label="ประเภทงาน"><span class="chip chip-outline">${escapeHtml(p.jobType)}</span></td>
-          <td data-label="กำหนดส่ง">${formatThaiDate(p.deadline)}</td>
+          <td data-label="กำหนดส่ง">${formatThaiDate(p.deadline)}${riskBadge}</td>
           <td data-label="สถานะ">
             <select class="form-control status-select" data-id="${p.id}">
               ${WORKORDER_STATUS_LIST.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`).join('')}
@@ -6028,6 +6211,7 @@
   function renderCalendar(){
     const monthLabelEl = document.getElementById('calendarMonthLabel');
     if(!monthLabelEl) return;
+    renderAtRiskBanner('calendarRiskBanner');
     if(!calendarMonthStr) calendarMonthStr = currentMonthStr();
     const [y, m] = calendarMonthStr.split('-').map(Number);
     const monthNamesFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -6060,7 +6244,11 @@
       const plansToday = data.workOrders.filter(p => p.deadline === c.dateStr);
       const eventsToday = data.calendarEvents.filter(e => e.date === c.dateStr);
       const items = [
-        ...plansToday.map(p => ({ label: p.title, chipClass: WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot', onclick: `openPlanModal('${p.id}')` })),
+        ...plansToday.map(p => {
+          const risk = getWorkOrderRisk(p);
+          const riskPrefix = risk === 'overdue' ? '🚨 ' : (risk === 'urgent' ? '⏰ ' : '');
+          return { label: riskPrefix + p.title, chipClass: WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot', onclick: `openPlanModal('${p.id}')` };
+        }),
         ...eventsToday.map(e => ({ label: e.title, chipClass: 'chip-event', onclick: `openCalendarEventModal('${e.id}')` }))
       ];
       const shown = items.slice(0, 3);
@@ -7638,6 +7826,20 @@
   guardClick(document.getElementById('planModalSave'), savePlan);
   document.getElementById('planModalOverlay').addEventListener('click', (e) => {
     if(e.target.id === 'planModalOverlay') closePlanModal();
+  });
+  document.getElementById('planSubtaskAddBtn').addEventListener('click', addPlanSubtaskRow);
+  document.getElementById('planSubtaskNewLabel').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); addPlanSubtaskRow(); }
+  });
+
+  document.getElementById('calendarAddEventBtn').addEventListener('click', () => openCalendarEventModal(null));
+  document.getElementById('calendarPrevBtn').addEventListener('click', () => shiftCalendarMonth(-1));
+  document.getElementById('calendarNextBtn').addEventListener('click', () => shiftCalendarMonth(1));
+  document.getElementById('calendarEventModalCancel').addEventListener('click', closeCalendarEventModal);
+  guardClick(document.getElementById('calendarEventModalSave'), saveCalendarEvent);
+  document.getElementById('calendarEventDeleteBtn').addEventListener('click', deleteCalendarEvent);
+  document.getElementById('calendarEventModalOverlay').addEventListener('click', (e) => {
+    if(e.target.id === 'calendarEventModalOverlay') closeCalendarEventModal();
   });
 
   document.getElementById('addScriptBtn').addEventListener('click', () => openScriptModal());
