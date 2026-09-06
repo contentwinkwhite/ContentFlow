@@ -1038,6 +1038,7 @@
             <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">ส</div>
           </div>
           <div class="calendar-grid" id="calendarGrid"></div>
+          <div id="calendarListBelowHeading" class="wi-section-label" style="display:none;">รายละเอียดทั้งเดือน</div>
           <div class="calendar-list" id="calendarListView" style="display:none;"></div>
         </div>
       </div>
@@ -6267,19 +6268,24 @@
     gridEl.style.setProperty('--cal-scale', calendarTextScale);
     listEl.style.setProperty('--cal-scale', calendarTextScale);
 
+    const listHeadingEl = document.getElementById('calendarListBelowHeading');
+
     if(calendarViewMode === 'list'){
       document.getElementById('calendarViewListBtn').classList.add('active');
       gridEl.style.display = 'none';
       weekdayHeaderEl.style.display = 'none';
+      listHeadingEl.style.display = 'none';
       listEl.style.display = '';
       renderCalendarListView(y, m);
       return;
     }
 
     document.getElementById('calendarViewGridBtn').classList.add('active');
-    listEl.style.display = 'none';
     weekdayHeaderEl.style.display = 'grid';
     gridEl.style.display = '';
+    listHeadingEl.style.display = '';
+    listEl.style.display = '';
+    renderCalendarListView(y, m);
 
     const startWeekday = new Date(y, m - 1, 1).getDay();
     const daysInMonth = new Date(y, m, 0).getDate();
