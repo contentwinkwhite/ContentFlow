@@ -13,6 +13,9 @@ function setupProperties() {
   const props = PropertiesService.getScriptProperties();
   props.setProperties({
     LINE_CHANNEL_ACCESS_TOKEN: 'วางค่า Channel access token (long-lived) จาก developers.line.biz ตรงนี้',
+    // ใช้สำหรับ "พิมพ์เล่าเป็นประโยคได้เลย" (บันทึก/สั่งงาน) — ไม่ใส่ก็ใช้บอทได้ปกติ แค่ต้องพิมพ์แบบคั่น Tab เท่านั้น
+    // เอาจาก console.anthropic.com → Get API Keys (มีค่าใช้จ่ายจริงตามจำนวนข้อความ แต่ถูกมาก ดู SETUP.md ข้อ 11)
+    ANTHROPIC_API_KEY: 'วางค่า Anthropic API key จาก console.anthropic.com ตรงนี้ (ไม่บังคับ)',
     SUPABASE_URL: 'https://qcrvsskqirlskhcfahno.supabase.co',
     SUPABASE_KEY: 'sb_publishable_wxNJOmMWcBrfgJQsEvIfqQ_UDSZtJG9',
     // แผนที่ "LINE userId ของแต่ละคน" -> "ชื่อสมาชิกในระบบ ContentFlow (ต้องสะกดตรงกับหน้าทีมงานในแอปเป๊ะๆ)"
@@ -83,11 +86,20 @@ function handleEvent_(event) {
     return;
   }
 
-  // เฉพาะข้อความที่มีตัวคั่น Tab เท่านั้นถึงจะพยายามแปลงเป็นรีพอร์ต — กันบอทตอบแชทเล่นปกติในกลุ่ม
-  // (มือถือพิมพ์ Tab ไม่ได้อยู่แล้ว ข้อความที่มี Tab จริงคือก๊อปมาจากชีต/ปั้นตามแพทเทิร์นเท่านั้น)
-  if (text.indexOf('\t') === -1) return; // เงียบไว้ ไม่ใช่รูปแบบรีพอร์ต ไม่ใช่คำสั่งที่รู้จัก
+  // ข้อความที่มีตัวคั่น Tab (ก๊อปจากชีต/ปั้นตามแพทเทิร์นเดิม) → พาร์สด้วยกฎตายตัว ฟรี ไม่มีค่าใช้จ่าย
+  if (text.indexOf('\t') !== -1) {
+    handleReportPaste_(userId, text, replyToken);
+    return;
+  }
 
-  handleReportPaste_(userId, text, replyToken);
+  // ข้อความที่ขึ้นต้นด้วย "บันทึก" หรือ "สั่งงาน" → พิมพ์เล่าเป็นประโยคได้เลย ให้ Claude ช่วยแยกข้อมูล
+  // (มีค่าใช้จ่ายจริงต่อข้อความแต่ถูกมาก — ต้องขึ้นต้นด้วยคำนี้เท่านั้นถึงจะเรียก AI กันเรียกพร่ำเพรื่อตอนแชทเล่นปกติ)
+  if (trimmed.indexOf('บันทึก') === 0 || trimmed.indexOf('สั่งงาน') === 0) {
+    handleFreeTextEntry_(userId, text, replyToken);
+    return;
+  }
+
+  // เงียบไว้ ไม่ใช่รูปแบบรีพอร์ต ไม่ใช่คำสั่งที่รู้จัก ไม่ใช่แชทที่ตั้งใจส่งให้บอท — กันบอทตอบแชทเล่นปกติในกลุ่ม
 }
 
 /* ============================================================
@@ -172,6 +184,123 @@ function setupDailyTrigger() {
   console.log('ตั้งเวลาแจ้งเตือนงานเสี่ยงทุกวัน 9:00 น. เรียบร้อย');
 }
 
+/* ============================================================
+ * เตือนคนที่ยังไม่ส่งรีพอร์ตประจำวัน — เช็ครายวันตอนใกล้เลิกงาน
+ * (พอร์ตกติกา isReportableMember/isActiveStatus เดียวกับฝั่งแอป app.html)
+ * ============================================================ */
+function checkMissingReportsAndNotify() {
+  const groupId = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID');
+  if (!groupId) { console.log('ยังไม่มี LINE_GROUP_ID ข้ามการแจ้งเตือนรอบนี้'); return; }
+
+  const payload = fetchSupabasePayload_();
+  const members = payload.members || [];
+  const dailyReports = payload.dailyReports || [];
+  const today = todayBangkokISO_();
+
+  const reportable = members.filter(function (m) {
+    return m.status !== 'พ้นทีม' && m.department !== 'ผู้จัดการ' && m.department !== 'ผู้บริหาร' && m.department !== 'ทีมงานนอก';
+  });
+  const submittedIds = {};
+  dailyReports.forEach(function (r) { if (r.date === today) submittedIds[r.memberId] = true; });
+  const missing = reportable.filter(function (m) { return !submittedIds[m.id]; });
+
+  if (missing.length === 0) { console.log('ทุกคนส่งรีพอร์ตวันนี้ครบแล้ว'); return; }
+
+  let msg = '📝 วันนี้ยังไม่ได้ส่งรีพอร์ตประจำวัน:\n';
+  missing.forEach(function (m) { msg += '- ' + m.name + '\n'; });
+  msg += '\nอย่าลืมส่งก่อนหมดวันนะ 🙏';
+  pushText_(groupId, msg);
+}
+
+// รันครั้งเดียวตอนติดตั้ง — ตั้งเวลาเช็ครีพอร์ตค้างทุกวัน 19:00 น. (แก้เวลาในบรรทัด atHour ได้ตามต้องการ)
+function setupMissingReportTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'checkMissingReportsAndNotify') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('checkMissingReportsAndNotify').timeBased().everyDays(1).atHour(19).inTimezone('Asia/Bangkok').create();
+  console.log('ตั้งเวลาเตือนรีพอร์ตค้างทุกวัน 19:00 น. เรียบร้อย');
+}
+
+/* ============================================================
+ * แจ้งเตือนงานสั่งใหม่ + คลิปที่เพิ่งเปลี่ยนสถานะเป็น Post — เช็คทุก 15 นาที
+ * ใช้วิธีจำ id ที่แจ้งไปแล้วไว้ใน Script Properties กันแจ้งซ้ำ (รอบแรกหลังติดตั้งจะจำไว้เฉยๆ ไม่แจ้งของเก่าทั้งหมด)
+ * ============================================================ */
+function checkNewWorkOrdersAndNotify_(payload, groupId) {
+  const props = PropertiesService.getScriptProperties();
+  const workOrders = payload.workOrders || [];
+  let known = [];
+  try { known = JSON.parse(props.getProperty('KNOWN_WORKORDER_IDS') || '[]'); } catch (e) { known = []; }
+  const knownSet = {};
+  known.forEach(function (id) { knownSet[id] = true; });
+
+  if (known.length === 0 && workOrders.length > 0) {
+    props.setProperty('KNOWN_WORKORDER_IDS', JSON.stringify(workOrders.map(function (o) { return o.id; })));
+    return; // รอบแรก — จำของเดิมไว้เฉยๆ ไม่แจ้งย้อนหลัง
+  }
+
+  const newOnes = workOrders.filter(function (o) { return !knownSet[o.id]; });
+  if (newOnes.length > 0) {
+    const brands = payload.brands || [];
+    newOnes.forEach(function (o) {
+      const brand = o.brandId ? brands.find(function (b) { return b.id === o.brandId; }) : null;
+      let msg = '📋 มีงานสั่งใหม่เข้ามา:\n' + o.title + '\n';
+      msg += 'ประเภท: ' + o.jobType + ' · กำหนดส่ง: ' + formatThaiDate_(o.deadline) + '\n';
+      if (o.requestedBy) msg += 'ใครสั่ง: ' + o.requestedBy + '\n';
+      if (brand) msg += 'แบรนด์: ' + brand.name + '\n';
+      pushText_(groupId, msg);
+    });
+    props.setProperty('KNOWN_WORKORDER_IDS', JSON.stringify(workOrders.map(function (o) { return o.id; })));
+  }
+}
+
+function checkNewPostsAndNotify_(payload, groupId) {
+  const props = PropertiesService.getScriptProperties();
+  const workItems = payload.workItems || [];
+  const posted = workItems.filter(function (w) { return w.status === 'Post'; });
+  let known = [];
+  try { known = JSON.parse(props.getProperty('KNOWN_POSTED_IDS') || '[]'); } catch (e) { known = []; }
+  const knownSet = {};
+  known.forEach(function (id) { knownSet[id] = true; });
+
+  if (known.length === 0 && posted.length > 0) {
+    props.setProperty('KNOWN_POSTED_IDS', JSON.stringify(posted.map(function (w) { return w.id; })));
+    return; // รอบแรก — จำของเดิมไว้เฉยๆ ไม่แจ้งย้อนหลัง
+  }
+
+  const newlyPosted = posted.filter(function (w) { return !knownSet[w.id]; });
+  if (newlyPosted.length > 0) {
+    const members = payload.members || [];
+    const brands = payload.brands || [];
+    newlyPosted.forEach(function (w) {
+      const owner = members.find(function (m) { return m.id === w.ownerId; });
+      const brand = w.brandId ? brands.find(function (b) { return b.id === w.brandId; }) : null;
+      let msg = '🎉 คลิปลงจริงแล้ว!\n' + (w.title || w.description || '(ไม่มีชื่อ)') + '\n';
+      if (brand) msg += 'แบรนด์: ' + brand.name + '\n';
+      if (owner) msg += 'โดย: ' + owner.name + '\n';
+      if (w.linkPost) msg += 'ลิงก์: ' + w.linkPost + '\n';
+      pushText_(groupId, msg);
+    });
+    props.setProperty('KNOWN_POSTED_IDS', JSON.stringify(posted.map(function (w) { return w.id; })));
+  }
+}
+
+function checkUpdatesAndNotify() {
+  const groupId = PropertiesService.getScriptProperties().getProperty('LINE_GROUP_ID');
+  if (!groupId) { console.log('ยังไม่มี LINE_GROUP_ID ข้ามการแจ้งเตือนรอบนี้'); return; }
+  const payload = fetchSupabasePayload_();
+  checkNewWorkOrdersAndNotify_(payload, groupId);
+  checkNewPostsAndNotify_(payload, groupId);
+}
+
+// รันครั้งเดียวตอนติดตั้ง — เช็คงานสั่งใหม่/คลิป Post ใหม่ทุก 15 นาที
+function setupUpdatesTrigger() {
+  ScriptApp.getProjectTriggers().forEach(function (t) {
+    if (t.getHandlerFunction() === 'checkUpdatesAndNotify') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('checkUpdatesAndNotify').timeBased().everyMinutes(15).create();
+  console.log('ตั้งเวลาเช็คงานสั่งใหม่/คลิป Post ใหม่ทุก 15 นาที เรียบร้อย');
+}
+
 function pushText_(to, text) {
   const token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
   const res = UrlFetchApp.fetch('https://api.line.me/v2/bot/message/push', {
@@ -182,6 +311,147 @@ function pushText_(to, text) {
     muteHttpExceptions: true
   });
   if (res.getResponseCode() !== 200) console.error('push ข้อความไม่สำเร็จ: ' + res.getResponseCode() + ' ' + res.getContentText());
+}
+
+/* ============================================================
+ * "บันทึก"/"สั่งงาน" — พิมพ์เล่าเป็นประโยคภาษาไทยอิสระ ให้ Claude ช่วยแยกข้อมูล
+ * (มีค่าใช้จ่ายจริงต่อครั้งที่เรียก แต่ถูกมาก ~0.02-0.05 บาท/ข้อความ — ดู SETUP.md ข้อ 11)
+ * ============================================================ */
+function isAnthropicKeyConfigured_() {
+  const key = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY') || '';
+  return key && key.indexOf('วางค่า') !== 0;
+}
+
+// เรียก Claude (Haiku 4.5 — ถูกและเร็วพอสำหรับงานแยกข้อมูลสั้นๆ แบบนี้) ให้แยกข้อความเป็น JSON โครงสร้างตายตัว
+// คืนค่า null ถ้าเรียกไม่สำเร็จ (โควตาหมด/คีย์ผิด/เน็ตมีปัญหา ฯลฯ) — ผู้เรียกต้องเช็ค null เอง
+function callClaudeExtract_(text, todayStr) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  const tool = {
+    name: 'extract_contentflow_entry',
+    description: 'แยกข้อมูลจากข้อความภาษาไทยที่พนักงานพิมพ์ในไลน์ ให้เป็น "รีพอร์ตงานประจำวัน" (daily_report) หรือ "การสั่งงานใหม่" (work_order)',
+    input_schema: {
+      type: 'object',
+      properties: {
+        intent: { type: 'string', enum: ['daily_report', 'work_order', 'unknown'], description: 'unknown ถ้าข้อความนี้ไม่ใช่การรายงานงานหรือสั่งงานจริงๆ' },
+        date: { type: 'string', description: 'วันที่ของรีพอร์ต รูปแบบ YYYY-MM-DD เท่านั้น (ถ้าไม่ระบุให้ใช้วันนี้ ถ้าพูดว่าเมื่อวานให้ลบ 1 วันจากวันนี้)' },
+        brand_name: { type: 'string', description: 'ชื่อแบรนด์ที่พูดถึง (เช่น HADA, WinkWhite, Dermedy, VitaSoul) ถ้าไม่มีให้เว้นว่าง' },
+        work_type: { type: 'string', enum: WORK_TYPES_, description: 'เฉพาะ daily_report — ประเภทงานที่ทำ' },
+        quantity: { type: 'number', description: 'เฉพาะ daily_report — จำนวนชิ้น ถ้าไม่ระบุใช้ 1' },
+        status: { type: 'string', enum: WORKITEM_STATUS_LIST_, description: 'เฉพาะ daily_report — สถานะงาน ถ้าไม่ระบุให้เดาจากบริบท (เช่น "เสร็จแล้ว"→สำเร็จ)' },
+        description: { type: 'string', description: 'รายละเอียดงานสั้นๆ' },
+        person_name: { type: 'string', description: 'ชื่อคนที่ทำงานนี้ ถ้าข้อความไม่ได้ระบุชื่อคนอื่นชัดเจนให้เว้นว่าง (จะถือว่าเป็นคนที่พิมพ์เอง)' },
+        drive_link: { type: 'string', description: 'ลิงก์ไดรฟ์/URL ถ้ามีในข้อความ' },
+        title: { type: 'string', description: 'เฉพาะ work_order — หัวข้อ/รายละเอียดงานที่สั่ง' },
+        job_type: { type: 'string', enum: WORKORDER_TYPE_LIST_, description: 'เฉพาะ work_order' },
+        deadline: { type: 'string', description: 'เฉพาะ work_order — กำหนดส่ง รูปแบบ YYYY-MM-DD เท่านั้น' },
+        requested_by: { type: 'string', description: 'เฉพาะ work_order — ใครเป็นคนสั่งงานนี้ ถ้าไม่ระบุให้เว้นว่าง' }
+      },
+      required: ['intent']
+    }
+  };
+
+  const body = {
+    model: 'claude-haiku-4-5',
+    max_tokens: 1024,
+    tools: [tool],
+    tool_choice: { type: 'tool', name: 'extract_contentflow_entry' },
+    messages: [{
+      role: 'user',
+      content: 'วันนี้คือวันที่ ' + todayStr + ' (ค.ศ., รูปแบบ YYYY-MM-DD)\n\nข้อความจากพนักงาน:\n' + text
+    }]
+  };
+
+  const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+    contentType: 'application/json',
+    payload: JSON.stringify(body),
+    muteHttpExceptions: true
+  });
+
+  if (res.getResponseCode() !== 200) {
+    console.error('Claude API error: ' + res.getResponseCode() + ' ' + res.getContentText());
+    return null;
+  }
+  const data = JSON.parse(res.getContentText());
+  const toolUse = (data.content || []).find(function (b) { return b.type === 'tool_use'; });
+  return toolUse ? toolUse.input : null;
+}
+
+function handleFreeTextEntry_(userId, text, replyToken) {
+  if (!isAnthropicKeyConfigured_()) {
+    replyText_(replyToken, 'ฟีเจอร์นี้ยังไม่ได้ตั้งค่า (ต้องใส่ ANTHROPIC_API_KEY ก่อน) — ให้แอดมินดู SETUP.md ข้อ 11 หรือพิมพ์รีพอร์ตแบบคั่น Tab แทนไปก่อน');
+    return;
+  }
+
+  const today = todayBangkokISO_();
+  const extracted = callClaudeExtract_(text, today);
+  if (!extracted || extracted.intent === 'unknown') {
+    replyText_(replyToken, 'ไม่เข้าใจข้อความนี้ว่าเป็นรีพอร์ตงานหรือสั่งงาน ลองพิมพ์ให้ชัดเจนขึ้น เช่น\n"บันทึก ตัดคลิป HADA 1 ชิ้น เสร็จแล้ว"\n"สั่งงาน ถ่ายอีเว้นท์เปิดตัว กำหนดส่ง 20 ก.ย."');
+    return;
+  }
+
+  const payloadNow = fetchSupabasePayload_();
+  const members = payloadNow.members || [];
+  const brands = payloadNow.brands || [];
+  const myMemberName = lookupMemberNameForLineUser_(userId);
+  const fallbackMember = myMemberName ? members.find(function (m) { return m.name === myMemberName; }) : null;
+
+  if (extracted.intent === 'work_order') {
+    if (!extracted.title || !extracted.deadline || !/^\d{4}-\d{2}-\d{2}$/.test(extracted.deadline)) {
+      replyText_(replyToken, 'ต้องระบุอย่างน้อยชื่องานและกำหนดส่งให้ชัดเจน ลองพิมพ์ใหม่ เช่น "สั่งงาน ถ่ายอีเว้นท์เปิดตัว กำหนดส่ง 20 ก.ย."');
+      return;
+    }
+    const brandMatch = extracted.brand_name ? matchBrandByRawName_(extracted.brand_name, brands) : null;
+    const order = {
+      title: extracted.title, requestedBy: extracted.requested_by || '', brandId: brandMatch ? brandMatch.id : '',
+      jobType: WORKORDER_TYPE_LIST_.indexOf(extracted.job_type) >= 0 ? extracted.job_type : 'อื่นๆ',
+      deadline: extracted.deadline, status: 'รับทราบ', note: ''
+    };
+    CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({
+      kind: 'workorder', order: order, actorMemberId: fallbackMember ? fallbackMember.id : null
+    }), 600);
+
+    let msg = 'แปลงเป็น "สั่งงาน" ได้:\n';
+    msg += 'หัวข้อ: ' + order.title + '\n';
+    msg += 'ประเภท: ' + order.jobType + ' · กำหนดส่ง: ' + order.deadline + '\n';
+    if (order.requestedBy) msg += 'ใครสั่ง: ' + order.requestedBy + '\n';
+    if (brandMatch) msg += 'แบรนด์: ' + brandMatch.name + '\n';
+    else if (extracted.brand_name) msg += '⚠️ ไม่พบแบรนด์ "' + extracted.brand_name + '" ในระบบ — จะบันทึกแบบไม่ระบุแบรนด์\n';
+    msg += '\nพิมพ์ "ยืนยัน" เพื่อบันทึกเข้าระบบ หรือ "ยกเลิก"';
+    replyText_(replyToken, msg);
+    return;
+  }
+
+  // daily_report
+  const brandMatch = extracted.brand_name ? matchBrandByRawName_(extracted.brand_name, brands) : null;
+  let personMatch = extracted.person_name ? matchMemberByRawName_(extracted.person_name, members) : null;
+  if (!personMatch) personMatch = fallbackMember;
+  if (!personMatch) {
+    replyText_(replyToken, 'ระบบยังไม่รู้จักคุณ — พิมพ์ "ไอดีฉัน" แล้วส่งให้แอดมินผูกชื่อก่อน หรือระบุชื่อคนในข้อความให้ชัดเจน');
+    return;
+  }
+
+  const entry = {
+    date: /^\d{4}-\d{2}-\d{2}$/.test(extracted.date || '') ? extracted.date : today,
+    brandId: brandMatch ? brandMatch.id : '',
+    description: extracted.description || '',
+    driveLink: extracted.drive_link || '',
+    status: WORKITEM_STATUS_LIST_.indexOf(extracted.status) >= 0 ? extracted.status : WORKITEM_STATUS_LIST_[0],
+    workType: WORK_TYPES_.indexOf(extracted.work_type) >= 0 ? extracted.work_type : 'ตัดคลิป',
+    quantity: Number(extracted.quantity) > 0 ? Number(extracted.quantity) : 1,
+    personId: personMatch.id, personName: personMatch.name, warnings: []
+  };
+  if (extracted.brand_name && !brandMatch) entry.warnings.push('ไม่พบแบรนด์ "' + extracted.brand_name + '" ในระบบ');
+
+  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({ kind: 'report', entries: [entry] }), 600);
+
+  const brandLabel = brandMatch ? brandMatch.name : 'ไม่ระบุแบรนด์';
+  let msg = 'แปลงได้:\n' + entry.date + ' · ' + brandLabel + ' · ' + entry.workType + ' ' + entry.quantity + ' ชิ้น · ' +
+    (entry.description || '(ไม่มีรายละเอียด)') + ' · ' + entry.personName + ' · ' + entry.status + '\n';
+  if (entry.warnings.length) msg += '\n⚠️ ' + entry.warnings.join(', ') + '\n';
+  msg += '\nพิมพ์ "ยืนยัน" เพื่อบันทึกเข้าระบบ หรือ "ยกเลิก"';
+  replyText_(replyToken, msg);
 }
 
 /* ============================================================
@@ -213,7 +483,7 @@ function handleReportPaste_(userId, text, replyToken) {
     return;
   }
 
-  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify(parsed), 600); // เก็บไว้ 10 นาที
+  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({ kind: 'report', entries: parsed.entries }), 600); // เก็บไว้ 10 นาที
 
   let msg = 'แปลงได้ ' + parsed.entries.length + ' งาน:\n';
   parsed.entries.forEach(function (en, i) {
@@ -248,6 +518,17 @@ function confirmPendingBatch_(userId, replyToken) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(20000);
+
+    if (parsed.kind === 'workorder') {
+      const result = commitWorkOrderToSupabase_(parsed.order, parsed.actorMemberId);
+      if (result.ok) {
+        replyText_(replyToken, 'บันทึกงาน "' + parsed.order.title + '" เรียบร้อย ✅ ดูได้ที่หน้า "สั่งงาน" ในแอป ContentFlow');
+      } else {
+        replyText_(replyToken, 'บันทึกไม่สำเร็จ: ' + result.error + '\nลองพิมพ์ใหม่อีกครั้ง หรือกรอกเองในแอปแทน');
+      }
+      return;
+    }
+
     const result = commitEntriesToSupabase_(parsed.entries);
     if (result.ok) {
       replyText_(replyToken, 'บันทึกเรียบร้อย ' + parsed.entries.length + ' งาน ✅ เข้าไปดูในแอป ContentFlow ได้เลย');
@@ -323,6 +604,53 @@ function commitEntriesToSupabase_(entries) {
   return { ok: false, error: 'มีคนแก้ไขข้อมูลพร้อมกันหลายรอบติดกัน' };
 }
 
+// เขียน "สั่งงาน" ใหม่เข้า Supabase แบบกันชนข้อมูล เหมือน commitEntriesToSupabase_
+function commitWorkOrderToSupabase_(order, actorMemberId) {
+  const props = PropertiesService.getScriptProperties();
+  const baseUrl = props.getProperty('SUPABASE_URL');
+  const key = props.getProperty('SUPABASE_KEY');
+  const headers = { apikey: key, Authorization: 'Bearer ' + key };
+  const rowUrl = baseUrl + '/rest/v1/contentflow_data?id=eq.main';
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const getRes = UrlFetchApp.fetch(rowUrl + '&select=payload,updated_at', { headers: headers, muteHttpExceptions: true });
+    if (getRes.getResponseCode() !== 200) {
+      console.error('โหลดข้อมูลไม่สำเร็จ: ' + getRes.getResponseCode() + ' ' + getRes.getContentText());
+      return { ok: false, error: 'โหลดข้อมูลจากเซิร์ฟเวอร์ไม่สำเร็จ' };
+    }
+    const rows = JSON.parse(getRes.getContentText());
+    if (!rows.length) return { ok: false, error: 'ไม่พบข้อมูลระบบ' };
+    const payload = rows[0].payload;
+    const updatedAt = rows[0].updated_at;
+
+    payload.workOrders = payload.workOrders || [];
+    payload.activityLog = payload.activityLog || [];
+    payload.workOrders.push({
+      id: genId_(), title: order.title, requestedBy: order.requestedBy || '', brandId: order.brandId || '',
+      jobType: order.jobType, deadline: order.deadline, status: order.status || 'รับทราบ', note: order.note || '', subtasks: []
+    });
+    payload.activityLog.push({
+      id: genId_(), memberId: actorMemberId || null, timestamp: new Date().toISOString(),
+      module: 'สั่งงาน', action: 'เพิ่มงานผ่านไลน์: ' + order.title
+    });
+
+    const patchRes = UrlFetchApp.fetch(rowUrl + '&updated_at=eq.' + encodeURIComponent(updatedAt), {
+      method: 'patch',
+      headers: Object.assign({ Prefer: 'return=representation' }, headers),
+      contentType: 'application/json',
+      payload: JSON.stringify({ payload: payload }),
+      muteHttpExceptions: true
+    });
+    const code = patchRes.getResponseCode();
+    const resultRows = code === 200 ? JSON.parse(patchRes.getContentText()) : [];
+    if (code === 200 && resultRows.length > 0) return { ok: true };
+
+    console.log('รอบที่ ' + attempt + ' (สั่งงาน): มีคนแก้ไขข้อมูลพร้อมกัน code=' + code);
+    Utilities.sleep(300);
+  }
+  return { ok: false, error: 'มีคนแก้ไขข้อมูลพร้อมกันหลายรอบติดกัน' };
+}
+
 function genId_() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -376,6 +704,8 @@ function uniq_(arr) {
  * ============================================================ */
 const THAI_DAY_NAMES_ = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'พฤหัส', 'ศุกร์', 'เสาร์'];
 const WORKITEM_STATUS_LIST_ = ['ดำเนินการ', 'รอตรวจ', 'แก้ไข', 'สำเร็จ', 'Post', 'ยกเลิก'];
+const WORK_TYPES_ = ['ตัดคลิป', 'ลงคลิป', 'ถ่ายฟุตเทจ', 'ออกกอง', 'อีเว้นท์', 'พากย์เสียง', 'เขียนสคริปต์', 'อื่นๆ'];
+const WORKORDER_TYPE_LIST_ = ['อีเว้นท์', 'งานเพิ่ม', 'อื่นๆ'];
 const LINE_PASTE_NAME_ALIASES_ = {
   'นิว': 'New', 'โอปอ': 'Opor', 'การ์ตูน': 'Cartoon', 'แป้ง': 'Pang', 'นิ้ง': 'Ning', 'ดิว': 'Dew'
 };
