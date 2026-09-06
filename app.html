@@ -354,7 +354,8 @@
     font-size:12px; font-weight:600; color:var(--text-sub); text-align:center;
     padding-bottom:8px; margin-bottom:8px; border-bottom:1px solid var(--border);
   }
-  .calendar-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px;}
+  .view-toggle-btn.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .calendar-grid{display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; --cal-scale:1;}
   .calendar-cell{
     background:var(--bg); border:1px solid var(--border); border-radius:10px;
     min-height:96px; padding:6px; display:flex; flex-direction:column; gap:3px; min-width:0;
@@ -363,30 +364,39 @@
   .calendar-cell.is-today{border-color:var(--accent); background:#eaf1ff;}
   .calendar-cell:not(.other-month){cursor:pointer; transition:border-color .15s ease, background .15s ease;}
   .calendar-cell:not(.other-month):hover{border-color:var(--accent); background:#eaf1ff;}
-  .calendar-day-num{font-size:12px; font-weight:700; color:var(--text-sub);}
+  .calendar-day-num{font-size:calc(12px * var(--cal-scale, 1)); font-weight:700; color:var(--text-sub);}
   .calendar-item{
-    font-size:10.5px; padding:2px 6px; border-radius:6px; white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis; font-weight:600;
+    font-size:calc(10.5px * var(--cal-scale, 1)); padding:2px 6px; border-radius:6px;
+    white-space:normal; overflow:visible; word-break:break-word; font-weight:600; line-height:1.35;
   }
-  .calendar-more{font-size:10px; color:var(--text-sub); margin-top:1px;}
   .calendar-holiday{
-    font-size:9.5px; font-weight:700; color:var(--danger); white-space:nowrap;
-    overflow:hidden; text-overflow:ellipsis;
+    font-size:calc(9.5px * var(--cal-scale, 1)); font-weight:700; color:var(--danger); white-space:normal;
   }
   @media (max-width:860px){
     .calendar-cell{min-height:56px; padding:4px;}
-    .calendar-item{font-size:9px; padding:1px 4px;}
+    .calendar-item{font-size:calc(9px * var(--cal-scale, 1));}
   }
   @media (max-width:480px){
     .calendar-cell{min-height:46px; padding:3px; gap:2px;}
-    .calendar-day-num{font-size:11px;}
+    .calendar-day-num{font-size:calc(11px * var(--cal-scale, 1));}
     .calendar-item{
-      font-size:0; padding:0; width:8px; height:8px; min-width:8px; min-height:8px;
+      font-size:0 !important; padding:0; width:8px; height:8px; min-width:8px; min-height:8px;
       border-radius:50%; margin:0 auto; display:block; overflow:visible;
     }
-    .calendar-more{font-size:8px; text-align:center;}
-    .calendar-holiday{font-size:8px;}
+    .calendar-holiday{font-size:calc(8px * var(--cal-scale, 1));}
   }
+  .calendar-list{display:flex; flex-direction:column; gap:10px; --cal-scale:1;}
+  .calendar-list-day{border:1px solid var(--border); border-radius:10px; padding:12px 14px; background:var(--bg);}
+  .calendar-list-day.is-today{border-color:var(--accent); background:#eaf1ff;}
+  .calendar-list-date{font-weight:700; font-size:calc(13.5px * var(--cal-scale, 1)); margin-bottom:8px;}
+  .calendar-list-date .holiday-tag{color:var(--danger); font-weight:700; margin-left:6px;}
+  .calendar-list-items{display:flex; flex-direction:column; gap:8px;}
+  .calendar-list-item{
+    display:flex; align-items:flex-start; gap:8px; cursor:pointer; padding:6px 8px;
+    border-radius:8px; font-size:calc(13.5px * var(--cal-scale, 1)); line-height:1.4;
+  }
+  .calendar-list-item:hover{background:var(--card);}
+  .calendar-list-empty{color:var(--text-sub); font-size:13px; text-align:center; padding:30px 10px;}
 
   table{width:100%; border-collapse:collapse; font-size:13.5px;}
   th{
@@ -1007,7 +1017,18 @@
             <div id="calendarMonthLabel" style="font-weight:700; font-size:16px;"></div>
             <button class="icon-btn" id="calendarNextBtn">เดือนถัดไป ›</button>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:6px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-outline btn-sm view-toggle-btn" id="calendarViewGridBtn">📅 ปฏิทิน</button>
+              <button class="btn btn-outline btn-sm view-toggle-btn" id="calendarViewListBtn">📋 รายการ</button>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:12px; color:var(--text-sub);">ขนาดตัวหนังสือ</span>
+              <button class="icon-btn" id="calendarTextSmallerBtn" title="ตัวเล็กลง">ก-</button>
+              <button class="icon-btn" id="calendarTextBiggerBtn" title="ตัวใหญ่ขึ้น">ก+</button>
+            </div>
+          </div>
+          <div id="calendarWeekdayHeader" style="display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-bottom:6px;">
             <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">อา</div>
             <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">จ</div>
             <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">อ</div>
@@ -1017,6 +1038,7 @@
             <div style="text-align:center; font-size:12px; font-weight:600; color:var(--text-sub);">ส</div>
           </div>
           <div class="calendar-grid" id="calendarGrid"></div>
+          <div class="calendar-list" id="calendarListView" style="display:none;"></div>
         </div>
       </div>
 
@@ -2318,6 +2340,14 @@
   let editingBrandId = null;
   let editingWorkItemId = null;
   let calendarMonthStr = null;
+  let calendarViewMode = 'grid';
+  let calendarTextScale = 1;
+  try {
+    const savedMode = localStorage.getItem('calendarViewMode');
+    if(savedMode === 'grid' || savedMode === 'list') calendarViewMode = savedMode;
+    const savedScale = Number(localStorage.getItem('calendarTextScale'));
+    if(savedScale >= 0.7 && savedScale <= 1.6) calendarTextScale = savedScale;
+  } catch(e){}
   let pendingBrandChannels = [];
   let pendingBrandChannelKpi = {};
   let pendingChannelRenames = [];
@@ -6208,6 +6238,19 @@
   }
 
   /* ===== Calendar ===== */
+  function getCalendarDayItems(dateStr){
+    const plansToday = data.workOrders.filter(p => p.deadline === dateStr);
+    const eventsToday = data.calendarEvents.filter(e => e.date === dateStr);
+    return [
+      ...plansToday.map(p => {
+        const risk = getWorkOrderRisk(p);
+        const riskPrefix = risk === 'overdue' ? '🚨 ' : (risk === 'urgent' ? '⏰ ' : '');
+        return { label: riskPrefix + p.title, chipClass: WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot', onclick: `openPlanModal('${p.id}')` };
+      }),
+      ...eventsToday.map(e => ({ label: e.title, chipClass: 'chip-event', onclick: `openCalendarEventModal('${e.id}')` }))
+    ];
+  }
+
   function renderCalendar(){
     const monthLabelEl = document.getElementById('calendarMonthLabel');
     if(!monthLabelEl) return;
@@ -6216,6 +6259,27 @@
     const [y, m] = calendarMonthStr.split('-').map(Number);
     const monthNamesFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
     monthLabelEl.textContent = `${monthNamesFull[m - 1]} ${y + 543}`;
+
+    document.querySelectorAll('.view-toggle-btn').forEach(b => b.classList.remove('active'));
+    const gridEl = document.getElementById('calendarGrid');
+    const listEl = document.getElementById('calendarListView');
+    const weekdayHeaderEl = document.getElementById('calendarWeekdayHeader');
+    gridEl.style.setProperty('--cal-scale', calendarTextScale);
+    listEl.style.setProperty('--cal-scale', calendarTextScale);
+
+    if(calendarViewMode === 'list'){
+      document.getElementById('calendarViewListBtn').classList.add('active');
+      gridEl.style.display = 'none';
+      weekdayHeaderEl.style.display = 'none';
+      listEl.style.display = '';
+      renderCalendarListView(y, m);
+      return;
+    }
+
+    document.getElementById('calendarViewGridBtn').classList.add('active');
+    listEl.style.display = 'none';
+    weekdayHeaderEl.style.display = 'grid';
+    gridEl.style.display = '';
 
     const startWeekday = new Date(y, m - 1, 1).getDay();
     const daysInMonth = new Date(y, m, 0).getDate();
@@ -6234,34 +6298,67 @@
       cells.push({ day: trailDay++, otherMonth: true, dateStr: null });
     }
 
-    const grid = document.getElementById('calendarGrid');
-    grid.innerHTML = cells.map(c => {
+    gridEl.innerHTML = cells.map(c => {
       if(c.otherMonth){
         return `<div class="calendar-cell other-month"><div class="calendar-day-num">${c.day}</div></div>`;
       }
       const isToday = c.dateStr === todayStr;
       const holiday = getHolidayForDate(c.dateStr);
-      const plansToday = data.workOrders.filter(p => p.deadline === c.dateStr);
-      const eventsToday = data.calendarEvents.filter(e => e.date === c.dateStr);
-      const items = [
-        ...plansToday.map(p => {
-          const risk = getWorkOrderRisk(p);
-          const riskPrefix = risk === 'overdue' ? '🚨 ' : (risk === 'urgent' ? '⏰ ' : '');
-          return { label: riskPrefix + p.title, chipClass: WORKORDER_STATUS_CHIP_CLASS[p.status] || 'chip-shoot', onclick: `openPlanModal('${p.id}')` };
-        }),
-        ...eventsToday.map(e => ({ label: e.title, chipClass: 'chip-event', onclick: `openCalendarEventModal('${e.id}')` }))
-      ];
-      const shown = items.slice(0, 3);
-      const moreCount = items.length - shown.length;
+      const items = getCalendarDayItems(c.dateStr);
       return `
         <div class="calendar-cell ${isToday ? 'is-today' : ''}" onclick="openCalendarEventModal(null, '${c.dateStr}')" title="คลิกเพื่อเพิ่มเหตุการณ์วันที่ ${c.day}">
           <div class="calendar-day-num">${c.day}</div>
           ${holiday ? `<div class="calendar-holiday">${escapeHtml(holiday.name)}</div>` : ''}
-          ${shown.map(it => `<div class="calendar-item chip ${it.chipClass}" onclick="event.stopPropagation(); ${it.onclick}">${escapeHtml(it.label)}</div>`).join('')}
-          ${moreCount > 0 ? `<div class="calendar-more">+${moreCount} เพิ่มเติม</div>` : ''}
+          ${items.map(it => `<div class="calendar-item chip ${it.chipClass}" onclick="event.stopPropagation(); ${it.onclick}">${escapeHtml(it.label)}</div>`).join('')}
         </div>
       `;
     }).join('');
+  }
+
+  function renderCalendarListView(y, m){
+    const listEl = document.getElementById('calendarListView');
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const todayStr = todayISO();
+    const weekdayNamesFull = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+
+    const dayRows = [];
+    for(let d = 1; d <= daysInMonth; d++){
+      const dateStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const holiday = getHolidayForDate(dateStr);
+      const items = getCalendarDayItems(dateStr);
+      if(!holiday && items.length === 0) continue;
+      dayRows.push({ dateStr, day: d, holiday, items });
+    }
+
+    if(dayRows.length === 0){
+      listEl.innerHTML = `<div class="calendar-list-empty">เดือนนี้ยังไม่มีงานที่สั่งไว้/เหตุการณ์/วันสำคัญเลย</div>`;
+      return;
+    }
+
+    listEl.innerHTML = dayRows.map(row => {
+      const weekday = weekdayNamesFull[new Date(row.dateStr + 'T00:00:00').getDay()];
+      const isToday = row.dateStr === todayStr;
+      return `
+        <div class="calendar-list-day ${isToday ? 'is-today' : ''}">
+          <div class="calendar-list-date">${row.day} — วัน${weekday}${row.holiday ? `<span class="holiday-tag">${escapeHtml(row.holiday.name)}</span>` : ''}</div>
+          <div class="calendar-list-items">
+            ${row.items.map(it => `<div class="calendar-list-item chip ${it.chipClass}" onclick="${it.onclick}">${escapeHtml(it.label)}</div>`).join('') || (row.holiday ? '' : '')}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function setCalendarViewMode(mode){
+    calendarViewMode = mode;
+    try { localStorage.setItem('calendarViewMode', mode); } catch(e){}
+    renderCalendar();
+  }
+
+  function adjustCalendarTextScale(delta){
+    calendarTextScale = Math.min(1.6, Math.max(0.7, Math.round((calendarTextScale + delta) * 10) / 10));
+    try { localStorage.setItem('calendarTextScale', String(calendarTextScale)); } catch(e){}
+    renderCalendar();
   }
 
   function shiftCalendarMonth(delta){
@@ -7835,6 +7932,10 @@
   document.getElementById('calendarAddEventBtn').addEventListener('click', () => openCalendarEventModal(null));
   document.getElementById('calendarPrevBtn').addEventListener('click', () => shiftCalendarMonth(-1));
   document.getElementById('calendarNextBtn').addEventListener('click', () => shiftCalendarMonth(1));
+  document.getElementById('calendarViewGridBtn').addEventListener('click', () => setCalendarViewMode('grid'));
+  document.getElementById('calendarViewListBtn').addEventListener('click', () => setCalendarViewMode('list'));
+  document.getElementById('calendarTextSmallerBtn').addEventListener('click', () => adjustCalendarTextScale(-0.1));
+  document.getElementById('calendarTextBiggerBtn').addEventListener('click', () => adjustCalendarTextScale(0.1));
   document.getElementById('calendarEventModalCancel').addEventListener('click', closeCalendarEventModal);
   guardClick(document.getElementById('calendarEventModalSave'), saveCalendarEvent);
   document.getElementById('calendarEventDeleteBtn').addEventListener('click', deleteCalendarEvent);

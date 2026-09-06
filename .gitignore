@@ -5,3 +5,7 @@
 # รูปโลโก้ต้นฉบับที่ใช้อัปโหลดเข้าระบบ — อยู่ใน Supabase แล้ว (base64 ในข้อมูลแบรนด์)
 logos/
 .DS_Store
+# โฟลเดอร์ที่ก๊อป app.html/index.html มาไว้ deploy ขึ้น Cloudflare Pages (wrangler pages deploy public)
+# เก็บเฉพาะไฟล์ที่ต้องขึ้นเว็บสาธารณะ ไม่ให้ CLAUDE.md/SPEC.md/TASKS.md/ไฟล์ทีมงานหลุดขึ้นเว็บไปด้วย
+public/
+.wrangler/
