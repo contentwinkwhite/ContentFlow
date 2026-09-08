@@ -753,14 +753,32 @@ function matchStatusAlias_(raw) {
 
 /* ============================================================
  * แพทเทิร์นพิมพ์มีป้ายกำกับ — สำหรับพิมพ์ตรงในไลน์บนมือถือ (ไม่ต้องคั่น Tab ที่พิมพ์เองไม่ได้)
- * ตัวอย่าง:
+ * ตัวอย่าง (ทำหลายงานในวันเดียวกัน พิมพ์ต่อกันได้เลย เว้นบรรทัดว่างคั่นระหว่างงาน):
  *   วันที่: 8/09/26
  *   แบรนด์: HADA
  *   งาน: ตัดคลิปรีวิวสินค้าใหม่
  *   จำนวน: 1
  *   สถานะ: เสร็จ
+ *
+ *   วันที่: 8/09/26
+ *   แบรนด์: WinkWhite
+ *   งาน: ถ่ายฟุตเทจ
+ *   จำนวน: 2
+ *   สถานะ: ดำเนินการ
  * ฟรี ไม่ใช้ Claude — จับคู่ป้ายกำกับด้วยกฎตายตัวเหมือนแพทเทิร์นคั่น Tab
  * ============================================================ */
+function parseLabeledReportBlocks_(text, members, brands) {
+  const blocks = text.split(/\n\s*\n+/).map(function (b) { return b.trim(); }).filter(function (b) { return b !== ''; });
+  const entries = [];
+  let skippedCount = 0;
+  blocks.forEach(function (block) {
+    const entry = parseLabeledReportText_(block, members, brands);
+    if (entry) entries.push(entry);
+    else skippedCount++;
+  });
+  return { entries: entries, skippedCount: skippedCount };
+}
+
 function parseLabeledReportText_(text, members, brands) {
   const lines = text.split('\n');
   const fields = {};
@@ -810,27 +828,39 @@ function handleLabeledReport_(userId, text, replyToken) {
   const myMemberName = lookupMemberNameForLineUser_(userId);
   const fallbackMember = myMemberName ? members.find(function (m) { return m.name === myMemberName; }) : null;
 
-  const entry = parseLabeledReportText_(text, members, brands);
-  if (!entry) {
-    replyText_(replyToken, 'พิมพ์ไม่ครบตามแพทเทิร์น ลองพิมพ์แบบนี้:\nวันที่: 8/09/26\nแบรนด์: HADA\nงาน: ตัดคลิปรีวิวสินค้าใหม่\nจำนวน: 1\nสถานะ: เสร็จ');
+  const parsed = parseLabeledReportBlocks_(text, members, brands);
+  if (parsed.entries.length === 0) {
+    replyText_(replyToken, 'พิมพ์ไม่ครบตามแพทเทิร์น ลองพิมพ์แบบนี้:\nวันที่: 8/09/26\nแบรนด์: HADA\nงาน: ตัดคลิปรีวิวสินค้าใหม่\nจำนวน: 1\nสถานะ: เสร็จ\n\nทำหลายงานวันเดียวกัน พิมพ์ต่อกันได้เลย เว้นบรรทัดว่างคั่นระหว่างงาน');
     return;
   }
-  if (!entry.personId) {
-    if (fallbackMember) { entry.personId = fallbackMember.id; entry.personName = fallbackMember.name; }
-    else {
-      replyText_(replyToken, 'ระบบยังไม่รู้จักคุณ — พิมพ์ "ไอดีฉัน" แล้วส่งให้แอดมินผูกชื่อก่อน หรือเพิ่มบรรทัด "คน: ชื่อของคุณ"');
-      return;
+
+  let anyMissingPerson = false;
+  parsed.entries.forEach(function (entry) {
+    if (!entry.personId) {
+      if (fallbackMember) { entry.personId = fallbackMember.id; entry.personName = fallbackMember.name; }
+      else anyMissingPerson = true;
     }
+  });
+  if (anyMissingPerson) {
+    replyText_(replyToken, 'ระบบยังไม่รู้จักคุณ — พิมพ์ "ไอดีฉัน" แล้วส่งให้แอดมินผูกชื่อก่อน หรือเพิ่มบรรทัด "คน: ชื่อของคุณ" ในแต่ละงาน');
+    return;
   }
 
-  const hasPendingImage = !!CacheService.getScriptCache().get('pending_img_' + userId);
+  // แนบรูปได้เฉพาะตอนมีงานเดียวในข้อความนี้ (หลายงานแล้วไม่รู้จะแนบรูปให้ชิ้นไหน)
+  const hasPendingImage = parsed.entries.length === 1 && !!CacheService.getScriptCache().get('pending_img_' + userId);
 
-  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({ kind: 'report', entries: [entry] }), 600);
+  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({ kind: 'report', entries: parsed.entries }), 600);
 
-  const brandLabel = entry.brandId ? (brands.find(function (b) { return b.id === entry.brandId; }) || {}).name : 'ไม่ระบุแบรนด์';
-  let msg = 'แปลงได้:\n' + entry.date + ' · ' + brandLabel + ' · ' + entry.workType + ' ' + entry.quantity + ' ชิ้น · ' +
-    (entry.description || '(ไม่มีรายละเอียด)') + ' · ' + entry.personName + ' · ' + entry.status + (hasPendingImage ? ' · 📷 แนบรูปที่เพิ่งส่งให้ด้วย' : '') + '\n';
-  if (entry.warnings.length) msg += '\n⚠️ ' + entry.warnings.join(', ') + '\n';
+  let msg = 'แปลงได้ ' + parsed.entries.length + ' งาน:\n';
+  parsed.entries.forEach(function (entry, i) {
+    const brandLabel = entry.brandId ? (brands.find(function (b) { return b.id === entry.brandId; }) || {}).name : 'ไม่ระบุแบรนด์';
+    msg += (i + 1) + '. ' + entry.date + ' · ' + brandLabel + ' · ' + entry.workType + ' ' + entry.quantity + ' ชิ้น · ' +
+      (entry.description || '(ไม่มีรายละเอียด)') + ' · ' + entry.personName + ' · ' + entry.status + '\n';
+  });
+  if (hasPendingImage) msg += '📷 แนบรูปที่เพิ่งส่งให้ด้วย\n';
+  if (parsed.skippedCount > 0) msg += '\n⚠️ ข้ามไป ' + parsed.skippedCount + ' บล็อกที่พิมพ์ไม่ครบตามแพทเทิร์น\n';
+  const allWarnings = parsed.entries.reduce(function (arr, en) { return arr.concat(en.warnings); }, []);
+  if (allWarnings.length) msg += '\n⚠️ ' + allWarnings.join(', ') + '\n';
   msg += '\nพิมพ์ "ยืนยัน" เพื่อบันทึกเข้าระบบ หรือ "ยกเลิก"';
   replyText_(replyToken, msg);
 }
