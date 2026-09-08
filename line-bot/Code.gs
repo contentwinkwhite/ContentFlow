@@ -57,9 +57,17 @@ function handleEvent_(event) {
     }
   }
 
-  if (event.type !== 'message' || event.message.type !== 'text') return;
+  if (event.type !== 'message') return;
   const replyToken = event.replyToken;
   const userId = event.source && event.source.userId;
+
+  // รูปที่ส่งมา — เก็บไว้ชั่วคราว รอผูกกับรีพอร์ตที่พิมพ์ตามมา (ก่อนหรือหลังก็ได้)
+  if (event.message.type === 'image') {
+    handleImageMessage_(userId, event.message.id, replyToken);
+    return;
+  }
+
+  if (event.message.type !== 'text') return; // sticker/video/audio/location ฯลฯ — ไม่รองรับ เงียบไว้
   const text = event.message.text || '';
   const trimmed = text.trim();
 
@@ -77,7 +85,13 @@ function handleEvent_(event) {
     return;
   }
   if (trimmed === 'ยกเลิก') {
-    CacheService.getScriptCache().remove('pending_' + userId);
+    const cache = CacheService.getScriptCache();
+    cache.remove('pending_' + userId);
+    const pendingImgId = cache.get('pending_img_' + userId);
+    if (pendingImgId) {
+      try { DriveApp.getFileById(pendingImgId).setTrashed(true); } catch (e) { /* ไฟล์อาจถูกลบไปแล้ว ไม่เป็นไร */ }
+      cache.remove('pending_img_' + userId);
+    }
     replyText_(replyToken, 'ยกเลิกแล้ว ไม่มีอะไรถูกบันทึก');
     return;
   }
@@ -89,6 +103,12 @@ function handleEvent_(event) {
   // ข้อความที่มีตัวคั่น Tab (ก๊อปจากชีต/ปั้นตามแพทเทิร์นเดิม) → พาร์สด้วยกฎตายตัว ฟรี ไม่มีค่าใช้จ่าย
   if (text.indexOf('\t') !== -1) {
     handleReportPaste_(userId, text, replyToken);
+    return;
+  }
+
+  // แพทเทิร์นพิมพ์มีป้ายกำกับ (พิมพ์เองบนมือถือได้ ไม่ต้องคั่น Tab) — ฟรี ไม่ใช้ Claude
+  if (/^\s*วันที่\s*[:：]/m.test(text)) {
+    handleLabeledReport_(userId, text, replyToken);
     return;
   }
 
@@ -529,6 +549,12 @@ function confirmPendingBatch_(userId, replyToken) {
       return;
     }
 
+    // แนบรูปที่ค้างไว้ (ถ้ามี) — เฉพาะตอนมีงานเดียวในชุดนี้ กันรูปเดียวไปแปะซ้ำหลายชิ้นงานตอนวางจากชีตทีละหลายแถว
+    if (parsed.entries.length === 1) {
+      const imgDataUrl = resolvePendingImageDataUrl_(userId);
+      if (imgDataUrl) parsed.entries[0].coverImageDataUrl = imgDataUrl;
+    }
+
     const result = commitEntriesToSupabase_(parsed.entries);
     if (result.ok) {
       replyText_(replyToken, 'บันทึกเรียบร้อย ' + parsed.entries.length + ' งาน ✅ เข้าไปดูในแอป ContentFlow ได้เลย');
@@ -569,21 +595,23 @@ function commitEntriesToSupabase_(entries) {
 
     entries.forEach(function (entry) {
       const workId = genId_();
+      const workType = entry.workType || 'ตัดคลิป';
+      const quantity = entry.quantity > 0 ? entry.quantity : 1;
       const report = {
-        id: genId_(), memberId: entry.personId, date: entry.date, workType: 'ตัดคลิป',
-        quantity: 1, contentPlanId: null, brandId: entry.brandId || '', note: entry.description
+        id: genId_(), memberId: entry.personId, date: entry.date, workType: workType,
+        quantity: quantity, contentPlanId: null, brandId: entry.brandId || '', note: entry.description
       };
       payload.dailyReports.push(report);
       payload.workItems.push({
         id: workId, title: entry.description, date: entry.date, ownerId: entry.personId, brandId: entry.brandId || '',
-        workType: 'ตัดคลิป', quantity: 1, product: '', description: entry.description,
-        location: '', channel: '', coverImageDataUrl: '', status: entry.status || 'รอตรวจ',
+        workType: workType, quantity: quantity, product: '', description: entry.description,
+        location: '', channel: '', coverImageDataUrl: entry.coverImageDataUrl || '', status: entry.status || 'รอตรวจ',
         imageNote: '', driveLink: entry.driveLink || '', postDate: '', linkPost: '', postCoverImageDataUrl: '',
         revisions: [], reportId: report.id
       });
       payload.activityLog.push({
         id: genId_(), memberId: entry.personId, timestamp: new Date().toISOString(),
-        module: 'รายงานการทำงาน', action: 'เพิ่มงานผ่านไลน์: ตัดคลิป 1 ชิ้น'
+        module: 'รายงานการทำงาน', action: 'เพิ่มงานผ่านไลน์: ' + workType + ' ' + quantity + ' ชิ้น'
       });
     });
 
@@ -706,6 +734,154 @@ const THAI_DAY_NAMES_ = ['อาทิตย์', 'จันทร์', 'อั�
 const WORKITEM_STATUS_LIST_ = ['ดำเนินการ', 'รอตรวจ', 'แก้ไข', 'สำเร็จ', 'Post', 'ยกเลิก'];
 const WORK_TYPES_ = ['ตัดคลิป', 'ลงคลิป', 'ถ่ายฟุตเทจ', 'ออกกอง', 'อีเว้นท์', 'พากย์เสียง', 'เขียนสคริปต์', 'อื่นๆ'];
 const WORKORDER_TYPE_LIST_ = ['อีเว้นท์', 'งานเพิ่ม', 'อื่นๆ'];
+
+// คำที่คนมักพิมพ์แทนสถานะจริงในระบบ (ใช้กับแพทเทิร์นพิมพ์มีป้ายกำกับด้านล่าง)
+const STATUS_ALIASES_ = {
+  'เสร็จ': 'สำเร็จ', 'เสร็จแล้ว': 'สำเร็จ', 'สำเร็จแล้ว': 'สำเร็จ',
+  'กำลังทำ': 'ดำเนินการ', 'ทำอยู่': 'ดำเนินการ', 'กำลังดำเนินการ': 'ดำเนินการ',
+  'รอตรวจงาน': 'รอตรวจ', 'ส่งตรวจ': 'รอตรวจ', 'ตรวจ': 'รอตรวจ',
+  'ลงแล้ว': 'Post', 'โพสต์แล้ว': 'Post', 'โพสแล้ว': 'Post', 'โพสต์': 'Post', 'โพส': 'Post', 'post': 'Post'
+};
+
+function matchStatusAlias_(raw) {
+  const clean = (raw || '').trim();
+  if (!clean) return '';
+  const exact = WORKITEM_STATUS_LIST_.find(function (s) { return s.toLowerCase() === clean.toLowerCase(); });
+  if (exact) return exact;
+  return STATUS_ALIASES_[clean] || '';
+}
+
+/* ============================================================
+ * แพทเทิร์นพิมพ์มีป้ายกำกับ — สำหรับพิมพ์ตรงในไลน์บนมือถือ (ไม่ต้องคั่น Tab ที่พิมพ์เองไม่ได้)
+ * ตัวอย่าง:
+ *   วันที่: 8/09/26
+ *   แบรนด์: HADA
+ *   งาน: ตัดคลิปรีวิวสินค้าใหม่
+ *   จำนวน: 1
+ *   สถานะ: เสร็จ
+ * ฟรี ไม่ใช้ Claude — จับคู่ป้ายกำกับด้วยกฎตายตัวเหมือนแพทเทิร์นคั่น Tab
+ * ============================================================ */
+function parseLabeledReportText_(text, members, brands) {
+  const lines = text.split('\n');
+  const fields = {};
+  lines.forEach(function (line) {
+    const m = line.match(/^\s*([ก-๙A-Za-z]+)\s*[:：]\s*(.*)$/);
+    if (!m) return;
+    const label = m[1].trim();
+    const value = m[2].trim();
+    if (/^วันที่/.test(label)) fields.date = value;
+    else if (/^แบรนด์/.test(label)) fields.brand = value;
+    else if (/^(งาน|รายละเอียด)/.test(label)) fields.description = value;
+    else if (/^จำนวน/.test(label)) fields.quantity = value;
+    else if (/^สถานะ/.test(label)) fields.status = value;
+    else if (/^(คน|ผู้ทำ)/.test(label)) fields.person = value;
+    else if (/^(ลิงก์|ไดร์ฟ|ไดรฟ์)/.test(label)) fields.link = value;
+    else if (/^ประเภท/.test(label)) fields.workType = value;
+  });
+
+  if (!fields.date && !fields.description && !fields.brand) return null; // ไม่เข้าแพทเทิร์นนี้จริงๆ
+
+  const dateVal = fields.date ? parseLinePasteDate_(fields.date) : null;
+  const brandMatch = fields.brand ? matchBrandByRawName_(fields.brand, brands) : null;
+  const personMatch = fields.person ? matchMemberByRawName_(fields.person, members) : null;
+
+  const warnings = [];
+  if (fields.brand && !brandMatch) warnings.push('ไม่พบแบรนด์ "' + fields.brand + '" ในระบบ');
+  if (fields.person && !personMatch) warnings.push('ไม่พบชื่อคน "' + fields.person + '"');
+
+  return {
+    date: dateVal || todayBangkokISO_(),
+    brandId: brandMatch ? brandMatch.id : '',
+    description: fields.description || '',
+    driveLink: fields.link || '',
+    status: matchStatusAlias_(fields.status) || WORKITEM_STATUS_LIST_[0],
+    workType: WORK_TYPES_.indexOf(fields.workType) >= 0 ? fields.workType : 'ตัดคลิป',
+    quantity: Number(fields.quantity) > 0 ? Number(fields.quantity) : 1,
+    personId: personMatch ? personMatch.id : '',
+    personName: personMatch ? personMatch.name : '',
+    warnings: warnings
+  };
+}
+
+function handleLabeledReport_(userId, text, replyToken) {
+  const payloadNow = fetchSupabasePayload_();
+  const members = payloadNow.members || [];
+  const brands = payloadNow.brands || [];
+  const myMemberName = lookupMemberNameForLineUser_(userId);
+  const fallbackMember = myMemberName ? members.find(function (m) { return m.name === myMemberName; }) : null;
+
+  const entry = parseLabeledReportText_(text, members, brands);
+  if (!entry) {
+    replyText_(replyToken, 'พิมพ์ไม่ครบตามแพทเทิร์น ลองพิมพ์แบบนี้:\nวันที่: 8/09/26\nแบรนด์: HADA\nงาน: ตัดคลิปรีวิวสินค้าใหม่\nจำนวน: 1\nสถานะ: เสร็จ');
+    return;
+  }
+  if (!entry.personId) {
+    if (fallbackMember) { entry.personId = fallbackMember.id; entry.personName = fallbackMember.name; }
+    else {
+      replyText_(replyToken, 'ระบบยังไม่รู้จักคุณ — พิมพ์ "ไอดีฉัน" แล้วส่งให้แอดมินผูกชื่อก่อน หรือเพิ่มบรรทัด "คน: ชื่อของคุณ"');
+      return;
+    }
+  }
+
+  const hasPendingImage = !!CacheService.getScriptCache().get('pending_img_' + userId);
+
+  CacheService.getScriptCache().put('pending_' + userId, JSON.stringify({ kind: 'report', entries: [entry] }), 600);
+
+  const brandLabel = entry.brandId ? (brands.find(function (b) { return b.id === entry.brandId; }) || {}).name : 'ไม่ระบุแบรนด์';
+  let msg = 'แปลงได้:\n' + entry.date + ' · ' + brandLabel + ' · ' + entry.workType + ' ' + entry.quantity + ' ชิ้น · ' +
+    (entry.description || '(ไม่มีรายละเอียด)') + ' · ' + entry.personName + ' · ' + entry.status + (hasPendingImage ? ' · 📷 แนบรูปที่เพิ่งส่งให้ด้วย' : '') + '\n';
+  if (entry.warnings.length) msg += '\n⚠️ ' + entry.warnings.join(', ') + '\n';
+  msg += '\nพิมพ์ "ยืนยัน" เพื่อบันทึกเข้าระบบ หรือ "ยกเลิก"';
+  replyText_(replyToken, msg);
+}
+
+/* ============================================================
+ * รูปที่ส่งมาในไลน์ — เก็บชั่วคราวใน Drive (Cache เก็บรูปใหญ่ไม่ได้ จำกัด 100KB/ค่า)
+ * ผูกกับรีพอร์ตที่กำลังจะยืนยันโดยอัตโนมัติ ไม่ว่าจะส่งรูปก่อนหรือหลังพิมพ์รีพอร์ตก็ได้ (ภายใน 10 นาที)
+ * ============================================================ */
+function handleImageMessage_(userId, messageId, replyToken) {
+  if (!userId) return;
+  const token = PropertiesService.getScriptProperties().getProperty('LINE_CHANNEL_ACCESS_TOKEN');
+  const res = UrlFetchApp.fetch('https://api-data.line.me/v2/bot/message/' + messageId + '/content', {
+    headers: { Authorization: 'Bearer ' + token },
+    muteHttpExceptions: true
+  });
+  if (res.getResponseCode() !== 200) {
+    console.error('ดึงรูปจากไลน์ไม่สำเร็จ: ' + res.getResponseCode());
+    replyText_(replyToken, 'ดึงรูปไม่สำเร็จ ลองส่งใหม่อีกครั้ง');
+    return;
+  }
+  const blob = res.getBlob();
+  let file;
+  try {
+    file = DriveApp.createFile(blob).setName('linebot_tmp_' + userId + '_' + Date.now());
+  } catch (e) {
+    console.error('บันทึกรูปชั่วคราวไม่สำเร็จ: ' + e.message);
+    replyText_(replyToken, 'บันทึกรูปไม่สำเร็จ (ปัญหาสิทธิ์ Google Drive) ลองใหม่หรือแนบรูปในแอปแทน');
+    return;
+  }
+  CacheService.getScriptCache().put('pending_img_' + userId, file.getId(), 600);
+  replyText_(replyToken, '📷 ได้รับรูปแล้ว พิมพ์รายงานงานตามมาได้เลย (แบบมีป้าย "วันที่: ...") จะแนบรูปนี้ให้อัตโนมัติ');
+}
+
+// เรียกตอนจะยืนยันบันทึกจริง — แปลงรูปที่ค้างไว้ใน Drive กลับเป็น base64 แล้วลบไฟล์ชั่วคราวทิ้ง
+function resolvePendingImageDataUrl_(userId) {
+  const cache = CacheService.getScriptCache();
+  const fileId = cache.get('pending_img_' + userId);
+  if (!fileId) return '';
+  try {
+    const file = DriveApp.getFileById(fileId);
+    const blob = file.getBlob();
+    const mimeType = blob.getContentType() || 'image/jpeg';
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    file.setTrashed(true);
+    cache.remove('pending_img_' + userId);
+    return 'data:' + mimeType + ';base64,' + base64;
+  } catch (e) {
+    console.error('resolvePendingImageDataUrl_ พัง: ' + e.message);
+    return '';
+  }
+}
 const LINE_PASTE_NAME_ALIASES_ = {
   'นิว': 'New', 'โอปอ': 'Opor', 'การ์ตูน': 'Cartoon', 'แป้ง': 'Pang', 'นิ้ง': 'Ning', 'ดิว': 'Dew'
 };
